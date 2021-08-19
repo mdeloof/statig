@@ -1,0 +1,11 @@
+[package]
+name = "stateful"
+version = "0.1.0"
+edition = "2018"
+license = "MIT"
+description = "Hierarchial state machine with function pointers"
+readme = "README.md"
+keywords = ["hierarchial state machine"]
+
+
+[dependencies]
