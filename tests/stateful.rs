@@ -2,7 +2,7 @@
 mod tests {
 
 use std::fmt;
-use stateful::{Response, State, Stateful};
+use stateful::{Response, StateWrapper, State, Stateful};
 use std::vec::Vec;
 
 #[derive(Clone)]
@@ -33,7 +33,7 @@ enum Action {
 }
 
 struct Foo {
-    pub state: State<Self, Event>,
+    pub state: StateWrapper<Self, Event>,
     pub path: Vec<(State<Self, Event>, Action)>
 }
 
@@ -43,7 +43,7 @@ impl Stateful for Foo {
     const INIT_STATE: State<Self, Self::Event> = Self::s11;
 
     fn state_mut(&mut self) -> &mut State<Self, Self::Event> {
-        &mut self.state
+        &mut self.state.0
     }
 }
 
@@ -163,12 +163,11 @@ impl fmt::Debug for Foo {
 
 
 
-
 #[test]
 fn stator_transition() {
 
     let mut foo = Foo {
-        state: Foo::s11,
+        state: StateWrapper(Foo::s11),
         path: Vec::new()
     };
 

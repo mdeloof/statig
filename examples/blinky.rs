@@ -1,6 +1,6 @@
-use stateful::{Response::{Handled, Transition, Parent}, Stateful};
+use stateful::{Response::{Handled, Transition, Parent}, Stateful, StateWrapper, State};
 
-type State = stateful::State<Blinky, Event>;
+//type State = stateful::State<Blinky, Event>;
 type Response = stateful::Response<Blinky, Event>;
 
 // Events are variants of an enum.
@@ -28,7 +28,7 @@ impl stateful::Event for Event {
 struct Blinky {
 
     // The state field stores the current state
-    state: State,
+    state: StateWrapper<Self, Event>,
 
     // Then add your own ...
     light: bool
@@ -41,11 +41,11 @@ impl Stateful for Blinky {
     type Event = Event;
 
     // The initial state of the state machine
-    const INIT_STATE: State = Self::on;
+    const INIT_STATE: State<Self, Event> = Self::on;
 
     // Get a mutable reference to the current state field.
-    fn state_mut(&mut self) -> &mut State {
-        &mut self.state
+    fn state_mut(&mut self) -> &mut State<Self, Event> {
+        &mut self.state.0
     }
 }
 
@@ -107,7 +107,7 @@ impl Blinky {
 fn main() {
 
     let mut blinky = Blinky {
-        state: Blinky::INIT_STATE,
+        state: StateWrapper(Blinky::INIT_STATE),
         light: false
     };
 
