@@ -9,3 +9,4 @@ keywords = ["hierarchial state machine"]
 
 
 [dependencies]
+stateful_derive = { path = "stateful_derive" }
