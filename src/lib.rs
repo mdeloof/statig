@@ -141,7 +141,7 @@
 //!     
 //!     // The state handler `on` has `Playing` as a parent state. Every
 //!     // time we enter this state we want to call the method `enter_on`.
-//!     #[state(parent = "Playing", on_enter = "enter_on")]
+//!     #[state(parent = "Playing", on_enter = "Blinky::enter_on")]
 //!     fn on(&mut self, event: &Event) -> Response {
 //!         match event {
 //!             // When the event `TimerElapsed` is received, transition to
@@ -151,7 +151,7 @@
 //!         }
 //!     }
 //!
-//!     #[state(parent = "Playing", on_enter = "enter_off")]
+//!     #[state(parent = "Playing", on_enter = "Blinky::enter_off")]
 //!     fn off(&mut self, event: &Event) -> Response {
 //!         match event {
 //!             Event::TimerElapsed => Transition(State::On),
@@ -166,7 +166,7 @@
 //!         }
 //!     }
 //!
-//!     #[state(on_exit = "enter_paused")]
+//!     #[state(on_exit = "Blinky::enter_paused")]
 //!     fn paused(&mut self, event: &Event) -> Response {
 //!         match event {
 //!             Event::ButtonPressed => Transition(State::On),
@@ -291,7 +291,7 @@ pub trait Stateful: Sized {
         }
     }
 
-    /// Transition from the innder state to the outside.
+    /// Transition from the inner state to the outside.
     fn drill_out_of(&mut self, state: Self::State) {
         let exit_path = state.parent_path();
         for state in exit_path.into_iter() {

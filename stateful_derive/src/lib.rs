@@ -6,7 +6,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::visit::{self, Visit};
 use syn::{
-    Ident,
+    ExprPath, Ident,
     Meta::NameValue,
     NestedMeta::{Lit, Meta},
 };
@@ -60,26 +60,26 @@ pub fn derive_state(_: TokenStream, input: TokenStream) -> TokenStream {
     });
 
     // Generate the on enter handler matches.
-    let state_to_on_enter_handler_matches = states
-        .iter()
-        .map(|s| {
-            let state_enum_variant = &s.ident;
-            match &s.on_enter_handler {
-                Some(on_enter_handler) => quote! { #state_ident::#state_enum_variant => Some(#object_ident::#on_enter_handler) },
-                None => quote! { #state_ident::#state_enum_variant => None }
+    let state_to_on_enter_handler_matches = states.iter().map(|s| {
+        let state_enum_variant = &s.ident;
+        match &s.on_enter_handler {
+            Some(on_enter_handler) => {
+                quote! { #state_ident::#state_enum_variant => Some(#on_enter_handler) }
             }
-        });
+            None => quote! { #state_ident::#state_enum_variant => None },
+        }
+    });
 
     // Generate the on exit handler matches.
-    let state_to_on_exit_handler_matches = states
-        .iter()
-        .map(|s| {
-            let state_variant_ident = &s.ident;
-            match &s.on_exit_handler {
-                Some(on_exit_handler) => quote! { #state_ident::#state_variant_ident => Some(#object_ident::#on_exit_handler) },
-                None => quote! { #state_ident::#state_variant_ident => None }
+    let state_to_on_exit_handler_matches = states.iter().map(|s| {
+        let state_variant_ident = &s.ident;
+        match &s.on_exit_handler {
+            Some(on_exit_handler) => {
+                quote! { #state_ident::#state_variant_ident => Some(#on_exit_handler) }
             }
-        });
+            None => quote! { #state_ident::#state_variant_ident => None },
+        }
+    });
 
     let gen = quote! {
 
@@ -208,8 +208,8 @@ struct State {
     ident: Ident,
     state_handler: Ident,
     parent: Option<Ident>,
-    on_enter_handler: Option<Ident>,
-    on_exit_handler: Option<Ident>,
+    on_enter_handler: Option<ExprPath>,
+    on_exit_handler: Option<ExprPath>,
 }
 
 impl State {
@@ -235,13 +235,19 @@ impl State {
 
                 Meta(NameValue(name_value)) if name_value.path.is_ident("on_enter") => {
                     if let syn::Lit::Str(on_enter_lit) = name_value.lit {
-                        on_enter_handler = Some(format_ident!("{}", on_enter_lit.value()))
+                        on_enter_handler = Some(
+                            syn::parse_str::<syn::ExprPath>(&on_enter_lit.value())
+                                .expect("not a an expression"),
+                        )
                     }
                 }
 
                 Meta(NameValue(name_value)) if name_value.path.is_ident("on_exit") => {
                     if let syn::Lit::Str(on_exit_lit) = name_value.lit {
-                        on_exit_handler = Some(format_ident!("{}", on_exit_lit.value()))
+                        on_exit_handler = Some(
+                            syn::parse_str::<syn::ExprPath>(&on_exit_lit.value())
+                                .expect("not a an expression"),
+                        )
                     }
                 }
 
