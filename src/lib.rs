@@ -158,7 +158,10 @@
 //!             _ => Parent,
 //!         }
 //!     }
-//!
+//!     
+//!     // The `derive_state` macro will take the snake_case name and convert
+//!     // it to PascalCase to create the state variant. So `playing` becomes
+//!     // `Playing`.
 //!     fn playing(&mut self, event: &Event) -> Response {
 //!         match event {
 //!             Event::ButtonPressed => Transition(State::Paused),
