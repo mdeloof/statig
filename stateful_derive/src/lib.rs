@@ -12,7 +12,7 @@ use syn::{
 };
 
 #[proc_macro_attribute]
-pub fn derive_state(_: TokenStream, input: TokenStream) -> TokenStream {
+pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
     // Parse the token stream.
     let ast: syn::Item = syn::parse(input).unwrap();
 
@@ -31,7 +31,10 @@ pub fn derive_state(_: TokenStream, input: TokenStream) -> TokenStream {
             .first()
             .expect("no states found"),
     );
+
     let state_ident = state_machine.state_ident;
+    let superstate_ident = state_machine.superstate_ident;
+
     let states: Vec<State> = state_machine_visitor
         .state_handlers
         .iter()
@@ -42,25 +45,25 @@ pub fn derive_state(_: TokenStream, input: TokenStream) -> TokenStream {
     let state_variant_idents = states.iter().map(|s| &s.ident);
 
     // Generate the state handler matches.
-    let state_to_state_handler_matches = states.iter().map(|s| {
+    let state_to_handler_matches = states.iter().map(|s| {
         let state_variant_ident = &s.ident;
         let state_handler_ident = &s.state_handler;
         quote! { #state_ident::#state_variant_ident => #object_ident::#state_handler_ident }
     });
 
-    // Generate the parent state matches.
-    let state_to_parent_matches = states.iter().map(|s| {
+    // Generate the superstate state matches.
+    let state_to_superstate_matches = states.iter().map(|s| {
         let state_variant_ident = &s.ident;
-        match &s.parent {
-            Some(parent_ident) => {
-                quote! { #state_ident::#state_variant_ident => Some(#state_ident::#parent_ident) }
+        match &s.superstate {
+            Some(superstate_variant_ident) => {
+                quote! { #state_ident::#state_variant_ident => Some(#superstate_ident::#superstate_variant_ident) }
             }
             None => quote! { #state_ident::#state_variant_ident => None },
         }
     });
 
-    // Generate the on enter handler matches.
-    let state_to_on_enter_handler_matches = states.iter().map(|s| {
+    // Generate the entry action matches.
+    let state_to_entry_action_matches = states.iter().map(|s| {
         let state_enum_variant = &s.ident;
         match &s.on_enter_handler {
             Some(on_enter_handler) => {
@@ -70,8 +73,8 @@ pub fn derive_state(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
-    // Generate the on exit handler matches.
-    let state_to_on_exit_handler_matches = states.iter().map(|s| {
+    // Generate the exit action matches.
+    let state_to_exit_action_matches = states.iter().map(|s| {
         let state_variant_ident = &s.ident;
         match &s.on_exit_handler {
             Some(on_exit_handler) => {
@@ -81,46 +84,138 @@ pub fn derive_state(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
+    let superstates: Vec<State> = state_machine_visitor
+        .superstate_handlers
+        .iter()
+        .map(|s| State::from_ast(s))
+        .collect();
+
+    // Generate the idents of the enum variants.
+    let superstate_variant_idents = superstates.iter().map(|s| &s.ident);
+
+    // Generate the state handler matches.
+    let mut superstate_to_handler_matches = superstates.iter().map(|s| {
+        let superstate_variant_ident = &s.ident;
+        let superstate_handler_ident = &s.state_handler;
+        quote! { #superstate_ident::#superstate_variant_ident => #object_ident::#superstate_handler_ident }
+    }).collect::<Vec<proc_macro2::TokenStream>>();
+
+    superstate_to_handler_matches.push(quote! { _ => |_, _| { stateful::Response::Handled } });
+
+    // Generate the superstate state matches.
+    let mut superstate_to_superstate_matches = superstates.iter().map(|s| {
+        let superstate_variant_ident = &s.ident;
+        match &s.superstate {
+            Some(superstate_ident) => {
+                quote! { #superstate_ident::#superstate_variant_ident => Some(#superstate_ident::#superstate_ident) }
+            }
+            None => quote! { #superstate_ident::#superstate_variant_ident => None },
+        }
+    }).collect::<Vec<proc_macro2::TokenStream>>();
+
+    superstate_to_superstate_matches.push(quote! { _ => None });
+
+    // Generate the on enter handler matches.
+    let mut superstate_to_entry_action_matches = superstates.iter().map(|s| {
+        let superstate_variant_ident = &s.ident;
+        match &s.on_enter_handler {
+            Some(on_enter_handler) => {
+                quote! { #superstate_ident::#superstate_variant_ident => Some(#on_enter_handler) }
+            }
+            None => quote! { #superstate_ident::#superstate_variant_ident => None },
+        }
+    }).collect::<Vec<proc_macro2::TokenStream>>();
+
+    superstate_to_entry_action_matches.push(quote! { _ => None });
+
+    // Generate the on exit handler matches.
+    let mut superstate_to_exit_action_matches = superstates.iter().map(|s| {
+        let superstate_variant_ident = &s.ident;
+        match &s.on_exit_handler {
+            Some(on_exit_handler) => {
+                quote! { #superstate_ident::#superstate_variant_ident => Some(#on_exit_handler) }
+            }
+            None => quote! { #superstate_ident::#superstate_variant_ident => None },
+        }
+    }).collect::<Vec<proc_macro2::TokenStream>>();
+
+    superstate_to_exit_action_matches.push(quote! { _ => None });
+
     let gen = quote! {
 
         use stateful::state;
+        use stateful::superstate;
 
         #ast
 
-        #[derive(Copy, Clone, PartialEq)]
-        enum #state_ident {
+        #[derive(Copy, Clone, PartialEq, Debug)]
+        pub enum #state_ident {
             #(#state_variant_idents),*
         }
 
         impl stateful::State for #state_ident {
             type Object = #object_ident;
             type Event = #event_ident;
+            type Superstate = #superstate_ident;
 
-            fn state_handler(&self) -> stateful::StateHandler<Self::Object, Self::Event> {
+            fn handler(&self) -> stateful::Handler<Self::Object, Self::Event> {
                 match self {
-                    #(#state_to_state_handler_matches),*
+                    #(#state_to_handler_matches),*
                 }
             }
 
-            fn parent_state(&self) -> Option<Self> {
+            fn superstate(&self) -> Option<Self::Superstate> {
                 match self {
-                    #(#state_to_parent_matches),*
+                    #(#state_to_superstate_matches),*
                 }
             }
 
-            fn state_on_enter_handler(&self) -> Option<stateful::StateOnEnterHandler<Self::Object>> {
+            fn entry_action(&self) -> Option<stateful::Action<Self::Object>> {
                 match self {
-                    #(#state_to_on_enter_handler_matches),*
+                    #(#state_to_entry_action_matches),*
                 }
             }
 
-            fn state_on_exit_handler(&self) -> Option<stateful::StateOnExitHandler<Self::Object>> {
+            fn exit_action(&self) -> Option<stateful::Action<Self::Object>> {
                 match self {
-                    #(#state_to_on_exit_handler_matches),*
+                    #(#state_to_exit_action_matches),*
+                }
+            }
+        }
+
+        #[derive(Copy, Clone, PartialEq, Debug)]
+        pub enum #superstate_ident {
+            #(#superstate_variant_idents),*
+        }
+
+        impl stateful::Superstate for #superstate_ident {
+            type Object = #object_ident;
+            type Event = #event_ident;
+
+            fn handler(&self) -> stateful::Handler<Self::Object, Self::Event> {
+                match self {
+                    #(#superstate_to_handler_matches),*
                 }
             }
 
+            fn superstate(&self) -> Option<Self> {
+                match self {
+                    #(#superstate_to_superstate_matches),*
+                }
+            }
 
+            fn entry_action(&self) -> Option<stateful::Action<Self::Object>> {
+                match self {
+                    #(#superstate_to_entry_action_matches),*
+
+                }
+            }
+
+            fn exit_action(&self) -> Option<stateful::Action<Self::Object>> {
+                match self {
+                    #(#superstate_to_exit_action_matches),*
+                }
+            }
         }
 
     };
@@ -134,24 +229,53 @@ pub fn state(_: TokenStream, input: TokenStream) -> TokenStream {
     input
 }
 
+#[proc_macro_attribute]
+pub fn superstate(_: TokenStream, input: TokenStream) -> TokenStream {
+    input
+}
+
 #[derive(Default, Debug)]
 struct StateMachineVisitor<'ast> {
     item_impl: Option<&'ast syn::ItemImpl>,
     state_handlers: Vec<&'ast syn::ImplItemMethod>,
+    superstate_handlers: Vec<&'ast syn::ImplItemMethod>,
+}
+
+impl<'ast> StateMachineVisitor<'ast> {
+    fn is_handler_sig(&self, sig: &syn::Signature) -> bool {
+        use syn::{
+            FnArg::{Receiver, Typed},
+            ReturnType::Type,
+        };
+        match (&sig.inputs.iter().collect::<Vec<_>>()[..], &sig.output) {
+            ([Receiver(_), Typed(_)], Type(.., _return_type)) => {
+                if let Some(expected_sig) = self.state_handlers.first().map(|s| &s.sig) {
+                    sig.inputs == expected_sig.inputs && sig.output == sig.output
+                } else {
+                    true
+                }
+            }
+            _ => false,
+        }
+    }
 }
 
 impl<'ast> Visit<'ast> for StateMachineVisitor<'ast> {
     fn visit_impl_item_method(&mut self, i: &'ast syn::ImplItemMethod) {
-        match (&i.sig.inputs.iter().collect::<Vec<_>>()[..], &i.sig.output) {
-            // Match the expected signature of a state handler function.
-            ([syn::FnArg::Receiver(_), syn::FnArg::Typed(_)], syn::ReturnType::Type(.., _return_type)) => {
-                if let Some(sig) = self.state_handlers.first().map(|s| &s.sig) {
-                    assert_eq!(sig.inputs, i.sig.inputs, "all state handlers should have the same signature");
-                    assert_eq!(sig.output, i.sig.output, "all state handlers should have the same signature");
+        for attr in i.attrs.iter() {
+            match &attr.path {
+                path if path.is_ident("state") => {
+                    if self.is_handler_sig(&i.sig) {
+                        self.state_handlers.push(i);
+                    }
                 }
-                self.state_handlers.push(i);
+                path if path.is_ident("superstate") => {
+                    if self.is_handler_sig(&i.sig) {
+                        self.superstate_handlers.push(i);
+                    }
+                }
+                _ => {}
             }
-            _ => panic!("state handlers should have a signature matching `fn(&mut Self, &Event) -> Response`"),
         }
     }
 
@@ -161,9 +285,11 @@ impl<'ast> Visit<'ast> for StateMachineVisitor<'ast> {
     }
 }
 
+#[derive(Debug)]
 struct StateMachine {
     object_ident: Ident,
     state_ident: Ident,
+    superstate_ident: Ident,
 }
 
 impl StateMachine {
@@ -179,9 +305,14 @@ impl StateMachine {
             _ => panic!("should have type"),
         };
 
-        let mut state_ident = format_ident!("{}State", object_ident);
+        let mut state_ident = format_ident!("State");
+        let mut superstate_ident = format_ident!("Superstate");
 
-        let meta_items = parse_state_handler_attribute(&impl_item.attrs);
+        let meta_items =
+            match parse_state_handler_attribute(&impl_item.attrs, format_ident!("state")) {
+                Some(meta_items) => meta_items,
+                None => Vec::new(),
+            };
 
         for meta_item in meta_items {
             match meta_item {
@@ -191,49 +322,81 @@ impl StateMachine {
                     }
                 }
 
-                Lit(_) => panic!("unnexpected literal"),
+                Lit(_) => panic!("unexpected literal"),
 
-                _ => panic!("unnexpected"),
+                test => panic!("unexpected {:?}", test),
+            }
+        }
+
+        let meta_items =
+            match parse_state_handler_attribute(&impl_item.attrs, format_ident!("superstate")) {
+                Some(meta_items) => meta_items,
+                None => Vec::new(),
+            };
+
+        for meta_item in meta_items {
+            match meta_item {
+                Meta(NameValue(name_value)) if name_value.path.is_ident("name") => {
+                    if let syn::Lit::Str(name_lit) = name_value.lit {
+                        superstate_ident = format_ident!("{}", name_lit.value())
+                    }
+                }
+
+                Lit(_) => panic!("unexpected literal"),
+
+                test => panic!("unexpected {:?}", test),
             }
         }
 
         Self {
             object_ident,
             state_ident,
+            superstate_ident,
         }
     }
 }
 
+#[derive(Debug)]
 struct State {
     ident: Ident,
     state_handler: Ident,
-    parent: Option<Ident>,
+    superstate: Option<Ident>,
     on_enter_handler: Option<ExprPath>,
     on_exit_handler: Option<ExprPath>,
 }
 
 impl State {
     fn from_ast(method: &syn::ImplItemMethod) -> Self {
-        let ident = format_ident!(
+        let mut ident = format_ident!(
             "{}",
             snake_case_to_pascal_case(&method.sig.ident.to_string())
         );
         let state_handler = method.sig.ident.clone();
-        let mut parent = None;
+        let mut superstate = None;
         let mut on_enter_handler = None;
         let mut on_exit_handler = None;
 
-        let meta_items = parse_state_handler_attribute(&method.attrs);
+        let meta_items = match parse_state_handler_attribute(&method.attrs, format_ident!("state"))
+        {
+            Some(meta_items) => meta_items,
+            None => Vec::new(),
+        };
 
         for meta_item in meta_items {
             match meta_item {
-                Meta(NameValue(name_value)) if name_value.path.is_ident("parent") => {
-                    if let syn::Lit::Str(parent_lit) = name_value.lit {
-                        parent = Some(format_ident!("{}", parent_lit.value()))
+                Meta(NameValue(name_value)) if name_value.path.is_ident("name") => {
+                    if let syn::Lit::Str(name_lit) = name_value.lit {
+                        ident = format_ident!("{}", name_lit.value())
                     }
                 }
 
-                Meta(NameValue(name_value)) if name_value.path.is_ident("on_enter") => {
+                Meta(NameValue(name_value)) if name_value.path.is_ident("superstate") => {
+                    if let syn::Lit::Str(superstate_lit) = name_value.lit {
+                        superstate = Some(format_ident!("{}", superstate_lit.value()))
+                    }
+                }
+
+                Meta(NameValue(name_value)) if name_value.path.is_ident("entry_action") => {
                     if let syn::Lit::Str(on_enter_lit) = name_value.lit {
                         on_enter_handler = Some(
                             syn::parse_str::<syn::ExprPath>(&on_enter_lit.value())
@@ -242,40 +405,44 @@ impl State {
                     }
                 }
 
-                Meta(NameValue(name_value)) if name_value.path.is_ident("on_exit") => {
+                Meta(NameValue(name_value)) if name_value.path.is_ident("exit_action") => {
                     if let syn::Lit::Str(on_exit_lit) = name_value.lit {
                         on_exit_handler = Some(
                             syn::parse_str::<syn::ExprPath>(&on_exit_lit.value())
-                                .expect("not a an expression"),
+                                .expect("not an expression"),
                         )
                     }
                 }
 
-                Lit(_) => panic!("unnexpected literal"),
+                Lit(_) => panic!("unexpected literal"),
 
-                _ => panic!("unnexpected"),
+                a => panic!("unexpected {:?}", a),
             }
         }
 
         Self {
             ident,
             state_handler,
-            parent,
+            superstate,
             on_enter_handler,
             on_exit_handler,
         }
     }
 }
 
-fn parse_state_handler_attribute(attrs: &Vec<syn::Attribute>) -> Vec<syn::NestedMeta> {
-    let state_attr = attrs.iter().find(|attr| attr.path.is_ident("state"));
+fn parse_state_handler_attribute(
+    attrs: &Vec<syn::Attribute>,
+    attr_ident: Ident,
+) -> Option<Vec<syn::NestedMeta>> {
+    let state_attr = attrs.iter().find(|attr| attr.path.is_ident(&attr_ident));
     let state_attr = match state_attr {
         Some(attr) => attr,
-        None => return Vec::new(),
+        None => return None,
     };
 
     match state_attr.parse_meta() {
-        Ok(syn::Meta::List(meta_items)) => meta_items.nested.into_iter().collect(),
+        Ok(syn::Meta::List(meta_items)) => Some(meta_items.nested.into_iter().collect()),
+        Ok(syn::Meta::Path(_)) => Some(Vec::new()),
         Ok(_) => panic!("state attribute must be a list"),
         Err(_) => panic!("state attribute must follow meta syntax"),
     }

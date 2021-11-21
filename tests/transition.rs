@@ -20,19 +20,37 @@ mod tests {
         Exit,
     }
 
+    #[derive(Debug)]
+    enum StateWrapper {
+        Leaf(State),
+        Super(Superstate),
+    }
+
     struct Foo {
         pub state: State,
-        pub path: Vec<(State, Action)>,
+        pub path: Vec<(StateWrapper, Action)>,
     }
 
     impl Stateful for Foo {
-        type Event = Event;
         type State = State;
 
         const INIT_STATE: State = State::S11;
 
         fn state_mut(&mut self) -> &mut State {
             &mut self.state
+        }
+
+        fn on_transition(
+            &mut self,
+            source: &State,
+            exit_path: &[Superstate],
+            entry_path: &[Superstate],
+            target: &State,
+        ) {
+            println!("source state: {:?}", source);
+            println!("exit path: {:?}", exit_path);
+            println!("entry path: {:?}", entry_path);
+            println!("target state: {:?}", target);
         }
     }
 
@@ -42,94 +60,106 @@ mod tests {
             match event {
                 Event::A => Response::Transition(State::S11),
                 Event::B => Response::Transition(State::S12),
-                _ => Response::Parent,
+                _ => Response::Super,
             }
         }
 
         fn enter_s11(&mut self) {
-            self.path.push((State::S11, Action::Entry));
+            self.path
+                .push((StateWrapper::Leaf(State::S11), Action::Entry));
         }
 
         fn exit_s11(&mut self) {
-            self.path.push((State::S11, Action::Exit));
+            self.path
+                .push((StateWrapper::Leaf(State::S11), Action::Exit));
         }
 
         /// s12
         pub fn s12(&mut self, event: &Event) -> Response {
             match event {
                 Event::C => Response::Transition(State::S211),
-                _ => Response::Parent,
+                _ => Response::Super,
             }
         }
 
         fn enter_s12(&mut self) {
-            self.path.push((State::S12, Action::Entry));
+            self.path
+                .push((StateWrapper::Leaf(State::S12), Action::Entry));
         }
 
         fn exit_s12(&mut self) {
-            self.path.push((State::S12, Action::Exit));
+            self.path
+                .push((StateWrapper::Leaf(State::S12), Action::Exit));
         }
 
         /// s1
         pub fn s1(&mut self, event: &Event) -> Response {
             match event {
-                _ => Response::Parent,
+                _ => Response::Super,
             }
         }
 
         fn enter_s1(&mut self) {
-            self.path.push((State::S1, Action::Entry));
+            self.path
+                .push((StateWrapper::Super(Superstate::S1), Action::Entry));
         }
 
         fn exit_s1(&mut self) {
-            self.path.push((State::S1, Action::Exit));
+            self.path
+                .push((StateWrapper::Super(Superstate::S1), Action::Exit));
         }
 
         /// s211
         pub fn s211(&mut self, event: &Event) -> Response {
             println!("Cool");
             match event {
-                _ => Response::Parent,
+                _ => Response::Super,
             }
         }
 
         fn enter_s211(&mut self) {
-            self.path.push((State::S211, Action::Entry));
+            self.path
+                .push((StateWrapper::Leaf(State::S211), Action::Entry));
         }
 
         fn exit_s211(&mut self) {
-            self.path.push((State::S211, Action::Exit));
+            self.path
+                .push((StateWrapper::Leaf(State::S211), Action::Exit));
         }
 
         /// s21
         pub fn s21(&mut self, event: &Event) -> Response {
             match event {
-                _ => Response::Parent,
+                _ => Response::Super,
             }
         }
 
         fn enter_s21(&mut self) {
-            self.path.push((State::S21, Action::Entry));
+            self.path
+                .push((StateWrapper::Super(Superstate::S21), Action::Entry));
         }
 
         fn exit_s21(&mut self) {
-            self.path.push((State::S21, Action::Exit));
+            self.path
+                .push((StateWrapper::Super(Superstate::S21), Action::Exit));
         }
 
         /// s2
         pub fn s2(&mut self, event: &Event) -> Response {
             match event {
                 Event::D => Response::Transition(State::S11),
-                _ => Response::Parent,
+                _ => Response::Super,
             }
         }
 
         fn enter_s2(&mut self) {
-            self.path.push((State::S2, Action::Entry));
+            self.path
+                .push((StateWrapper::Super(Superstate::S2), Action::Entry));
         }
 
         fn exit_s2(&mut self) {
-            self.path.push((State::S2, Action::Exit));
+            self.path
+                .push((StateWrapper::Super(Superstate::S2), Action::Exit));
         }
 
         /// s
@@ -140,11 +170,13 @@ mod tests {
         }
 
         fn enter_s(&mut self) {
-            self.path.push((State::S, Action::Entry));
+            self.path
+                .push((StateWrapper::Super(Superstate::S), Action::Entry));
         }
 
         fn exit_s(&mut self) {
-            self.path.push((State::S, Action::Exit));
+            self.path
+                .push((StateWrapper::Super(Superstate::S), Action::Exit));
         }
     }
 
@@ -154,67 +186,96 @@ mod tests {
         }
     }
 
-    #[derive(Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq, Debug)]
     enum State {
-        S,
-        S1,
         S11,
         S12,
-        S2,
-        S21,
         S211,
     }
 
     impl stateful::State for State {
         type Object = Foo;
-
         type Event = Event;
+        type Superstate = Superstate;
 
-        fn state_handler(&self) -> stateful::StateHandler<Self::Object, Self::Event> {
+        fn handler(&self) -> stateful::Handler<Self::Object, Self::Event> {
             match self {
-                State::S => Foo::s,
-                State::S1 => Foo::s1,
                 State::S11 => Foo::s11,
                 State::S12 => Foo::s12,
-                State::S2 => Foo::s2,
-                State::S21 => Foo::s21,
                 State::S211 => Foo::s211,
             }
         }
 
-        fn parent_state(&self) -> Option<Self> {
+        fn superstate(&self) -> Option<Self::Superstate> {
             match self {
-                State::S => None,
-                State::S1 => Some(State::S),
-                State::S11 => Some(State::S1),
-                State::S12 => Some(State::S1),
-                State::S2 => Some(State::S),
-                State::S21 => Some(State::S2),
-                State::S211 => Some(State::S21),
+                State::S11 => Some(Self::Superstate::S1),
+                State::S12 => Some(Self::Superstate::S1),
+                State::S211 => Some(Self::Superstate::S21),
             }
         }
 
-        fn state_on_enter_handler(&self) -> Option<stateful::StateOnEnterHandler<Self::Object>> {
+        fn entry_action(&self) -> Option<stateful::Action<Self::Object>> {
             match self {
-                State::S => Some(Foo::enter_s),
-                State::S1 => Some(Foo::enter_s1),
                 State::S11 => Some(Foo::enter_s11),
                 State::S12 => Some(Foo::enter_s12),
-                State::S2 => Some(Foo::enter_s2),
-                State::S21 => Some(Foo::enter_s21),
                 State::S211 => Some(Foo::enter_s211),
             }
         }
 
-        fn state_on_exit_handler(&self) -> Option<stateful::StateOnExitHandler<Self::Object>> {
+        fn exit_action(&self) -> Option<stateful::Action<Self::Object>> {
             match self {
-                State::S => Some(Foo::exit_s),
-                State::S1 => Some(Foo::exit_s1),
                 State::S11 => Some(Foo::exit_s11),
                 State::S12 => Some(Foo::exit_s12),
-                State::S2 => Some(Foo::exit_s2),
-                State::S21 => Some(Foo::exit_s21),
                 State::S211 => Some(Foo::exit_s211),
+            }
+        }
+    }
+
+    #[derive(Copy, Clone, PartialEq, Debug)]
+    enum Superstate {
+        S,
+        S1,
+        S2,
+        S21,
+    }
+
+    impl stateful::Superstate for Superstate {
+        type Object = Foo;
+        type Event = Event;
+
+        fn handler(&self) -> stateful::Handler<Self::Object, Self::Event> {
+            match self {
+                Superstate::S => Foo::s,
+                Superstate::S1 => Foo::s1,
+                Superstate::S2 => Foo::s2,
+                Superstate::S21 => Foo::s21,
+            }
+        }
+
+        fn superstate(&self) -> Option<Self> {
+            match self {
+                Superstate::S => None,
+                Superstate::S1 => Some(Superstate::S),
+                Superstate::S2 => Some(Superstate::S),
+                Superstate::S21 => Some(Superstate::S2),
+            }
+        }
+
+        fn entry_action(&self) -> Option<stateful::Action<Self::Object>> {
+            match self {
+                Superstate::S => Some(Foo::enter_s),
+                Superstate::S1 => Some(Foo::enter_s1),
+                Superstate::S2 => Some(Foo::enter_s2),
+                Superstate::S21 => Some(Foo::enter_s21),
+            }
+        }
+
+        fn exit_action(&self) -> Option<stateful::Action<Self::Object>> {
+            match self {
+                Superstate::S => Some(Foo::exit_s),
+                Superstate::S1 => Some(Foo::exit_s1),
+                Superstate::S2 => Some(Foo::exit_s2),
+                Superstate::S21 => Some(Foo::exit_s21),
             }
         }
     }
@@ -232,34 +293,38 @@ mod tests {
         foo.handle(&Event::C);
         foo.handle(&Event::D);
 
-        let expected_path: [(State, Action); 17] = [
-            (State::S, Action::Entry),
-            (State::S1, Action::Entry),
-            (State::S11, Action::Entry),
-            (State::S11, Action::Exit),
-            (State::S11, Action::Entry),
-            (State::S11, Action::Exit),
-            (State::S12, Action::Entry),
-            (State::S12, Action::Exit),
-            (State::S1, Action::Exit),
-            (State::S2, Action::Entry),
-            (State::S21, Action::Entry),
-            (State::S211, Action::Entry),
-            (State::S211, Action::Exit),
-            (State::S21, Action::Exit),
-            (State::S2, Action::Exit),
-            (State::S1, Action::Entry),
-            (State::S11, Action::Entry),
+        let expected_path: [(StateWrapper, Action); 17] = [
+            (StateWrapper::Super(Superstate::S), Action::Entry),
+            (StateWrapper::Super(Superstate::S1), Action::Entry),
+            (StateWrapper::Leaf(State::S11), Action::Entry),
+            (StateWrapper::Leaf(State::S11), Action::Exit),
+            (StateWrapper::Leaf(State::S11), Action::Entry),
+            (StateWrapper::Leaf(State::S11), Action::Exit),
+            (StateWrapper::Leaf(State::S12), Action::Entry),
+            (StateWrapper::Leaf(State::S12), Action::Exit),
+            (StateWrapper::Super(Superstate::S1), Action::Exit),
+            (StateWrapper::Super(Superstate::S2), Action::Entry),
+            (StateWrapper::Super(Superstate::S21), Action::Entry),
+            (StateWrapper::Leaf(State::S211), Action::Entry),
+            (StateWrapper::Leaf(State::S211), Action::Exit),
+            (StateWrapper::Super(Superstate::S21), Action::Exit),
+            (StateWrapper::Super(Superstate::S2), Action::Exit),
+            (StateWrapper::Super(Superstate::S1), Action::Entry),
+            (StateWrapper::Leaf(State::S11), Action::Entry),
         ];
 
+        dbg!(&foo.path);
+
         for i in 0..expected_path.len() {
-            let actual_state = foo.path[i].0 as usize;
-            let expected_state = expected_path[i].0 as usize;
-            if actual_state != expected_state {
-                panic!("Transition path is wrong.")
-            } else {
-                continue;
-            }
+            use StateWrapper::*;
+            match (&foo.path[i].0, &expected_path[i].0) {
+                (Super(actual), Super(expected)) if actual == expected => continue,
+                (Leaf(actual), Leaf(expected)) if actual == expected => continue,
+                _ => panic!(
+                    "Transition path at {} is wrong: Actual: {:?}, Expected: {:?}",
+                    i, &foo.path[i], &expected_path[i]
+                ),
+            };
         }
     }
 }

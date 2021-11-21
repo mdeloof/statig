@@ -1,5 +1,6 @@
 use stateful::{
-    Response::{Handled, Parent, Transition},
+    state_machine,
+    Response::{Handled, Super, Transition},
     Stateful,
 };
 
@@ -7,25 +8,23 @@ use stateful::{
 type Response = stateful::Response<Blinky>;
 
 // Define your event type.
-enum Event {
+pub enum Event {
     TimerElapsed,
     ButtonPressed,
 }
 
 // Define your data type.
-struct Blinky {
-    // The state field stores the state.
+pub struct Blinky {
+    // The state field stores the state, which is enum derived by the
+    // `state_machine` macro.
     state: State,
 
     // Your fields.
     light: bool,
 }
 
-// Implement the `Stateful` trait.
+// Implement the `Stateful` trait on your data type.
 impl stateful::Stateful for Blinky {
-    // The event that the state machine will handle.
-    type Event = Event;
-
     // The state enum.
     type State = State;
 
@@ -38,33 +37,37 @@ impl stateful::Stateful for Blinky {
     }
 }
 
-// Every state is a function. The `derive_state` macro derives an enum
-// with variants for every state handler. The impl block with this
-// attribute should only contain state handlers.
-#[stateful::derive_state]
-// Name the state enum.
+// The `state_machine` macro derives an enum with variants for every state.
+// Each method in the associated impl block that matches the function
+// signarture of `fn(&mut Self, &Event) -> Response` is seen as a state.
+#[state_machine]
+// Optionally give a custom name to the state enum, the default is `State`.
 #[state(name = "State")]
+#[superstate(name = "Superstate")]
 impl Blinky {
-    // The state handler `on` has `Playing` as a parent state. Every
-    // time we enter this state we want to call the method `enter_on`.
-    #[state(parent = "Playing", on_enter = "Blinky::enter_on")]
+    // The state `On` has `Playing` as a superstate. Every time we enter
+    // this state we want to call the method `enter_on`.
+    #[state(name = "On", superstate = "Playing", entry_action = "Blinky::enter_on")]
     fn on(&mut self, event: &Event) -> Response {
         match event {
             // When the event `TimerElapsed` is received, transition to
             // state `Off`.
             Event::TimerElapsed => Transition(State::Off),
-            _ => Parent,
+            _ => Super,
         }
     }
 
-    #[state(parent = "Playing", on_enter = "Blinky::enter_off")]
+    // If no `name` field is present the name of the state enum variant will
+    // be the PascalCase version of the state handler's snake_case name.
+    #[state(superstate = "Playing", entry_action = "Blinky::enter_off")]
     fn off(&mut self, event: &Event) -> Response {
         match event {
             Event::TimerElapsed => Transition(State::On),
-            _ => Parent,
+            _ => Super,
         }
     }
 
+    #[superstate(name = "Playing")]
     fn playing(&mut self, event: &Event) -> Response {
         match event {
             Event::ButtonPressed => Transition(State::Paused),
@@ -72,7 +75,7 @@ impl Blinky {
         }
     }
 
-    #[state(on_exit = "Blinky::enter_paused")]
+    #[state(exit_action = "Blinky::enter_paused")]
     fn paused(&mut self, event: &Event) -> Response {
         match event {
             Event::ButtonPressed => Transition(State::On),
