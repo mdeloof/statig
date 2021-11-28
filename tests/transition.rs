@@ -313,8 +313,6 @@ mod tests {
             (StateWrapper::Leaf(State::S11), Action::Entry),
         ];
 
-        dbg!(&foo.path);
-
         for i in 0..expected_path.len() {
             use StateWrapper::*;
             match (&foo.path[i].0, &expected_path[i].0) {

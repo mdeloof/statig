@@ -38,7 +38,7 @@ pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
     let states: Vec<State> = state_machine_visitor
         .state_handlers
         .iter()
-        .map(|s| State::from_ast(s))
+        .map(|s| State::from_ast(s, "state"))
         .collect();
 
     // Generate the idents of the enum variants.
@@ -87,8 +87,10 @@ pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
     let superstates: Vec<State> = state_machine_visitor
         .superstate_handlers
         .iter()
-        .map(|s| State::from_ast(s))
+        .map(|s| State::from_ast(s, "superstate"))
         .collect();
+
+    dbg!(&superstates);
 
     // Generate the idents of the enum variants.
     let superstate_variant_idents = superstates.iter().map(|s| &s.ident);
@@ -106,8 +108,8 @@ pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
     let mut superstate_to_superstate_matches = superstates.iter().map(|s| {
         let superstate_variant_ident = &s.ident;
         match &s.superstate {
-            Some(superstate_ident) => {
-                quote! { #superstate_ident::#superstate_variant_ident => Some(#superstate_ident::#superstate_ident) }
+            Some(superstate_superstate_variant_ident) => {
+                quote! { #superstate_ident::#superstate_variant_ident => Some(#superstate_ident::#superstate_superstate_variant_ident) }
             }
             None => quote! { #superstate_ident::#superstate_variant_ident => None },
         }
@@ -366,7 +368,7 @@ struct State {
 }
 
 impl State {
-    fn from_ast(method: &syn::ImplItemMethod) -> Self {
+    fn from_ast(method: &syn::ImplItemMethod, attr_ident: &'static str) -> Self {
         let mut ident = format_ident!(
             "{}",
             snake_case_to_pascal_case(&method.sig.ident.to_string())
@@ -376,11 +378,11 @@ impl State {
         let mut on_enter_handler = None;
         let mut on_exit_handler = None;
 
-        let meta_items = match parse_state_handler_attribute(&method.attrs, format_ident!("state"))
-        {
-            Some(meta_items) => meta_items,
-            None => Vec::new(),
-        };
+        let meta_items =
+            match parse_state_handler_attribute(&method.attrs, format_ident!("{}", attr_ident)) {
+                Some(meta_items) => meta_items,
+                None => Vec::new(),
+            };
 
         for meta_item in meta_items {
             match meta_item {
