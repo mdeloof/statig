@@ -219,8 +219,8 @@ impl Blinky {
         }
     }
 
-    // The `derive_state` macro will take the snake_case name and convert
-    // it to PascalCase to create the state variant. So `playing` becomes
+    // The `state_machine` macro will take the snake_case name and convert
+    // it to PascalCase to create the superstate variant. So `playing` becomes
     // `Playing`.
     #[superstate]
     fn playing(&mut self, event: &Event) -> Response {

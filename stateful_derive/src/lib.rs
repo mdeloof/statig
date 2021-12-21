@@ -14,7 +14,18 @@ use syn::{
 #[proc_macro_attribute]
 pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
     // Parse the token stream.
-    let ast: syn::Item = syn::parse(input).unwrap();
+    let ast: syn::Item = match syn::parse(input.clone()) {
+        Ok(ast) => ast,
+        Err(_) => {
+            let input: proc_macro2::TokenStream = input.into();
+            return quote! {
+                use stateful::state;
+                use stateful::superstate;
+                #input
+            }
+            .into();
+        }
+    };
 
     // Visit item impl
     let mut state_machine_visitor = StateMachineVisitor::default();
@@ -89,8 +100,6 @@ pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
         .iter()
         .map(|s| State::from_ast(s, "superstate"))
         .collect();
-
-    dbg!(&superstates);
 
     // Generate the idents of the enum variants.
     let superstate_variant_idents = superstates.iter().map(|s| &s.ident);
