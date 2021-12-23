@@ -221,7 +221,7 @@
 //! }
 //! ```
 
-//#![no_std]
+#![no_std]
 
 use heapless::Vec;
 
@@ -235,6 +235,34 @@ pub type Action<T> = fn(&mut T);
 
 /// The maximum depth states can be nested inside each other.
 const DEPTH: usize = 16;
+
+/// A guard that can be used to unwrap an option or transition to a state.
+#[macro_export]
+macro_rules! guard {
+    ($value:ident, $response:expr) => {
+        match $value {
+            Some(inner) => inner,
+            None => {
+                #[cfg(not(debug_assertions))]
+                return $response;
+                #[cfg(debug_assertions)]
+                panic!("guard not satisfied, `{}` is `None`", stringify!($value));
+            }
+        }
+    };
+
+    ($value:expr, $response:expr) => {
+        match $value {
+            Some(inner) => inner,
+            None => {
+                #[cfg(not(debug_assertions))]
+                return $response;
+                #[cfg(debug_assertions)]
+                panic!("guard not satisfied, `{}` is `None`", stringify!($value));
+            }
+        }
+    };
+}
 
 /// The response returned by a state handler function.
 pub enum Response<T: Stateful> {
@@ -415,7 +443,7 @@ pub trait Stateful: Sized {
 }
 
 /// Trait that should be implemented on the state enum.
-pub trait State: Sized + Copy + PartialEq + std::fmt::Debug {
+pub trait State: Sized + Copy + PartialEq {
     /// The object on which the state handlers operate.
     type Object: Stateful<State = Self>;
 
@@ -467,7 +495,7 @@ pub trait State: Sized + Copy + PartialEq + std::fmt::Debug {
     }
 }
 
-pub trait Superstate: Sized + Copy + PartialEq + std::fmt::Debug {
+pub trait Superstate: Sized + Copy + PartialEq {
     /// The object on which the state handlers operate.
     type Object: Stateful;
 
