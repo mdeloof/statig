@@ -42,8 +42,8 @@ impl stateful::Stateful for Blinky {
 // signarture of `fn(&mut Self, &Event) -> Response` is seen as a state.
 #[state_machine]
 // Optionally give a custom name to the state enum, the default is `State`.
-#[state(name = "State")]
-#[superstate(name = "Superstate")]
+#[state(name = "State", derive(Debug))]
+#[superstate(name = "Superstate", derive(Debug))]
 impl Blinky {
     // The state `On` has `Playing` as a superstate. Every time we enter
     // this state we want to call the method `enter_on`.

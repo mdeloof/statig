@@ -6,9 +6,11 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::visit::{self, Visit};
 use syn::{
-    ExprPath, Ident,
-    Meta::NameValue,
-    NestedMeta::{Lit, Meta},
+    punctuated::Punctuated,
+    token, ExprPath, Ident,
+    Meta::{List, NameValue},
+    MetaList,
+    NestedMeta::{self, Lit, Meta},
 };
 
 #[proc_macro_attribute]
@@ -44,7 +46,10 @@ pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
     );
 
     let state_ident = state_machine.state_ident;
+    let state_derives = state_machine.state_derives;
+
     let superstate_ident = state_machine.superstate_ident;
+    let superstate_derives = state_machine.superstate_derives;
 
     let states: Vec<State> = state_machine_visitor
         .state_handlers
@@ -159,7 +164,8 @@ pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
 
         #ast
 
-        #[derive(Copy, Clone, PartialEq, Debug)]
+        #[derive(#state_derives)]
+        #[derive(Copy, Clone, PartialEq)]
         pub enum #state_ident {
             #(#state_variant_idents),*
         }
@@ -194,7 +200,8 @@ pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
 
-        #[derive(Copy, Clone, PartialEq, Debug)]
+        #[derive(#superstate_derives)]
+        #[derive(Copy, Clone, PartialEq)]
         pub enum #superstate_ident {
             #(#superstate_variant_idents),*
         }
@@ -300,7 +307,9 @@ impl<'ast> Visit<'ast> for StateMachineVisitor<'ast> {
 struct StateMachine {
     object_ident: Ident,
     state_ident: Ident,
+    state_derives: Punctuated<NestedMeta, token::Comma>,
     superstate_ident: Ident,
+    superstate_derives: Punctuated<NestedMeta, token::Comma>,
 }
 
 impl StateMachine {
@@ -317,7 +326,9 @@ impl StateMachine {
         };
 
         let mut state_ident = format_ident!("State");
+        let mut state_derives = Punctuated::<NestedMeta, token::Comma>::new();
         let mut superstate_ident = format_ident!("Superstate");
+        let mut superstate_derives = Punctuated::<NestedMeta, token::Comma>::new();
 
         let meta_items =
             match parse_state_handler_attribute(&impl_item.attrs, format_ident!("state")) {
@@ -331,6 +342,12 @@ impl StateMachine {
                     if let syn::Lit::Str(name_lit) = name_value.lit {
                         state_ident = format_ident!("{}", name_lit.value())
                     }
+                }
+
+                Meta(List(MetaList {
+                    nested: derives, ..
+                })) => {
+                    state_derives = derives;
                 }
 
                 Lit(_) => panic!("unexpected literal"),
@@ -353,6 +370,12 @@ impl StateMachine {
                     }
                 }
 
+                Meta(List(MetaList {
+                    nested: derives, ..
+                })) => {
+                    superstate_derives = derives;
+                }
+
                 Lit(_) => panic!("unexpected literal"),
 
                 test => panic!("unexpected {:?}", test),
@@ -362,7 +385,9 @@ impl StateMachine {
         Self {
             object_ident,
             state_ident,
+            state_derives,
             superstate_ident,
+            superstate_derives,
         }
     }
 }
