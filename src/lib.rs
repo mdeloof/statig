@@ -88,42 +88,36 @@
 //! implemented like this with the `stateful` crate.
 //!
 //! ```
+//! #![feature(generic_associated_types)]
+//!
 //! use stateful::{
 //!     Response::{Handled, Super, Transition},
-//!     Stateful,
+//!     Stateful, StateMachine
 //! };
 //!
 //! // The response that will be returned by the state handlers.
-//! type Response = stateful::Response<Blinky>;
+//! type Result = stateful::Result<State>;
 //!
 //! // Define your event type.
-//! pub enum Event {
+//! enum Event {
 //!     TimerElapsed,
 //!     ButtonPressed,
 //! }
 //!
 //! // Define your data type.
-//! pub struct Blinky {
-//!     // The state field stores the state.
-//!     state: State,
-//!     
-//!     // Your fields.
+//! struct Blinky {
 //!     light: bool,
 //! }
 //!
 //! // Implement the `Stateful` trait.
 //! impl stateful::Stateful for Blinky {
-//!     
 //!     // The state enum.
 //!     type State = State;
+//!     
+//!     type Input = Event;
 //!
 //!     // The initial state of the state machine
-//!     const INIT_STATE: State = State::On;
-//!
-//!     // Get a mutable reference to the current state field.
-//!     fn state_mut(&mut self) -> &mut State {
-//!         &mut self.state
-//!     }
+//!     const INIT_STATE: State = State::On {};
 //! }
 //!
 //! // Every state is a function. The `state_machine` macro derives an enum
@@ -131,26 +125,36 @@
 //! // attribute should only contain state handlers.
 //! #[stateful::state_machine]
 //! // Name the state enum.
-//! #[state(name = "State")]
 //! impl Blinky {
+//!     #[action]
+//!     fn enter_on(&mut self) {
+//!         self.light = true;
+//!         println!("On");
+//!     }
 //!     
 //!     // The state handler `on` has `Playing` as a parent state. Every
 //!     // time we enter this state we want to call the method `enter_on`.
-//!     #[state(superstate = "Playing", entry_action = "Blinky::enter_on")]
-//!     fn on(&mut self, event: &Event) -> Response {
-//!         match event {
+//!     #[state(superstate = "playing", entry_action = "enter_on")]
+//!     fn on(&mut self, input: &Event) -> Result {
+//!         match input {
 //!             // When the event `TimerElapsed` is received, transition to
 //!             // state `Off`.
-//!             Event::TimerElapsed => Transition(State::Off),
-//!             _ => Super,
+//!             Event::TimerElapsed => Ok(Transition(State::Off {})),
+//!             _ => Ok(Super),
 //!         }
 //!     }
 //!
-//!     #[state(superstate = "Playing", entry_action = "Blinky::enter_off")]
-//!     fn off(&mut self, event: &Event) -> Response {
-//!         match event {
-//!             Event::TimerElapsed => Transition(State::On),
-//!             _ => Super,
+//!     #[action]
+//!     fn enter_off(&mut self) {
+//!         self.light = false;
+//!         println!("Off");
+//!     }
+//!
+//!     #[state(superstate = "playing", entry_action = "enter_off")]
+//!     fn off(&mut self, input: &Event) -> Result {
+//!         match input {
+//!             Event::TimerElapsed => Ok(Transition(State::On {})),
+//!             _ => Ok(Super),
 //!         }
 //!     }
 //!     
@@ -158,365 +162,445 @@
 //!     // it to PascalCase to create the state variant. So `playing` becomes
 //!     // `Playing`.
 //!     #[superstate]
-//!     fn playing(&mut self, event: &Event) -> Response {
-//!         match event {
-//!             Event::ButtonPressed => Transition(State::Paused),
-//!             _ => Handled,
+//!     fn playing(&mut self, input: &Event) -> Result {
+//!         match input {
+//!             Event::ButtonPressed => Ok(Transition(State::Paused {})),
+//!             _ => Ok(Handled),
 //!         }
 //!     }
-//!
-//!     #[state(exit_action = "Blinky::enter_paused")]
-//!     fn paused(&mut self, event: &Event) -> Response {
-//!         match event {
-//!             Event::ButtonPressed => Transition(State::On),
-//!             _ => Handled,
-//!         }
-//!     }
-//! }
-//!
-//! // Your methods.
-//! impl Blinky {
-//!     fn enter_on(&mut self) {
-//!         self.light = true;
-//!         println!("On");
-//!     }
-//!
-//!     fn enter_off(&mut self) {
-//!         self.light = false;
-//!         println!("Off");
-//!     }
-//!
+//!     
+//!     #[action]
 //!     fn enter_paused(&mut self) {
 //!         println!("Paused");
 //!     }
+//!
+//!     #[state(exit_action = "enter_paused")]
+//!     fn paused(&mut self, input: &Event) -> Result {
+//!         match input {
+//!             Event::ButtonPressed => Ok(Transition(State::On {})),
+//!             _ => Ok(Handled),
+//!         }
+//!     }
 //! }
 //!
-//! fn main() {
-//!     let mut blinky = Blinky {
-//!         state: Blinky::INIT_STATE,
-//!         light: false,
-//!     };
+//!     let mut state_machine = StateMachine::new(Blinky { light: false });
 //!
 //!     // Calling `init()` performs the transition into the initial state.
-//!     blinky.init();
+//!     state_machine.init();
 //!
 //!     for _ in 0..10 {
 //!         // Dispatch an event to the state machine.
-//!         blinky.handle(&Event::TimerElapsed);
+//!         state_machine.handle(&Event::TimerElapsed);
 //!     }
 //!
-//!     blinky.handle(&Event::ButtonPressed);
+//!     state_machine.handle(&Event::ButtonPressed);
 //!
 //!     for _ in 0..10 {
 //!         // The state machine is paused, so the `TimerElapsed` event does
 //!         // not cause any transition.
-//!         blinky.handle(&Event::TimerElapsed);
+//!         state_machine.handle(&Event::TimerElapsed);
 //!     }
 //!
-//!     blinky.handle(&Event::ButtonPressed);
+//!     state_machine.handle(&Event::ButtonPressed);
 //!
 //!     for _ in 0..10 {
-//!         blinky.handle(&Event::TimerElapsed);
+//!         state_machine.handle(&Event::TimerElapsed);
 //!     }
-//! }
+//!
 //! ```
 
 #![no_std]
+#![feature(generic_associated_types)]
 
-use heapless::Vec;
+use core::cmp::Ordering;
 
-pub use stateful_derive::*;
+pub use stateful_macro::{action, state, state_machine, superstate};
 
-/// Type alias for state handlers.
-pub type Handler<T, E> = fn(&mut T, &E) -> Response<T>;
-
-/// Type alias for state and superstate actions.
-pub type Action<T> = fn(&mut T);
-
-/// The maximum depth states can be nested inside each other.
-const DEPTH: usize = 16;
-
-/// A guard that can be used to unwrap an option or transition to a state.
-#[macro_export]
-macro_rules! guard {
-    ($value:ident, $response:expr) => {
-        match $value {
-            Some(inner) => inner,
-            None => {
-                #[cfg(not(debug_assertions))]
-                return $response;
-                #[cfg(debug_assertions)]
-                panic!("guard not satisfied, `{}` is `None`", stringify!($value));
-            }
-        }
-    };
-
-    ($value:expr, $response:expr) => {
-        match $value {
-            Some(inner) => inner,
-            None => {
-                #[cfg(not(debug_assertions))]
-                return $response;
-                #[cfg(debug_assertions)]
-                panic!("guard not satisfied, `{}` is `None`", stringify!($value));
-            }
-        }
-    };
-}
-
-/// The response returned by a state handler function.
-pub enum Response<T: Stateful> {
-    /// The event has been handled.
-    Handled,
-    /// Defer the event to the parent state.
-    Super,
-    /// Transition to a leaf state.
-    Transition(T::State),
-}
-
-/// A data structure that maintains an internal state, which affects the
-/// way it handles events.
-///
-/// # Lifecycle
-///
-/// 1. `on_transition`
-
-pub trait Stateful: Sized {
-    /// The state enum that represents the various states of the state
-    /// machine.
+pub trait Stateful {
     type State: State<Object = Self>;
 
-    /// The initial state of the state machine.
+    type Input;
+
     const INIT_STATE: Self::State;
 
-    /// Get a mutable reference to the current state.
-    fn state_mut(&mut self) -> &mut Self::State;
+    fn on_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
+}
 
-    /// Handle an event from within the current state.
-    fn handle(&mut self, event: &<Self::State as State>::Event) {
-        let state = *self.state_mut();
-        self.call_state_handler(state, event);
-        self.on_event(event);
+pub type Result<S> = core::result::Result<Response<S>, Error<S>>;
+
+pub enum Response<S> {
+    Handled,
+    Super,
+    Transition(S),
+}
+
+pub enum Error<S> {
+    Handled,
+    Super,
+    Transition(S),
+}
+
+pub trait ResultExt<T, S> {
+    fn or_transition(self, state: S) -> core::result::Result<T, Error<S>>;
+
+    fn or_handle(self) -> core::result::Result<T, Error<S>>;
+
+    fn or_super(self) -> core::result::Result<T, Error<S>>;
+}
+
+impl<T, E, S> ResultExt<T, S> for core::result::Result<T, E> {
+    fn or_transition(self, state: S) -> core::result::Result<T, Error<S>> {
+        self.map_err(|_| Error::Transition(state))
     }
 
-    /// Perform the transition into the initial state starting from the
-    /// root state.
-    fn init(&mut self) {
-        let init_state = *self.state_mut();
-        self.drill_into(init_state);
+    fn or_handle(self) -> core::result::Result<T, Error<S>> {
+        self.map_err(|_| Error::Handled)
     }
 
-    /// Perform the transition out of the current state and reset the
-    /// init state.
-    fn deinit(&mut self) {
-        let state = *self.state_mut();
-        self.drill_out_of(state);
-        *self.state_mut() = Self::INIT_STATE;
+    fn or_super(self) -> core::result::Result<T, Error<S>> {
+        self.map_err(|_| Error::Super)
+    }
+}
+
+impl<T, S> ResultExt<T, S> for core::option::Option<T> {
+    fn or_transition(self, state: S) -> core::result::Result<T, Error<S>> {
+        self.ok_or(Error::Transition(state))
     }
 
-    /// Callback that is called after the state machine has handled an
-    /// event.
-    fn on_event(&mut self, _event: &<Self::State as State>::Event) {}
-
-    /// Callback that is called after the state machine has completed
-    /// a transition.
-    fn on_transition(
-        &mut self,
-        _source: &Self::State,
-        _exit_path: &[<<Self as Stateful>::State as State>::Superstate],
-        _entry_path: &[<<Self as Stateful>::State as State>::Superstate],
-        _target: &Self::State,
-    ) {
+    fn or_handle(self) -> core::result::Result<T, Error<S>> {
+        self.ok_or(Error::Handled)
     }
 
-    #[doc(hidden)]
-    /// Transition from the outside into the given state.
-    fn drill_into(&mut self, state: Self::State) {
-        let entry_path = state.superstate_path();
-        for state in entry_path.iter().rev() {
-            if let Some(state_enter_handler) = state.entry_action() {
-                state_enter_handler(self);
-            }
+    fn or_super(self) -> core::result::Result<T, Error<S>> {
+        self.ok_or(Error::Super)
+    }
+}
+
+pub struct StateMachine<O>
+where
+    O: Stateful,
+{
+    object: O,
+    state: <O as Stateful>::State,
+}
+
+impl<O> StateMachine<O>
+where
+    O: Stateful,
+{
+    pub fn new(object: O) -> Self {
+        Self {
+            object,
+            state: <O as Stateful>::INIT_STATE,
         }
-        if let Some(action) = state.entry_action() {
-            action(self);
-        }
     }
 
-    #[doc(hidden)]
-    /// Transition from the inner state to the outside.
-    fn drill_out_of(&mut self, state: Self::State) {
-        let exit_path = state.superstate_path();
-        for state in exit_path.into_iter() {
-            if let Some(state_enter_handler) = state.exit_action() {
-                state_enter_handler(self);
-            }
-        }
-        if let Some(action) = state.exit_action() {
-            action(self);
-        }
+    pub fn state(&self) -> &<O as Stateful>::State {
+        &self.state
     }
 
-    #[doc(hidden)]
-    /// Handle an event from a given state.
-    fn call_state_handler(&mut self, state: Self::State, event: &<Self::State as State>::Event) {
-        match (state.handler())(self, event) {
-            Response::Transition(target_state) => self.transition(target_state),
-            Response::Super => match state.superstate() {
-                Some(parent) => self.call_superstate_handler(parent, event),
-                None => (),
+    /// # Safety
+    /// Mutating the state externally could break the state machines internal
+    /// invariants.
+    pub unsafe fn state_mut(&mut self) -> &mut <O as Stateful>::State {
+        &mut self.state
+    }
+
+    pub fn init(&mut self) {
+        let enter_levels = self.state.depth();
+        self.state.enter(&mut self.object, enter_levels);
+    }
+
+    pub fn handle(&mut self, event: &O::Input) {
+        let result = self.state.handle(&mut self.object, event);
+        match result {
+            Ok(response) => match response {
+                Response::Super => {}
+                Response::Handled => {}
+                Response::Transition(state) => self.transition(state),
             },
-            Response::Handled => (),
-        }
-    }
-
-    #[doc(hidden)]
-    /// Handle an event from a given superstate.
-    fn call_superstate_handler(
-        &mut self,
-        superstate: <<Self as Stateful>::State as State>::Superstate,
-        event: &<Self::State as State>::Event,
-    ) {
-        match (superstate.handler())(self, event) {
-            Response::Transition(target_state) => self.transition(target_state),
-            Response::Super => match superstate.superstate() {
-                Some(superstate) => self.call_superstate_handler(superstate, event),
-                None => (),
+            Err(error) => match error {
+                Error::Handled => {}
+                Error::Super => {}
+                Error::Transition(state) => self.transition(state),
             },
-            Response::Handled => (),
         }
     }
 
-    #[doc(hidden)]
-    /// Perform a transition from the current state towards the target
-    /// state.
-    fn transition(&mut self, target: Self::State)
+    pub fn transition(&mut self, mut target: <O as Stateful>::State) {
+        // Get the transition path we need to perform from one state to the next.
+        let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
+
+        // Perform the exit towards the common ancestor state.
+        self.state.exit(&mut self.object, exit_levels);
+
+        // Update the state.
+        core::mem::swap(&mut self.state, &mut target);
+
+        // Perform the enter actions.
+        self.state.enter(&mut self.object, enter_levels);
+
+        self.object.on_transition(&target, &self.state);
+    }
+}
+
+impl<O> Default for StateMachine<O>
+where
+    O: Stateful + Default,
+{
+    fn default() -> Self {
+        Self {
+            object: <O as Default>::default(),
+            state: <O as Stateful>::INIT_STATE,
+        }
+    }
+}
+
+impl<O> core::ops::Deref for StateMachine<O>
+where
+    O: Stateful,
+{
+    type Target = O;
+    fn deref(&self) -> &Self::Target {
+        &self.object
+    }
+}
+
+impl<O> core::ops::DerefMut for StateMachine<O>
+where
+    O: Stateful,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.object
+    }
+}
+
+pub trait State {
+    type Superstate<'a>: Superstate<State = Self>
+    where
+        Self: 'a;
+    type Object: Stateful<State = Self>;
+
+    fn call_handler(
+        &mut self,
+        object: &mut Self::Object,
+        input: &<Self::Object as Stateful>::Input,
+    ) -> Result<Self>
+    where
+        Self: Sized;
+
+    fn call_entry_action(&mut self, object: &mut Self::Object);
+
+    fn call_exit_action(&mut self, object: &mut Self::Object);
+
+    fn superstate(&mut self) -> Option<Self::Superstate<'_>>;
+
+    fn same_state(&self, state: &Self) -> bool;
+
+    fn depth(&mut self) -> usize {
+        match self.superstate() {
+            Some(mut superstate) => superstate.depth() + 1,
+            None => 1,
+        }
+    }
+
+    fn common_ancestor_depth(source: &mut Self, target: &mut Self) -> usize {
+        if source.same_state(target) {
+            return source.depth();
+        }
+
+        match (source.superstate(), target.superstate()) {
+            (Some(source), Some(target)) => {
+                <<Self as State>::Superstate<'_> as Superstate>::common_ancestor_depth(
+                    source, target,
+                )
+            }
+            _ => 0,
+        }
+    }
+
+    fn transition_path(&mut self, target: &mut Self) -> (usize, usize) {
+        if self.same_state(target) {
+            return (1, 1);
+        }
+
+        let source_depth = self.depth();
+        let target_depth = target.depth();
+
+        if let (Some(source), Some(target)) = (self.superstate(), target.superstate()) {
+            let common_state_depth = Self::Superstate::common_ancestor_depth(source, target);
+            (
+                source_depth - common_state_depth,
+                target_depth - common_state_depth,
+            )
+        } else {
+            (source_depth, target_depth)
+        }
+    }
+
+    fn handle(
+        &mut self,
+        object: &mut Self::Object,
+        event: &<Self::Object as Stateful>::Input,
+    ) -> Result<Self>
     where
         Self: Sized,
     {
-        let source = *self.state_mut();
+        match self.call_handler(object, event) {
+            Ok(response) => match response {
+                Response::Handled => Ok(Response::Handled),
+                Response::Super => match self.superstate() {
+                    Some(mut superstate) => superstate.handle(object, event),
+                    None => Ok(Response::Super),
+                },
+                Response::Transition(state) => Ok(Response::Transition(state)),
+            },
+            Err(error) => match error {
+                Error::Handled => Err(Error::Handled),
+                Error::Super => match self.superstate() {
+                    Some(mut superstate) => superstate.handle(object, event),
+                    None => Err(Error::Super),
+                },
+                Error::Transition(state) => Err(Error::Transition(state)),
+            },
+        }
+    }
 
-        let mut exit_path = source.superstate_path();
-        let mut entry_path = target.superstate_path();
-
-        // Starting from the root state, trim the entry and exit paths so
-        // only uncommon states remain.
-        while let (Some(&exit_temp), Some(&entry_temp)) = (exit_path.last(), entry_path.last()) {
-            if exit_temp == entry_temp {
-                exit_path.pop();
-                entry_path.pop();
-            } else {
-                break;
+    fn enter(&mut self, object: &mut Self::Object, levels: usize) {
+        match levels {
+            0 => (),
+            1 => self.call_entry_action(object),
+            _ => {
+                if let Some(mut superstate) = self.superstate() {
+                    superstate.enter(object, levels - 1);
+                }
+                self.call_entry_action(object);
             }
         }
+    }
 
-        // Execute the exit action of the source state.
-        if let Some(action) = source.exit_action() {
-            action(self);
-        }
-
-        // Execute the exit actions along the exit path out of the source state.
-        for state in exit_path.iter() {
-            if let Some(action) = state.exit_action() {
-                action(self);
+    fn exit(&mut self, object: &mut Self::Object, levels: usize) {
+        match levels {
+            0 => (),
+            1 => self.call_exit_action(object),
+            _ => {
+                self.call_exit_action(object);
+                if let Some(mut superstate) = self.superstate() {
+                    superstate.exit(object, levels - 1);
+                }
             }
         }
-
-        // Execute the entry actions along the entry path into the target state.
-        entry_path.reverse();
-        for state in entry_path.iter() {
-            if let Some(action) = state.entry_action() {
-                action(self);
-            }
-        }
-
-        // Execute the entry action of the target state.
-        if let Some(action) = target.entry_action() {
-            action(self);
-        }
-
-        *self.state_mut() = target;
-
-        // Call the `on_transition` callback.
-        self.on_transition(&source, &exit_path, &entry_path, &target);
     }
 }
 
-/// Trait that should be implemented on the state enum.
-pub trait State: Sized + Copy + PartialEq {
-    /// The object on which the state handlers operate.
-    type Object: Stateful<State = Self>;
+pub trait Superstate
+where
+    Self: Sized,
+{
+    type State: State;
 
-    /// The event that is handled by the state handlers.
-    type Event;
+    fn call_handler(
+        &mut self,
+        object: &mut <Self::State as State>::Object,
+        event: &<<Self::State as State>::Object as Stateful>::Input,
+    ) -> Result<Self::State>;
 
-    /// Superate
-    type Superstate: Superstate<Object = Self::Object, Event = Self::Event>;
+    fn call_entry_action(&mut self, object: &mut <Self::State as State>::Object);
 
-    /// Get the associated state handler.
-    fn handler(&self) -> Handler<Self::Object, Self::Event>;
+    fn call_exit_action(&mut self, object: &mut <Self::State as State>::Object);
 
-    /// Get the superstate of the state, if defined.
-    fn superstate(&self) -> Option<Self::Superstate> {
-        None
+    fn superstate(&mut self) -> Option<<Self::State as State>::Superstate<'_>>
+    where
+        Self: Sized;
+
+    fn same_state(&self, state: &<Self::State as State>::Superstate<'_>) -> bool;
+
+    fn depth(&mut self) -> usize {
+        match self.superstate() {
+            Some(mut superstate) => superstate.depth() + 1,
+            None => 1,
+        }
     }
 
-    /// Get the associated entry action, if defined.
-    fn entry_action(&self) -> Option<Action<Self::Object>> {
-        None
+    fn common_ancestor_depth<'a>(
+        mut source: <Self::State as State>::Superstate<'_>,
+        mut target: <Self::State as State>::Superstate<'_>,
+    ) -> usize
+    where
+        Self: 'a,
+    {
+        match source.depth().cmp(&target.depth()) {
+            Ordering::Equal => match source.same_state(&target) {
+                true => source.depth(),
+                false => match (source.superstate(), target.superstate()) {
+                    (Some(source), Some(target)) => Self::common_ancestor_depth(source, target),
+                    _ => 0,
+                },
+            },
+            Ordering::Greater => match source.superstate() {
+                Some(superstate) => Self::common_ancestor_depth(superstate, target),
+                None => 0,
+            },
+            Ordering::Less => match target.superstate() {
+                Some(superstate) => Self::common_ancestor_depth(source, superstate),
+                None => 0,
+            },
+        }
     }
 
-    /// Get the associated exit action, if defined.
-    fn exit_action(&self) -> Option<Action<Self::Object>> {
-        None
+    fn handle(
+        &mut self,
+        object: &mut <Self::State as State>::Object,
+        event: &<<Self::State as State>::Object as Stateful>::Input,
+    ) -> Result<Self::State>
+    where
+        Self: Sized,
+    {
+        match self.call_handler(object, event) {
+            Ok(response) => match response {
+                Response::Handled => Ok(Response::Handled),
+                Response::Super => match self.superstate() {
+                    Some(mut superstate) => superstate.handle(object, event),
+                    None => Ok(Response::Super),
+                },
+                Response::Transition(state) => Ok(Response::Transition(state)),
+            },
+            Err(error) => match error {
+                Error::Handled => Err(Error::Handled),
+                Error::Super => match self.superstate() {
+                    Some(mut superstate) => superstate.handle(object, event),
+                    None => Err(Error::Super),
+                },
+                Error::Transition(state) => Err(Error::Transition(state)),
+            },
+        }
     }
 
-    /// Get the path from the state towards the root superstate.
-    fn superstate_path(&self) -> Vec<Self::Superstate, DEPTH> {
-        let mut path: Vec<Self::Superstate, DEPTH> = Vec::new();
-
-        let mut temp_superstate = match self.superstate() {
-            Some(superstate) => superstate,
-            None => return path,
-        };
-
-        let _ = path.push(temp_superstate);
-        let mut depth = 0;
-        while let Some(superstate) = temp_superstate.superstate() {
-            let _ = path.push(superstate);
-            temp_superstate = superstate;
-            depth += 1;
-
-            if depth == DEPTH - 1 {
-                panic!("reached max state nesting depth of {}", DEPTH)
+    fn enter(&mut self, object: &mut <Self::State as State>::Object, mut levels: usize) {
+        match levels {
+            0 => (),
+            1 => self.call_entry_action(object),
+            _ => {
+                if let Some(mut superstate) = self.superstate() {
+                    levels -= 1;
+                    superstate.enter(object, levels);
+                }
+                self.call_entry_action(object);
             }
         }
-        path
-    }
-}
-
-pub trait Superstate: Sized + Copy + PartialEq {
-    /// The object on which the state handlers operate.
-    type Object: Stateful;
-
-    /// The event that is handled by the state handlers.
-    type Event;
-
-    /// Get the associated state handler.
-    fn handler(&self) -> Handler<Self::Object, Self::Event>;
-
-    /// Get the superstate of the superstate, if it exists.
-    fn superstate(&self) -> Option<Self> {
-        None
     }
 
-    /// Get the associated entry action, if defined.
-    fn entry_action(&self) -> Option<Action<Self::Object>> {
-        None
-    }
-
-    /// Get the associated exit action, if defined.
-    fn exit_action(&self) -> Option<Action<Self::Object>> {
-        None
+    fn exit(&mut self, object: &mut <Self::State as State>::Object, mut levels: usize) {
+        match levels {
+            0 => (),
+            1 => self.call_exit_action(object),
+            _ => {
+                self.call_exit_action(object);
+                if let Some(mut superstate) = self.superstate() {
+                    levels -= 1;
+                    superstate.exit(object, levels);
+                }
+            }
+        }
     }
 }

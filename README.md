@@ -1,287 +1,184 @@
 # Stateful
 
-A Rust library to create state machines.
+Ergonomic state machines in Rust
+
+**Features**
+
+- Hierachial state machines
+- State-local storage
+- Compatible with `#![no_std]`, no dynamic memory allocation
+
+---
+
+## Stateful in action
 
 ```rust
-use stateful::{state_machine, Stateful};
-
-type Response = stateful::Response<Blinky>;
-
-pub enum Event {
-    TimerElapsed,
+struct Blinky {
+    led: bool,
 }
 
-pub struct Blinky {
-    state: State,
-}
+struct Event;
 
 impl Stateful for Blinky {
     type State = State;
 
-    const INIT_STATE: State = State::On;
+    type Input = Event;
 
-    fn state_mut(&mut self) -> &mut State {
-        &mut self.state
-    }
+    const INIT_STATE: State = State::on();
 }
 
-// The `state_machine` macro derives the `State` enum.
 #[state_machine]
 impl Blinky {
     #[state]
-    fn on(&mut self, event: &Event) -> Response {
-        match event {
-            Event::TimerElapsed => {
-                println!("Off");
-                Response::Transition(State::Off)
-            }
-        }
+    fn on(&mut self, input: &Event) -> Result<State> {
+        self.led = false;
+        Ok(Transition(State::off()))
     }
 
     #[state]
-    fn off(&mut self, event: &Event) -> Response {
-        match event {
-            Event::TimerElapsed => {
-                println!("On");
-                Response::Transition(State::On)
-            }
-        }
+    fn off(&mut self, input: &Event) -> Result<State> {
+        self.led = true;
+        Ok(Transition(State::on()))
     }
 }
 
-```
+fn main() {
+    let mut state_machine = StateMachine::new(Blinky { led: false });
 
+    state_machine.handle(&Event);
+}
+```
 (See [`/examples/basic.rs`](examples/basic.rs) for the full code with comments.)
 
-## What is a state machine and why would I want one?
+---
 
-When designing a system one of the central problems you're faced with is keeping track of what has happened and what should happen going forward. State machines help you do this in a structured manner.
+## Concepts
 
-## Hierarchial State Machine
+### States
 
-A hierarchial state machine (HSM) is an extension of a traditional
-finite state machine (FSM). To understand why you might want to use a HSM
-instead of a FSM let's look at the following example.
-
-Consider the state machine of a blinking light that is turned on and off 
-when a timer elapses but pauses when a button is pressed. With a traditional
-FSM this would look something like this:
-
-```text
-┌───────────────────────────────┐
-│ On                            <───┐───┐
-├───────────────────────────────┤   │   │
-│                               │   │   │
-│[ TimerElapsed ]─────────────────┐ │   │
-│                               │ │ │   │
-│[ ButtonPressed ]────────────────────┐ │
-│                               │ │ │ │ │
-└───────────────────────────────┘ │ │ │ │
-┌───────────────────────────────┐ │ │ │ │
-│ Off                           <─┘ │ │ │
-├───────────────────────────────┤   │ │ │
-│                               │   │ │ │
-│[ TimerElapsed ]───────────────────┘ │ │
-│                               │     │ │
-│[ ButtonPressed ]──────────────────┐ │ │
-│                               │   │ │ │
-└───────────────────────────────┘   │ │ │
-┌───────────────────────────────┐   │ │ │
-│ Paused                        <───┘─┘ │
-├───────────────────────────────┤       │
-│                               │       │
-│[ ButtonPressed ]──────────────────────┘
-│                               │
-└───────────────────────────────┘ 
-```
-
-In a traditional FSM we have 3 states that all have to handle the
-`ButtonPressed` event. In this simple example that doesn't seam to be too 
-much a problem, but as your state machine grows you'll often find that you
-need to handle an event the same way in multiple states, resulting in code
-duplication and making the state machine more and more unmanegeable as it
-grows. This is what we call state explosion.
-
-In a hierarchial state machine we can add a superstate `Playing` that
-encapsulates the states `On` and `Off`. These substates don't handle
-the `ButtonPressed` event directly but defer it to their superstate 
-`Playing`.
-
-```text
-┌───────────────────────────────────────┐
-│ Playing                               <───┐
-├───────────────────────────────────────┤   │
-│                                       │   │
-│[ ButtonPressed ]────────────────────────┐ │
-│                                       │ │ │
-│ ┌───────────────────────────────┐     │ │ │
-│ │ On                            <───┐ │ │ │
-│ ├───────────────────────────────┤   │ │ │ │
-│ │                               │   │ │ │ │
-│ │[ TimerElapsed ]─────────────────┐ │ │ │ │
-│ │                               │ │ │ │ │ │
-│ └───────────────────────────────┘ │ │ │ │ │
-│ ┌───────────────────────────────┐ │ │ │ │ │
-│ │ Off                           <─┘ │ │ │ │
-│ ├───────────────────────────────┤   │ │ │ │
-│ │                               │   │ │ │ │
-│ │[ TimerElapsed ]───────────────────┘ │ │ │
-│ │                               │     │ │ │
-│ └───────────────────────────────┘     │ │ │
-└───────────────────────────────────────┘ │ │
-┌───────────────────────────────────────┐ │ │
-│ Paused                                <─┘ │
-├───────────────────────────────────────┤   │
-│                                       │   │
-│[ ButtonPressed ]──────────────────────────┘
-│                                       │
-└───────────────────────────────────────┘ 
-```
-
-It doesn't have stop there. A superstate can itself be a substate of 
-another superstate and so on. HSM's allow you to define shared behavior 
-for multiple states and avoid code repetition. More importanly it becomes 
-much easier to add new states to an existing system as the new state only 
-needs to implement its unique behavior and refer to a superstate for shared
-behavior.
-
-The blinky state machine discussed in the previous example can be
-implemented like this with the `stateful` crate.
+States are defined by writing methods inside the `impl` block and adding the `#[state]` attribute to them. By default the `input` argument will map to the input handled by the state machine.
 
 ```rust
-use stateful::{
-    Response::{Handled, Parent, Transition},
-    Stateful,
- };
-
-// The response that will be returned by the state handlers.
-type Response = stateful::Response<Blinky>;
-
-// Define your event type.
-enum Event {
-    TimerElapsed,
-    ButtonPressed,
- }
-
-// Define your data type.
-struct Blinky {
-    // The state field stores the state.
-    state: State,
-
-    // Your fields.
-    light: bool,
- }
-
-// Implement the `Stateful` trait.
-impl stateful::Stateful for Blinky {
-    // The event that the state machine will handle.
-    type Event = Event;
-
-    // The state enum.
-    type State = State;
-
-    // The initial state of the state machine
-    const INIT_STATE: State = State::On;
-
-    // Get a mutable reference to the current state field.
-    fn state_mut(&mut self) -> &mut State {
-        &mut self.state
-    }
- }
-
-// Every state is a function. The `derive_state` macro derives an enum
-// with variants for every state handler. The impl block with this
-// attribute should only contain state handlers.
-#[stateful::derive_state]
-// Name the state enum.
-#[state(name = "State")]
-// Name the superstate enum.
-#[superstate(name = "Superstate")]
-impl Blinky {
-
-    // The state handler `on` has `Playing` as a parent state. Every
-    // time we enter this state we want to call the method `enter_on`.
-    #[state(parent = "Playing", entry_action = "Blinky::enter_on")]
-    fn on(&mut self, event: &Event) -> Response {
-        match event {
-            // When the event `TimerElapsed` is received, transition to
-            // state `Off`.
-            Event::TimerElapsed => Transition(State::Off),
-            _ => Parent,
-        }
-    }
-
-    #[state(parent = "Playing", entry_action = "Blinky::enter_off")]
-    fn off(&mut self, event: &Event) -> Response {
-        match event {
-            Event::TimerElapsed => Transition(State::On),
-            _ => Parent,
-        }
-    }
-
-    // The `state_machine` macro will take the snake_case name and convert
-    // it to PascalCase to create the superstate variant. So `playing` becomes
-    // `Playing`.
-    #[superstate]
-    fn playing(&mut self, event: &Event) -> Response {
-        match event {
-            Event::ButtonPressed => Transition(State::Paused),
-            _ => Handled,
-        }
-    }
-
-    #[state(entry_action = "Blinky::enter_paused")]
-    fn paused(&mut self, event: &Event) -> Response {
-        match event {
-            Event::ButtonPressed => Transition(State::On),
-            _ => Handled,
-        }
-    }
- }
-
-// Your methods.
-impl Blinky {
-    fn enter_on(&mut self) {
-        self.light = true;
-        println!("On");
-    }
-
-    fn enter_off(&mut self) {
-        self.light = false;
-        println!("Off");
-    }
-
-    fn enter_paused(&mut self) {
-        println!("Paused");
-    }
- }
-
-fn main() {
-    let mut blinky = Blinky {
-        state: Blinky::INIT_STATE,
-        light: false,
-    };
-
-    // Calling `init()` performs the initial transition into the initial state.
-    blinky.init();
-
-    for _ in 0..10 {
-        // Dispatch an event to the state machine.
-        blinky.handle(&Event::TimerElapsed);
-    }
-
-    blinky.handle(&Event::ButtonPressed);
-
-    for _ in 0..10 {
-        // The state machine is paused, so the timer elapsed event does
-        // not cause any transition.
-        blinky.handle(&Event::TimerElapsed);
-    }
-
-    blinky.handle(&Event::ButtonPressed);
-
-    for _ in 0..10 {
-        blinky.handle(&Event::TimerElapsed);
-    }
-} 
+#[state]
+fn on(input: &Event) -> Result<State> {
+    Ok(Transition(State::off()))
+}
 ```
+
+Every states must return a `Response` wrapped inside a `Result`. A `Response` can be one of three things: `Handled`, `Transition` or `Super`.
+
+
+### Superstates
+
+Superstates allow you to create a hierarchy of states. States can defer an input to their superstate by returning the `Super` response.
+
+```rust
+#[state(superstate = "playing")]
+fn on(input: &Event) -> Result<State> {
+    match input {
+        Event::TimerElapsed => Ok(Transition(State::off())),
+        Event::ButtonPressed => Ok(Super)
+    }
+}
+
+#[superstate]
+fn playing(input: &Event) -> Result<State> {
+    match input {
+        Event::ButtonPressed => Ok(Transition(State::paused())),
+        _ => Ok(Handled)
+    }
+}
+```
+
+Superstates can themselves also have superstates.
+
+### Actions
+
+Actions run when entering or leaving states during a transition.
+
+```rust
+#[state(entry_action = "enter_on", exit_action = "exit_on")]
+fn on(input: &Event) -> Result<State> {
+    Ok(Transition(State::off()))
+}
+
+#[action]
+fn enter_on() {
+    println!("Entered on");
+}
+
+#[action]
+fn exit_on() {
+    println!("Exited on");
+}
+```
+
+### Context
+
+If the type on which your state machine is implemented has any fields, you can access them inside all states, superstates or actions.
+
+```rust
+#[state]
+fn on(&mut self, input: &Event) -> Result<State> {
+    self.led = false;
+    Ok(Transition(State::off()))
+}
+```
+
+Or alternatively, set `led` inside the entry action.
+
+```rust
+#[action]
+fn enter_off(&mut self) {
+    self.led = false;
+}
+```
+
+### State-local storage
+
+Sometimes you have data that only exists in a certain state. Instead of adding this data to the context and potentially having to unwrap an `Option<T>`, you can add it as an input to your state handler.
+
+```rust
+#[state]
+fn on(counter: &mut u32, input: &Event) -> Result<State> {
+    Event::TimerElapsed => {
+        *counter -= 1;
+        if counter  == 0 {
+            Ok(Transition(State::off()))
+        } else {
+            Ok(Handled)
+        }
+    }
+    Event::ButtonPressed => Ok(Super)
+}
+```
+
+`counter` is only available in the `on` state but can also be accessed its superstates and actions.
+
+### Error handling
+
+To handle results inside your state handlers, you can use the `ResultExt` trait to map them to responses.
+
+```rust
+#[state]
+fn file_open(file: &mut File, input: &Event) -> Result<State> {
+    match input {
+        Event::WriteRequest { data } => {
+            file.write_all(data).or_transition(State::file_closed())?;
+            Ok(Handled)
+        }
+        _ => Ok(Super)
+    }
+}
+```
+
+
+## FAQ
+
+### **What is this `#[state_machine]` proc-macro doing to my code? 🤨**
+
+Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` block and derives some code based on its content and adds it to your source file. Your code code will still be there, unchanged. In fact `#[state_machine]` could have been a derive macro, but at the moment Rust only allows derive macros to be used on enums and structs. If you'd like to see what the generated code looks like take a look at [`tests/transition.rs`](./tests/transition.rs) and compare it with [`test/transition_macro.rs`](./tests/transition_macro.rs).
+
+## Credits
+
+The idea for this library came from reading the book [Practical UML Statecharts in C/C++](https://www.state-machine.com/doc/PSiCC2.pdf) and I highly recommend it if you want to learn how to use state machines to design complex systems.
