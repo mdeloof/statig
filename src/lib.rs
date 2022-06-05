@@ -1,9 +1,9 @@
-//! A Rust library to create hierarchial state machines. Every state is
+//! A Rust library to create hierarchical state machines. Every state is
 //! function that handles an event or defers it to its parent state.
 //!
-//! ## Hierarchial State Machine
+//! ## Hierarchical State Machine
 //!
-//! A hierarchial state machine (HSM) is an extension of a traditional
+//! A hierarchical state machine (HSM) is an extension of a traditional
 //! finite state machine (FSM). In a HSM states can also be nested inside
 //! each other.
 //!
@@ -44,7 +44,7 @@
 //! but as your state machine grows in complexity you'll often find that
 //! you need to handle an event the same way in multiple states.
 //!
-//! In a hierarchial state machine we can add a parent state `Playing` that
+//! In a hierarchical state machine we can add a parent state `Playing` that
 //! encapsulates the states `On` and `Off`. These child states don't handle
 //! the `ButtonPressed` event directly but defer it to their parent state `Playing`.
 //!

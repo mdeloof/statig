@@ -4,7 +4,7 @@ Ergonomic state machines in Rust
 
 **Features**
 
-- Hierachial state machines
+- Hierachical state machines
 - State-local storage
 - Compatible with `#![no_std]`, no dynamic memory allocation
 
