@@ -65,7 +65,7 @@ fn on(input: &Event) -> Result<State> {
 }
 ```
 
-Every states must return a `Response` wrapped inside a `Result`. A `Response` can be one of three things: `Handled`, `Transition` or `Super`.
+Every state must return a `Response` wrapped inside a `Result`. A `Response` can be one of three things: `Handled`, `Transition` or `Super`.
 
 
 ### Superstates
