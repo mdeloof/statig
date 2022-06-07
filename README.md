@@ -1,6 +1,6 @@
 # Stateful
 
-Ergonomic state machines in Rust
+Ergonomic state machines for designing event-driven systems.
 
 **Features**
 
