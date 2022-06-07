@@ -37,7 +37,7 @@ pub struct StateMachine {
     pub superstate_derives: Vec<Path>,
     /// The input that will be handled by the state machine.
     pub input: Pat,
-    /// The idents that will be binded by destructering the input pattern.
+    /// The idents that will be bound by destructuring the input pattern.
     pub input_idents: Vec<Ident>,
 }
 
@@ -79,7 +79,7 @@ pub struct Superstate {
     pub object_input: Option<FnArg>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<FnArg>,
-    /// Inputs that are submutted to the state machine.
+    /// Inputs that are submitted to the state machine.
     pub external_inputs: Vec<FnArg>,
 }
 
@@ -228,7 +228,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
                 Pat::Tuple(_) => abort!(pat_type, "tuple patterns are not supported"),
                 Pat::TupleStruct(_) => abort!(pat_type, "tuple struct patterns are not supported"),
                 Pat::Struct(_) => abort!(pat_type, "struct patterns are not supported"),
-                _ => abort!(pat_type, "patterns are not suppprted"),
+                _ => abort!(pat_type, "patterns are not supported"),
             },
         }
     }
@@ -291,7 +291,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
                 Pat::Tuple(_) => abort!(pat_type, "tuple patterns are not supported"),
                 Pat::TupleStruct(_) => abort!(pat_type, "tuple struct patterns are not supported"),
                 Pat::Struct(_) => abort!(pat_type, "struct patterns are not supported"),
-                _ => abort!(pat_type, "patterns are not suppprted"),
+                _ => abort!(pat_type, "patterns are not supported"),
             },
         }
     }
@@ -382,7 +382,7 @@ pub fn get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
             .flatten()
             .collect(),
         Pat::Range(_) => vec![],
-        _ => abort!(pat, "pattern type is not suppoted"),
+        _ => abort!(pat, "pattern type is not supported"),
     }
 }
 
