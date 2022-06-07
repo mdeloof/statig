@@ -9,6 +9,7 @@ Ergonomic state machines for designing event-driven systems.
 - Compatible with `#![no_std]`, no dynamic memory allocation
 
 > **Note**
+>
 > At the moment `stateful` requires Rust nightly as it uses generic associated types. 
 > [Stabilization for GAT's](https://github.com/rust-lang/rust/pull/96709) is on the 
 > horizon however.
