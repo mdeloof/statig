@@ -39,11 +39,6 @@ mod tests {
         type Input = Event;
 
         const INIT_STATE: State = State::S11;
-
-        fn on_transition(&mut self, source: &State, target: &State) {
-            println!("source state: {:?}", source);
-            println!("target state: {:?}", target);
-        }
     }
 
     impl Foo {
@@ -182,7 +177,9 @@ mod tests {
 
     impl stateful::State for State {
         type Superstate<'a> = Superstate;
+
         type Object = Foo;
+
         fn call_handler(
             &mut self,
             object: &mut Self::Object,
@@ -197,6 +194,7 @@ mod tests {
                 State::S12 {} => Foo::s12(object, input),
             }
         }
+
         fn call_entry_action(&mut self, object: &mut Self::Object) {
             match self {
                 State::S211 {} => Foo::enter_s211(object),
@@ -204,6 +202,7 @@ mod tests {
                 State::S12 {} => Foo::enter_s12(object),
             }
         }
+
         fn call_exit_action(&mut self, object: &mut Self::Object) {
             match self {
                 State::S211 {} => Foo::exit_s211(object),
@@ -211,6 +210,7 @@ mod tests {
                 State::S12 {} => Foo::exit_s12(object),
             }
         }
+
         fn superstate(&mut self) -> Option<Self::Superstate<'_>> {
             match self {
                 State::S211 {} => Some(Superstate::S21 {}),
@@ -226,6 +226,14 @@ mod tests {
                 (State::S11 { .. }, State::S11 { .. }) => true,
                 (State::S12 { .. }, State::S12 { .. }) => true,
                 _ => false,
+            }
+        }
+
+        fn depth(&mut self) -> usize {
+            match self {
+                State::S11 => 3,
+                State::S12 => 3,
+                State::S211 => 4,
             }
         }
     }
@@ -297,13 +305,23 @@ mod tests {
                 _ => false,
             }
         }
+
+        fn depth(&mut self) -> usize {
+            match self {
+                Superstate::S => 1,
+                Superstate::S1 => 2,
+                Superstate::S2 => 2,
+                Superstate::S21 => 3,
+            }
+        }
     }
 
     #[test]
-    fn stator_transition() {
+    fn test_transition_path() {
         let mut state_machine = StateMachine::new(Foo { path: Vec::new() });
 
         state_machine.init();
+
         state_machine.handle(&Event::A);
         state_machine.handle(&Event::B);
         state_machine.handle(&Event::C);

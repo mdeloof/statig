@@ -1,18 +1,11 @@
-[package]
-name = "stateful"
-version = "0.1.0"
-edition = "2018"
-license = "MIT"
-description = "Hierarchical state machine with function pointers"
-readme = "README.md"
-keywords = ["hierarchical state machine"]
+[workspace]
+members = [
+    # Core stateful crates
+    "stateful",
+    "macro",
 
-
-[dependencies]
-stateful_macro = { path = "macro" }
-
-[dev-dependencies]
-heapless = "0.7"
-unit-enum = { git = "https://github.com/mdeloof/unit-enum.git" }
-
-[features]
+    # Examples
+    "examples/basic",
+    "examples/blinky",
+    "examples/history",
+]

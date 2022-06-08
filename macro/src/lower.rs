@@ -19,6 +19,7 @@ pub struct Ir {
     pub superstates: HashMap<Ident, Superstate>,
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct StateMachine {
     pub object_ty: Type,
     pub state_ty: Type,
@@ -403,7 +404,7 @@ fn valid_input() {
 
     let on_state = analyze::State {
         handler_name: parse_quote!(on),
-        superstate: parse_quote!(Playing),
+        superstate: parse_quote!(playing),
         entry_action: None,
         exit_action: None,
         inputs: vec![
@@ -422,7 +423,7 @@ fn valid_input() {
 
     let off_state = analyze::State {
         handler_name: parse_quote!(off),
-        superstate: parse_quote!(Playing),
+        superstate: parse_quote!(playing),
         entry_action: None,
         exit_action: None,
         inputs: vec![
@@ -515,9 +516,4 @@ fn valid_input() {
     // // };
 
     // dbg!(quote!(#call).to_string());
-}
-
-#[test]
-fn example_unwrap() {
-    fn test((test, hello): (usize, isize)) -> usize {}
 }

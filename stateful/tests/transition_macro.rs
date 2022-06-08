@@ -1,6 +1,7 @@
 #![feature(generic_associated_types)]
 #![allow(unused)]
 
+#[cfg(test)]
 mod tests {
 
     use stateful::state_machine;
@@ -201,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn stator_transition() {
+    fn test_transition_path() {
         let mut state_machine = StateMachine::new(Foo { path: Vec::new() });
 
         state_machine.init();

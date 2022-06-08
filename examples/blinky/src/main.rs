@@ -6,6 +6,7 @@ use stateful::Response::*;
 use stateful::Result;
 use stateful::ResultExt;
 use stateful::StateMachine;
+use stateful::Stateful;
 use std::io::Write;
 
 #[derive(Default)]
@@ -14,7 +15,8 @@ struct Blinky;
 // The `stateful` trait needs to be implemented on the type that will
 // imlement the state machine.
 impl stateful::Stateful for Blinky {
-    /// The enum that represents the state.
+    /// The enum that represents the state, this type is derived by the
+    /// `#[state_machine]` macro.
     type State = StateEnum;
 
     /// The input type that will be submitted to the state machine.
@@ -22,14 +24,23 @@ impl stateful::Stateful for Blinky {
 
     /// The initial state of the state machine.
     const INIT_STATE: StateEnum = StateEnum::on(false, 23);
+
+    fn on_transition(&mut self, source: &Self::State, _target: &Self::State) {}
+}
+
+impl Default for StateEnum {
+    fn default() -> Self {
+        Blinky::INIT_STATE
+    }
 }
 
 struct Event;
 
+// This macro will generate some code, such as the `StateEnum` type.
 #[state_machine]
 // You can rename the enum that is derived by the state machine macro as well
 // as add traits that will be derived from it.
-#[state(name = "StateEnum", derive(Clone, Copy))]
+#[state(name = "StateEnum", derive(Clone))]
 impl Blinky {
     // Every state needs to have a `#[state]` attribute added to it.
     #[state(superstate = "playing")]
@@ -38,6 +49,7 @@ impl Blinky {
         Ok(Transition(StateEnum::off(false)))
     }
 
+    // Actions can access state-local storage.
     #[action]
     fn enter_off(&mut self, led: &mut bool) {
         println!("entered off");
