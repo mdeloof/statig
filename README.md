@@ -54,7 +54,7 @@ fn main() {
     state_machine.handle(&Event);
 }
 ```
-(See [`/examples/basic.rs`](examples/basic.rs) for the full code with comments.)
+(See the [`basic`](examples/basic/src/main.rs) example for the full code with comments.)
 
 ---
 
@@ -159,7 +159,7 @@ fn on(counter: &mut u32, input: &Event) -> Result<State> {
 }
 ```
 
-`counter` is only available in the `on` state but can also be accessed its superstates and actions.
+`counter` is only available in the `on` state but can also be accessed in its superstates and actions.
 
 ### Error handling
 
@@ -183,8 +183,8 @@ fn file_open(file: &mut File, input: &Event) -> Result<State> {
 
 ### **What is this `#[state_machine]` proc-macro doing to my code? 🤨**
 
-Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` block and derives some code based on its content and adds it to your source file. Your code code will still be there, unchanged. In fact `#[state_machine]` could have been a derive macro, but at the moment Rust only allows derive macros to be used on enums and structs. If you'd like to see what the generated code looks like take a look at [`tests/transition.rs`](./tests/transition.rs) and compare it with [`test/transition_macro.rs`](./tests/transition_macro.rs).
+Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` block and derives some code based on its content and adds it to your source file. Your code will still be there, unchanged. In fact `#[state_machine]` could have been a derive macro, but at the moment Rust only allows derive macros to be used on enums and structs. If you'd like to see what the generated code looks like take a look at the test [with](./stateful/tests/transition_macro.rs) and [without](./stateful/tests/transition.rs) macros.
 
 ## Credits
 
-The idea for this library came from reading the book [Practical UML Statecharts in C/C++](https://www.state-machine.com/doc/PSiCC2.pdf) and I highly recommend it if you want to learn how to use state machines to design complex systems.
+The idea for this library came from reading the book [Practical UML Statecharts in C/C++](https://www.state-machine.com/doc/PSiCC2.pdf). I highly recommend it if you want to learn how to use state machines to design complex systems.
