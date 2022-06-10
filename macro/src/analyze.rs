@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use proc_macro_error::abort;
 use quote::format_ident;
-use std::collections::HashMap;
 use syn::parse_quote;
 use syn::{
     Attribute, FnArg, Ident, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta, NestedMeta, Pat, Path,
@@ -22,7 +23,7 @@ pub struct Model {
     pub actions: HashMap<Ident, Action>,
 }
 
-/// General information regarding the state machine
+/// General information regarding the state machine.
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct StateMachine {
     /// The type on which the state machine is implemented.
@@ -36,9 +37,9 @@ pub struct StateMachine {
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
     /// The input that will be handled by the state machine.
-    pub input: Pat,
-    /// The idents that will be bound by destructuring the input pattern.
-    pub input_idents: Vec<Ident>,
+    pub external_input_pattern: Pat,
+    /// The idents that will be binded by destructering the input pattern.
+    pub external_inputs: Vec<Ident>,
 }
 
 /// Information regarding a state.
@@ -92,6 +93,7 @@ pub struct Action {
     pub inputs: Vec<FnArg>,
 }
 
+/// Analyze the impl block and create a model.
 pub fn analyze(item_impl: ItemImpl) -> Model {
     let mut states = HashMap::new();
     let mut superstates = HashMap::new();
@@ -99,6 +101,7 @@ pub fn analyze(item_impl: ItemImpl) -> Model {
 
     let state_machine = analyze_state_machine(&item_impl);
 
+    // Iterate over the methods that are part of the impl block.
     for method in item_impl.items.iter().filter_map(|item| match item {
         ImplItem::Method(method) => Some(method),
         _ => None,
@@ -109,14 +112,17 @@ pub fn analyze(item_impl: ItemImpl) -> Model {
                     let state = analyze_state(method, &state_machine);
                     states.insert(state.handler_name.clone(), state);
                 }
+
                 path if path.is_ident("superstate") => {
                     let superstate = analyze_superstate(method, &state_machine);
                     superstates.insert(superstate.handler_name.clone(), superstate);
                 }
+
                 path if path.is_ident("action") => {
                     let action = analyze_action(method);
                     actions.insert(action.handler_name.clone(), action);
                 }
+
                 _ => (),
             }
         }
@@ -131,15 +137,15 @@ pub fn analyze(item_impl: ItemImpl) -> Model {
     }
 }
 
+/// Retrieve the top level settings of the state machine.
 pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
-    let mut state_name = parse_quote!(State);
-    let mut superstate_name = parse_quote!(Superstate);
     let object_ty = item_impl.self_ty.as_ref().clone();
+    let external_input_pattern = parse_quote!(input);
+    let external_inputs = get_idents_from_pat(&external_input_pattern);
 
-    let input = parse_quote!(input);
-    let input_idents = get_idents_from_pat(&input);
-
+    let mut state_name = parse_quote!(State);
     let mut state_derives = Vec::new();
+    let mut superstate_name = parse_quote!(Superstate);
     let mut superstate_derives = Vec::new();
 
     let meta = get_meta(&item_impl.attrs, "state");
@@ -200,17 +206,19 @@ pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
         state_derives,
         superstate_name,
         superstate_derives,
-        input,
-        input_idents,
+        external_input_pattern,
+        external_inputs,
     }
 }
 
+/// Retrieve information regarding the state.
 pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> State {
     let handler_name = method.sig.ident.clone();
+    let inputs = method.sig.inputs.iter().cloned().collect();
+
     let mut superstate = None;
     let mut entry_action = None;
     let mut exit_action = None;
-    let inputs = method.sig.inputs.iter().cloned().collect();
     let mut object_input = None;
     let mut state_inputs = Vec::new();
     let mut external_inputs = Vec::new();
@@ -219,16 +227,21 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         match input {
             FnArg::Receiver(_) => object_input = Some(input.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
-                Pat::Ident(pat) if state_machine.input_idents.contains(&pat.ident) => {
+                Pat::Ident(pat) if state_machine.external_inputs.contains(&pat.ident) => {
                     external_inputs.push(input.clone());
                 }
                 Pat::Ident(_) => {
                     state_inputs.push(input.clone());
                 }
-                Pat::Tuple(_) => abort!(pat_type, "tuple patterns are not supported"),
-                Pat::TupleStruct(_) => abort!(pat_type, "tuple struct patterns are not supported"),
-                Pat::Struct(_) => abort!(pat_type, "struct patterns are not supported"),
-                _ => abort!(pat_type, "patterns are not supported"),
+                Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
+                Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
+                Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
+                Pat::Wild(_) => abort!(
+                    pat_type,
+                    "wildcard pattern is not supported";
+                    help = "consider giving the input a name"
+                ),
+                _ => abort!(pat_type, "patterns are not suppprted"),
             },
         }
     }
@@ -270,10 +283,11 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
 
 pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine) -> Superstate {
     let handler_name = method.sig.ident.clone();
+    let inputs = method.sig.inputs.iter().cloned().collect();
+
     let mut superstate = None;
     let mut entry_action = None;
     let mut exit_action = None;
-    let inputs = method.sig.inputs.iter().cloned().collect();
     let mut object_input = None;
     let mut state_inputs = Vec::new();
     let mut external_inputs = Vec::new();
@@ -282,16 +296,21 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         match input {
             FnArg::Receiver(_) => object_input = Some(input.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
-                Pat::Ident(pat) if state_machine.input_idents.contains(&pat.ident) => {
+                Pat::Ident(pat) if state_machine.external_inputs.contains(&pat.ident) => {
                     external_inputs.push(input.clone());
                 }
                 Pat::Ident(_) => {
                     state_inputs.push(input.clone());
                 }
-                Pat::Tuple(_) => abort!(pat_type, "tuple patterns are not supported"),
-                Pat::TupleStruct(_) => abort!(pat_type, "tuple struct patterns are not supported"),
-                Pat::Struct(_) => abort!(pat_type, "struct patterns are not supported"),
-                _ => abort!(pat_type, "patterns are not supported"),
+                Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
+                Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
+                Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
+                Pat::Wild(_) => abort!(
+                    pat_type,
+                    "wildcard pattern is not supported";
+                    help = "consider giving the input a name"
+                ),
+                _ => abort!(pat_type, "patterns are not suppprted"),
             },
         }
     }
@@ -341,7 +360,8 @@ pub fn analyze_action(method: &ImplItemMethod) -> Action {
     }
 }
 
-pub fn get_meta(attrs: &Vec<Attribute>, name: &str) -> Vec<Meta> {
+/// Parse the attributes as a meta item.
+pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
     attrs
         .iter()
         .filter(|attr| attr.path.is_ident(name))
@@ -365,21 +385,18 @@ pub fn get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
         Pat::Tuple(pat_tuple) => pat_tuple
             .elems
             .iter()
-            .map(get_idents_from_pat)
-            .flatten()
+            .flat_map(get_idents_from_pat)
             .collect(),
         Pat::TupleStruct(pat_struct) => pat_struct
             .pat
             .elems
             .iter()
-            .map(get_idents_from_pat)
-            .flatten()
+            .flat_map(get_idents_from_pat)
             .collect(),
         Pat::Struct(pat_struct) => pat_struct
             .fields
             .iter()
-            .map(|field| get_idents_from_pat(field.pat.as_ref()))
-            .flatten()
+            .flat_map(|field| get_idents_from_pat(field.pat.as_ref()))
             .collect(),
         Pat::Range(_) => vec![],
         _ => abort!(pat, "pattern type is not supported"),
@@ -431,8 +448,8 @@ fn valid_state_analyze() {
         state_derives,
         superstate_name,
         superstate_derives,
-        input,
-        input_idents,
+        external_input_pattern: input,
+        external_inputs: input_idents,
     };
 
     let state = State {
