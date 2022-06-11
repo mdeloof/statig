@@ -376,7 +376,7 @@ where
 }
 
 pub trait State {
-    type Superstate<'a>: Superstate<State = Self>
+    type Superstate<'a>: Superstate<Object = Self::Object>
     where
         Self: 'a;
     type Object: Stateful<State = Self>;
@@ -497,23 +497,28 @@ pub trait Superstate
 where
     Self: Sized,
 {
-    type State: State;
+    type Object: Stateful;
 
     fn call_handler(
         &mut self,
-        object: &mut <Self::State as State>::Object,
-        event: &<<Self::State as State>::Object as Stateful>::Input,
-    ) -> Result<Self::State>;
+        object: &mut Self::Object,
+        event: &<Self::Object as Stateful>::Input,
+    ) -> Result<<Self::Object as Stateful>::State>;
 
-    fn call_entry_action(&mut self, object: &mut <Self::State as State>::Object);
+    fn call_entry_action(&mut self, object: &mut Self::Object);
 
-    fn call_exit_action(&mut self, object: &mut <Self::State as State>::Object);
+    fn call_exit_action(&mut self, object: &mut Self::Object);
 
-    fn superstate(&mut self) -> Option<<Self::State as State>::Superstate<'_>>
+    fn superstate(
+        &mut self,
+    ) -> Option<<<Self::Object as Stateful>::State as State>::Superstate<'_>>
     where
         Self: Sized;
 
-    fn same_state(&self, state: &<Self::State as State>::Superstate<'_>) -> bool;
+    fn same_state(
+        &self,
+        state: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
+    ) -> bool;
 
     fn depth(&mut self) -> usize {
         match self.superstate() {
@@ -523,8 +528,8 @@ where
     }
 
     fn common_ancestor_depth<'a>(
-        mut source: <Self::State as State>::Superstate<'_>,
-        mut target: <Self::State as State>::Superstate<'_>,
+        mut source: <<Self::Object as Stateful>::State as State>::Superstate<'_>,
+        mut target: <<Self::Object as Stateful>::State as State>::Superstate<'_>,
     ) -> usize
     where
         Self: 'a,
@@ -550,9 +555,9 @@ where
 
     fn handle(
         &mut self,
-        object: &mut <Self::State as State>::Object,
-        event: &<<Self::State as State>::Object as Stateful>::Input,
-    ) -> Result<Self::State>
+        object: &mut Self::Object,
+        event: &<Self::Object as Stateful>::Input,
+    ) -> Result<<Self::Object as Stateful>::State>
     where
         Self: Sized,
     {
@@ -576,7 +581,7 @@ where
         }
     }
 
-    fn enter(&mut self, object: &mut <Self::State as State>::Object, mut levels: usize) {
+    fn enter(&mut self, object: &mut Self::Object, mut levels: usize) {
         match levels {
             0 => (),
             1 => self.call_entry_action(object),
@@ -590,7 +595,7 @@ where
         }
     }
 
-    fn exit(&mut self, object: &mut <Self::State as State>::Object, mut levels: usize) {
+    fn exit(&mut self, object: &mut Self::Object, mut levels: usize) {
         match levels {
             0 => (),
             1 => self.call_exit_action(object),

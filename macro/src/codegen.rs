@@ -154,7 +154,7 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
 }
 
 fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
-    let state_ty = &ir.state_machine.state_ty;
+    let object_ty = &ir.state_machine.object_ty;
     let superstate_ty = &ir.state_machine.superstate_ty;
     let mut call_handler_arms: Vec<Arm> = Vec::new();
     let mut call_entry_action_arms: Vec<Arm> = Vec::new();
@@ -188,13 +188,13 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
         where
             Self: 'a,
         {
-            type State = #state_ty;
+            type Object = #object_ty;
 
             fn call_handler(
                 &mut self,
-                object: &mut <Self::State as stateful::State>::Object,
-                input: &<<Self::State as stateful::State>::Object as stateful::Stateful>::Input
-            ) -> stateful::Result<Self::State> where Self: Sized {
+                object: &mut Self::Object,
+                input: &<Self::Object as stateful::Stateful>::Input
+            ) -> stateful::Result<<Self::Object as stateful::Stateful>::State> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
@@ -202,7 +202,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
             fn call_entry_action(
                 &mut self,
-                object: &mut <Self::State as stateful::State>::Object
+                object: &mut Self::Object
             ) {
                 match self {
                     #(#call_entry_action_arms),*
@@ -211,14 +211,14 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
             fn call_exit_action(
                 &mut self,
-                object: &mut <Self::State as stateful::State>::Object
+                object: &mut Self::Object
             ) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<Self::State as stateful::State>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }
@@ -226,7 +226,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
             fn same_state(
                 &self,
-                state: &<Self::State as stateful::State>::Superstate<'_>
+                state: &<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>
             ) -> bool {
                 match (self, state) {
                     #(#same_state_arms),*

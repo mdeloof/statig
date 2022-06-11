@@ -250,13 +250,13 @@ mod tests {
     where
         Self: 'a,
     {
-        type State = State;
+        type Object = Foo;
 
         fn call_handler(
             &mut self,
-            object: &mut <Self::State as stateful::State>::Object,
-            input: &<<Self::State as stateful::State>::Object as Stateful>::Input,
-        ) -> stateful::Result<Self::State>
+            object: &mut Self::Object,
+            input: &<Self::Object as Stateful>::Input,
+        ) -> stateful::Result<<Self::Object as Stateful>::State>
         where
             Self: Sized,
         {
@@ -268,7 +268,7 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut <Self::State as stateful::State>::Object) {
+        fn call_entry_action(&mut self, object: &mut Self::Object) {
             match self {
                 Superstate::S21 {} => Foo::enter_s21(object),
                 Superstate::S {} => Foo::enter_s(object),
@@ -277,7 +277,7 @@ mod tests {
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut <Self::State as stateful::State>::Object) {
+        fn call_exit_action(&mut self, object: &mut Self::Object) {
             match self {
                 Superstate::S21 {} => Foo::exit_s21(object),
                 Superstate::S {} => Foo::exit_s(object),
@@ -286,7 +286,10 @@ mod tests {
             }
         }
 
-        fn superstate(&mut self) -> Option<<Self::State as stateful::State>::Superstate<'_>> {
+        fn superstate(
+            &mut self,
+        ) -> Option<<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>>
+        {
             match self {
                 Superstate::S21 {} => Some(Superstate::S2 {}),
                 Superstate::S {} => None,
@@ -295,7 +298,10 @@ mod tests {
             }
         }
 
-        fn same_state(&self, state: &<Self::State as stateful::State>::Superstate<'_>) -> bool {
+        fn same_state(
+            &self,
+            state: &<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>,
+        ) -> bool {
             #[allow(clippy::match_like_matches_macro)]
             match (self, state) {
                 (Superstate::S21 { .. }, Superstate::S21 { .. }) => true,
