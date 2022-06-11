@@ -527,13 +527,10 @@ where
         }
     }
 
-    fn common_ancestor_depth<'a>(
+    fn common_ancestor_depth(
         mut source: <<Self::Object as Stateful>::State as State>::Superstate<'_>,
         mut target: <<Self::Object as Stateful>::State as State>::Superstate<'_>,
-    ) -> usize
-    where
-        Self: 'a,
-    {
+    ) -> usize {
         match source.depth().cmp(&target.depth()) {
             Ordering::Equal => match source.same_state(&target) {
                 true => source.depth(),
