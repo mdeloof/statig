@@ -1,5 +1,7 @@
 # Stateful
 
+![CI](https://github.com/mdeloof/stateful/actions/workflows/ci.yml/badge.svg)
+
 Ergonomic state machines for designing event-driven systems.
 
 **Features**
