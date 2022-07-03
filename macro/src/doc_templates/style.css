@@ -1,0 +1,99 @@
+.state {
+    margin-bottom: 12px;
+    border-left: 3px #5f5f5f solid;
+}
+
+.state-name {
+    height: 40px;
+    margin-top: -40px;
+    padding: 5px 20px 5px 20px;
+    position: sticky;
+    display: grid;
+    align-items: center;
+    font-family: "Source Code Pro", monospace;
+    font-weight: 600;
+}
+
+.state-name .fnname {
+    text-decoration: none !important;
+}
+
+.state-name .fnname:hover {
+    text-decoration: none !important;
+}
+
+.state-name-background {
+    height: 40px;
+    padding: 5px 20px 5px 20px;
+    position: sticky;
+    background-color: #5f5f5f;
+}
+
+.state-action {
+    padding-left: 20px;
+    margin-bottom: 10px;
+}
+
+.state-content {
+    padding-left: 20px;
+}
+
+.state .docblock {
+    margin-left: 0px;
+}
+
+.state-transition {
+    padding: 5px 10px 5px 10px;
+}
+
+.level-1 {
+    top: 0px;
+    z-index: 30;
+}
+
+.level-1-background {
+    top: 1px;
+    z-index: 29;
+}
+
+.level-2 {
+    top: 41px;
+    z-index: 28;
+}
+
+.level-2-background {
+    top: 42px;
+    z-index: 27;
+}
+
+.level-3 {
+    top: 82px;
+    z-index: 26;
+}
+
+.level-3-background {
+    top: 83px;
+    z-index: 25;
+}
+
+.level-4 {
+    top: 123px;
+    z-index: 24;
+}
+
+.level-4-background {
+    top: 124px;
+    z-index: 23;
+}
+
+.level-5 {
+    top: 160px;
+}
+
+.level-6 {
+    top: 200px;
+}
+
+.level-7 {
+    top: 240px;
+}
