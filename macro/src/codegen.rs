@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse_quote, Arm, ItemEnum, ItemFn, ItemImpl, Variant};
+use syn::{parse_quote, Arm, Attribute, ItemEnum, ItemFn, ItemImpl, Variant};
 
 use crate::lower::Ir;
 
@@ -38,10 +38,11 @@ fn codegen_state(ir: &Ir) -> ItemEnum {
         .values()
         .map(|state| state.variant.clone())
         .collect();
+    let visibility = &ir.state_machine.visibility;
 
     parse_quote!(
         #[derive(#(#state_derives),*)]
-        enum #state_ty {
+        # visibility enum #state_ty {
             #(#variants),*
         }
     )
@@ -78,7 +79,6 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 
     for state in ir.states.values() {
         let pat = &state.pat;
-        let pat_ignore = &state.pat_ignore;
         let handler_call = &state.handler_call;
         let entry_action_call = &state.entry_action_call;
         let exit_action_call = &state.exit_action_call;
@@ -89,7 +89,6 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
         call_entry_action_arms.push(parse_quote!(#pat => #entry_action_call));
         call_exit_action_arms.push(parse_quote!(#pat => #exit_action_call));
         superstate_arms.push(parse_quote!(#pat => #superstate_pat));
-        same_state_arms.push(parse_quote!((#pat_ignore, #pat_ignore) => true));
     }
 
     call_handler_arms.push(parse_quote!(_ => Ok(stateful::Response::Super)));
@@ -104,33 +103,35 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
             type Object = #object_ty;
 
             fn call_handler(&mut self, object: &mut Self::Object, input: &<Self::Object as stateful::Stateful>::Input) -> stateful::Result<Self> where Self: Sized {
+                #[allow(unused)]
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
             fn call_entry_action(&mut self, object: &mut Self::Object) {
+                #[allow(unused)]
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
             fn call_exit_action(&mut self, object: &mut Self::Object) {
+                #[allow(unused)]
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
             fn superstate(&mut self) -> Option<Self::Superstate<'_>> {
+                #[allow(unused)]
                 match self {
                     #(#superstate_arms),*
                 }
             }
 
-            fn same_state(&self, state: &Self) -> bool {
-                match (self, state) {
-                    #(#same_state_arms),*
-                }
+            fn same_state(lhs: &Self, rhs: &Self) -> bool {
+                core::mem::discriminant(lhs) == core::mem::discriminant(rhs)
             }
         }
     )
@@ -144,10 +145,11 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
         .values()
         .map(|superstate| superstate.variant.clone())
         .collect();
+    let visibility = &ir.state_machine.visibility;
 
     parse_quote!(
         #[derive(#(#superstate_derives),*)]
-        enum #superstate_ty {
+        #visibility enum #superstate_ty {
             #(#variants),*
         }
     )
@@ -164,7 +166,6 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
     for state in ir.superstates.values() {
         let pat = &state.pat;
-        let pat_ignore = &state.pat_ignore;
         let handler_call = &state.handler_call;
         let entry_action_call = &state.entry_action_call;
         let exit_action_call = &state.exit_action_call;
@@ -174,7 +175,6 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
         call_entry_action_arms.push(parse_quote!(#pat => #entry_action_call));
         call_exit_action_arms.push(parse_quote!(#pat => #exit_action_call));
         superstate_arms.push(parse_quote!(#pat => #superstate_pat));
-        same_state_arms.push(parse_quote!((#pat_ignore, #pat_ignore) => true));
     }
 
     call_handler_arms.push(parse_quote!(_ => Ok(stateful::Response::Super)));
@@ -195,6 +195,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 object: &mut Self::Object,
                 input: &<Self::Object as stateful::Stateful>::Input
             ) -> stateful::Result<<Self::Object as stateful::Stateful>::State> where Self: Sized {
+                #[allow(unused)]
                 match self {
                     #(#call_handler_arms),*
                 }
@@ -204,6 +205,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 &mut self,
                 object: &mut Self::Object
             ) {
+                #[allow(unused)]
                 match self {
                     #(#call_entry_action_arms),*
                 }
@@ -213,24 +215,24 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 &mut self,
                 object: &mut Self::Object
             ) {
+                #[allow(unused)]
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
             fn superstate(&mut self) -> Option<<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>> {
+                #[allow(unused)]
                 match self {
                     #(#superstate_arms),*
                 }
             }
 
             fn same_state(
-                &self,
+                left: &<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>,
                 state: &<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>
             ) -> bool {
-                match (self, state) {
-                    #(#same_state_arms),*
-                }
+                core::mem::discriminant(left) == core::mem::discriminant(state)
             }
         }
     )

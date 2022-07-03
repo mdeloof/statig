@@ -8,11 +8,11 @@ use stateful::ResultExt;
 use stateful::{StateMachine, Stateful};
 use std::io::Write;
 
-struct Blinky {
+pub struct Blinky {
     led: bool,
 }
 
-struct Event;
+pub struct Event;
 
 // The `stateful` trait needs to be implemented on the type that will be
 // the context for the state machine.

@@ -13,14 +13,15 @@ mod parse;
 use analyze::analyze;
 use codegen::codegen;
 use lower::lower;
-use parse::parse;
+use parse::{parse_args, parse_input};
 
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn state_machine(_: TokenStream, input: TokenStream) -> TokenStream {
-    let item_impl = parse(input.into());
-    let model = analyze(item_impl);
-    let ir = lower(model);
+pub fn state_machine(args: TokenStream, input: TokenStream) -> TokenStream {
+    let attribute_args = parse_args(args.into());
+    let item_impl = parse_input(input.into());
+    let model = analyze(attribute_args, item_impl);
+    let ir = lower(&model);
     let rust = codegen(ir);
     rust.into()
 }

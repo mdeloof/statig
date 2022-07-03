@@ -1,8 +1,17 @@
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
-use syn::{Item, ItemImpl};
+use syn::{parse::Parser, punctuated::Punctuated, AttributeArgs, Item, ItemImpl, NestedMeta};
 
-pub fn parse(item: TokenStream) -> ItemImpl {
+pub fn parse_args(args: TokenStream) -> AttributeArgs {
+    let result: Result<Punctuated<NestedMeta, _>, _> =
+        Punctuated::<syn::NestedMeta, syn::Token![,]>::parse_terminated.parse2(args);
+    match result {
+        Ok(args) => args.into_iter().collect(),
+        Err(_) => unreachable!(),
+    }
+}
+
+pub fn parse_input(item: TokenStream) -> ItemImpl {
     let result: Result<Item, _> = syn::parse2(item);
     match result {
         Ok(Item::Impl(item_impl)) => item_impl,
@@ -19,7 +28,7 @@ pub fn parse(item: TokenStream) -> ItemImpl {
 fn valid_input() {
     use quote::quote;
 
-    parse(quote!(
+    let token_stream = quote!(
         #[state_machine]
         impl Blinky {
             fn on(&mut self, event: &Event) -> Reponse<State> {
@@ -30,7 +39,9 @@ fn valid_input() {
                 Response::Handled
             }
         }
-    ));
+    );
+
+    parse_input(token_stream);
 }
 
 #[test]
@@ -38,10 +49,12 @@ fn valid_input() {
 fn invalid_input() {
     use quote::quote;
 
-    parse(quote!(
+    let token_stream = quote!(
         #[state_machine]
         struct Blinky {
             led: bool,
         }
-    ));
+    );
+
+    parse_input(token_stream);
 }

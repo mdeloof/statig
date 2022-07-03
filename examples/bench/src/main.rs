@@ -9,9 +9,9 @@ use stateful::{StateMachine, Stateful};
 use std::io::Write;
 use std::time::Instant;
 
-struct Blinky;
+pub struct Blinky;
 
-enum Event {
+pub enum Event {
     StartPlayback,
     ResumePlayback,
     CloseDrawer,

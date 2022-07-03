@@ -8,14 +8,14 @@ use stateful::StateMachine;
 use stateful::{ResultExt, Stateful};
 use std::io::Write;
 
-enum Event {
+pub enum Event {
     StartProgram,
     DoorOpened,
     DoorClosed,
     TimerElapsed,
 }
 
-struct Dishwasher {
+pub struct Dishwasher {
     previous_state: State,
 }
 

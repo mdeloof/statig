@@ -99,13 +99,13 @@
 //! type Result = stateful::Result<State>;
 //!
 //! // Define your event type.
-//! enum Event {
+//! pub enum Event {
 //!     TimerElapsed,
 //!     ButtonPressed,
 //! }
 //!
 //! // Define your data type.
-//! struct Blinky {
+//! pub struct Blinky {
 //!     light: bool,
 //! }
 //!
@@ -395,7 +395,7 @@ pub trait State {
 
     fn superstate(&mut self) -> Option<Self::Superstate<'_>>;
 
-    fn same_state(&self, state: &Self) -> bool;
+    fn same_state(lhs: &Self, rhs: &Self) -> bool;
 
     fn depth(&mut self) -> usize {
         match self.superstate() {
@@ -405,7 +405,7 @@ pub trait State {
     }
 
     fn common_ancestor_depth(source: &mut Self, target: &mut Self) -> usize {
-        if source.same_state(target) {
+        if Self::same_state(source, target) {
             return source.depth();
         }
 
@@ -420,7 +420,7 @@ pub trait State {
     }
 
     fn transition_path(&mut self, target: &mut Self) -> (usize, usize) {
-        if self.same_state(target) {
+        if Self::same_state(self, target) {
             return (1, 1);
         }
 
@@ -516,8 +516,8 @@ where
         Self: Sized;
 
     fn same_state(
-        &self,
-        state: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
+        lhs: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
+        rhs: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
     ) -> bool;
 
     fn depth(&mut self) -> usize {
@@ -532,7 +532,7 @@ where
         mut target: <<Self::Object as Stateful>::State as State>::Superstate<'_>,
     ) -> usize {
         match source.depth().cmp(&target.depth()) {
-            Ordering::Equal => match source.same_state(&target) {
+            Ordering::Equal => match Self::same_state(&source, &target) {
                 true => source.depth(),
                 false => match (source.superstate(), target.superstate()) {
                     (Some(source), Some(target)) => Self::common_ancestor_depth(source, target),

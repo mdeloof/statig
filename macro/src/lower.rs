@@ -2,9 +2,9 @@ use proc_macro2::Span;
 use proc_macro_error::abort;
 use quote::format_ident;
 use std::collections::HashMap;
-use syn::ItemFn;
 use syn::{parse_quote, Expr, ItemImpl, Lifetime, Type};
 use syn::{ExprCall, FnArg, Ident, Pat, Path, Variant};
+use syn::{ItemFn, Visibility};
 
 use crate::analyze;
 use crate::analyze::Model;
@@ -12,7 +12,7 @@ use crate::analyze::Model;
 const SUPERSTATE_LIFETIME: &str = "'a";
 
 /// Intermediate representation of the state machine.
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct Ir {
     /// A copy of the item impl that was parsed.
     pub item_impl: ItemImpl,
@@ -24,7 +24,7 @@ pub struct Ir {
     pub superstates: HashMap<Ident, Superstate>,
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 /// General information regarding the state machine.
 pub struct StateMachine {
     /// The type on which the state machine is implemented.
@@ -39,10 +39,12 @@ pub struct StateMachine {
     pub superstate_ty: Type,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
+    /// The visibility for the derived types
+    pub visibility: Visibility,
 }
 
 /// Information regarding a state.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct State {
     /// The variant that will be part of the state enum
     /// (e.g. `On { led: bool }`)
@@ -50,9 +52,6 @@ pub struct State {
     /// The pattern that we'll use to match on the state enum.
     /// (e.g. `State::On { led }`)
     pub pat: Pat,
-    /// That pattern that we'll use to match on the state enum without binding any variables.
-    /// (e.g `State::On { .. }`)
-    pub pat_ignore: Pat,
     /// The call to the state handler
     /// (e.g. `Blinky::on(object, led, input)`).
     pub handler_call: ExprCall,
@@ -70,7 +69,7 @@ pub struct State {
     pub constructor: ItemFn,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Superstate {
     /// The variant that will be part of the superstate enum
     /// (e.g. `Playing { led: &'mut bool }`).
@@ -78,9 +77,6 @@ pub struct Superstate {
     /// The pattern that we'll use to mactch on the superstate enum
     /// (e.g. `Superstate::Playing { led }`).
     pub pat: Pat,
-    /// The pattern that we'll use to match on the superstate enum without binding any variables.
-    /// (e.g. `Superstate::Playing { .. }`)
-    pub pat_ignore: Pat,
     /// The call to the superstate handler
     /// (e.g. `Blinky::playing(object, led)`)
     pub handler_call: ExprCall,
@@ -95,15 +91,15 @@ pub struct Superstate {
     pub superstate_pat: Expr,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Action {
     /// The call to the action.
     /// (e.g. `Blinky::exit_off(object, led)`)
     pub handler_call: ExprCall,
 }
 
-pub fn lower(model: Model) -> Ir {
-    let item_impl = model.item_impl;
+pub fn lower(model: &Model) -> Ir {
+    let item_impl = model.item_impl.clone();
 
     let state_name = &model.state_machine.state_name;
     let state_ty = parse_quote!(#state_name);
@@ -224,11 +220,13 @@ pub fn lower(model: Model) -> Ir {
         }
     }
 
-    let object_ty = model.state_machine.object_ty;
-    let state_derives = model.state_machine.state_derives;
+    let object_ty = model.state_machine.object_ty.clone();
+    let state_derives = model.state_machine.state_derives.clone();
 
-    let superstate_ident = model.state_machine.superstate_name;
-    let superstate_derives = model.state_machine.superstate_derives;
+    let superstate_ident = model.state_machine.superstate_name.clone();
+    let superstate_derives = model.state_machine.superstate_derives.clone();
+
+    let visibility = model.state_machine.visibility.clone();
 
     let state_machine = StateMachine {
         object_ty,
@@ -237,6 +235,7 @@ pub fn lower(model: Model) -> Ir {
         superstate_ident,
         superstate_ty,
         superstate_derives,
+        visibility,
     };
 
     Ir {
@@ -252,7 +251,6 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
     let state_handler_name = &state.handler_name;
     let object_ty = &state_machine.object_ty;
     let state_name = &state_machine.state_name;
-    let pat_ignore = parse_quote!(#state_name::#variant_name { .. });
 
     let variant_fields: Vec<Expr> = state
         .state_inputs
@@ -274,7 +272,6 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
         variant,
         pat,
         constructor,
-        pat_ignore,
         handler_call,
         entry_action_call,
         exit_action_call,
@@ -290,7 +287,6 @@ pub fn lower_superstate(
     let superstate_handler_name = &superstate.handler_name;
     let object_ty = &state_machine.object_ty;
     let superstate_ty = &state_machine.superstate_name;
-    let pat_ignore = parse_quote!(#superstate_ty::#superstate_name { .. });
 
     let variant_fields: Vec<Expr> = superstate
         .state_inputs
@@ -314,7 +310,6 @@ pub fn lower_superstate(
     Superstate {
         variant,
         pat,
-        pat_ignore,
         handler_call,
         entry_action_call,
         exit_action_call,
@@ -424,6 +419,7 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         external_input_pattern: parse_quote!(input),
         external_inputs: vec![parse_quote!(input)],
+        visibility: parse_quote!(pub),
     }
 }
 
@@ -436,6 +432,7 @@ fn create_lower_state_machine() -> StateMachine {
         superstate_ident: parse_quote!(Superstate),
         superstate_ty: parse_quote!(Superstate<'a>),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
+        visibility: parse_quote!(pub),
     }
 }
 
@@ -469,7 +466,6 @@ fn create_lower_state() -> State {
             counter: usize
         }),
         pat: parse_quote!(State::On { led, counter }),
-        pat_ignore: parse_quote!(State::On { .. }),
         handler_call: parse_quote!(Blinky::on(object, input, led, counter)),
         entry_action_call: parse_quote!({}),
         exit_action_call: parse_quote!({}),
@@ -520,7 +516,6 @@ fn create_lower_superstate() -> Superstate {
             counter: &'a mut usize
         }),
         pat: parse_quote!(Superstate::Playing { led, counter }),
-        pat_ignore: parse_quote!(Superstate::Playing { .. }),
         handler_call: parse_quote!(Blinky::playing(object, input, led, counter)),
         entry_action_call: parse_quote!({}),
         exit_action_call: parse_quote!({}),
@@ -616,7 +611,7 @@ fn test_lower_action() {
 fn test_lower() {
     let model = create_analyze_model();
 
-    let actual = lower(model);
+    let actual = lower(&model);
     let expected = create_lower_model();
 
     assert_eq!(actual, expected);

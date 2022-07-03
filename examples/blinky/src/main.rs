@@ -10,7 +10,7 @@ use stateful::Stateful;
 use std::io::Write;
 
 #[derive(Default)]
-struct Blinky;
+pub struct Blinky;
 
 // The `stateful` trait needs to be implemented on the type that will
 // imlement the state machine.
@@ -34,7 +34,7 @@ impl Default for StateEnum {
     }
 }
 
-struct Event;
+pub struct Event;
 
 // This macro will generate some code, such as the `StateEnum` type.
 #[state_machine]

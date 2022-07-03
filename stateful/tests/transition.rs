@@ -219,9 +219,9 @@ mod tests {
             }
         }
 
-        fn same_state(&self, state: &Self) -> bool {
+        fn same_state(lhs: &Self, rhs: &Self) -> bool {
             #[allow(clippy::match_like_matches_macro)]
-            match (self, state) {
+            match (lhs, rhs) {
                 (State::S211 { .. }, State::S211 { .. }) => true,
                 (State::S11 { .. }, State::S11 { .. }) => true,
                 (State::S12 { .. }, State::S12 { .. }) => true,
@@ -299,11 +299,11 @@ mod tests {
         }
 
         fn same_state(
-            &self,
-            state: &<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>,
+            lhs: &<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>,
+            rhs: &<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>,
         ) -> bool {
             #[allow(clippy::match_like_matches_macro)]
-            match (self, state) {
+            match (lhs, rhs) {
                 (Superstate::S21 { .. }, Superstate::S21 { .. }) => true,
                 (Superstate::S { .. }, Superstate::S { .. }) => true,
                 (Superstate::S2 { .. }, Superstate::S2 { .. }) => true,

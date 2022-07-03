@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::format_ident;
-use syn::parse_quote;
+use syn::{parse_quote, Visibility};
 use syn::{
-    Attribute, FnArg, Ident, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta, NestedMeta, Pat, Path,
-    Type,
+    Attribute, AttributeArgs, FnArg, Ident, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta,
+    NestedMeta, Pat, Path, Type,
 };
 
 /// Model of the state machine.
@@ -24,7 +25,7 @@ pub struct Model {
 }
 
 /// General information regarding the state machine.
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct StateMachine {
     /// The type on which the state machine is implemented.
     pub object_ty: Type,
@@ -40,10 +41,12 @@ pub struct StateMachine {
     pub external_input_pattern: Pat,
     /// The idents that will be binded by destructering the input pattern.
     pub external_inputs: Vec<Ident>,
+    /// The visibility of the derived types.
+    pub visibility: Visibility,
 }
 
 /// Information regarding a state.
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct State {
     /// Name of the state.
     pub handler_name: Ident,
@@ -55,7 +58,7 @@ pub struct State {
     pub exit_action: Option<Ident>,
     /// Inputs required by the state handler.
     pub inputs: Vec<FnArg>,
-    /// Optional receiver input for the state handler (e.g. `&mut self`)
+    /// Optional receiver input for the state handler (e.g. `&mut self`).
     pub object_input: Option<FnArg>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<FnArg>,
@@ -64,7 +67,7 @@ pub struct State {
 }
 
 /// Information regarding a superstate.
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct Superstate {
     /// Name of the superstate.
     pub handler_name: Ident,
@@ -76,7 +79,7 @@ pub struct Superstate {
     pub exit_action: Option<Ident>,
     /// Inputs required by the superstate handler.
     pub inputs: Vec<FnArg>,
-    /// Optional receiver input for the state handler (e.g. `&mut self`)
+    /// Optional receiver input for the state handler (e.g. `&mut self`).
     pub object_input: Option<FnArg>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<FnArg>,
@@ -85,7 +88,7 @@ pub struct Superstate {
 }
 
 /// Information regarding an action.
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct Action {
     /// Name of the action
     pub handler_name: Ident,
@@ -94,12 +97,12 @@ pub struct Action {
 }
 
 /// Analyze the impl block and create a model.
-pub fn analyze(item_impl: ItemImpl) -> Model {
+pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
     let mut states = HashMap::new();
     let mut superstates = HashMap::new();
     let mut actions = HashMap::new();
 
-    let state_machine = analyze_state_machine(&item_impl);
+    let state_machine = analyze_state_machine(&attribute_args, &item_impl);
 
     // Iterate over the methods that are part of the impl block.
     for method in item_impl.items.iter().filter_map(|item| match item {
@@ -138,20 +141,50 @@ pub fn analyze(item_impl: ItemImpl) -> Model {
 }
 
 /// Retrieve the top level settings of the state machine.
-pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
+pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let object_ty = item_impl.self_ty.as_ref().clone();
-    let external_input_pattern = parse_quote!(input);
-    let external_inputs = get_idents_from_pat(&external_input_pattern);
 
     let mut state_name = parse_quote!(State);
     let mut state_derives = Vec::new();
     let mut superstate_name = parse_quote!(Superstate);
     let mut superstate_derives = Vec::new();
 
+    let mut visibility = parse_quote!(pub);
+    let mut external_input_pattern = parse_quote!(input);
+
+    for arg in attribute_args {
+        match arg {
+            NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("input") => {
+                match &name_value.lit {
+                    Lit::Str(input_pat) => {
+                        let token_stream: TokenStream = str::parse(&input_pat.value()).unwrap();
+                        external_input_pattern = parse_quote!(#token_stream);
+                    }
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("visibility") =>
+            {
+                match &name_value.lit {
+                    Lit::Str(input_pat) => {
+                        let token_stream: TokenStream = str::parse(&input_pat.value()).unwrap();
+                        visibility = parse_quote!(#token_stream);
+                    }
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            _ => abort!(arg, "argument not recognized"),
+        }
+    }
+
+    let external_inputs = get_idents_from_pat(&external_input_pattern);
+
     let meta = get_meta(&item_impl.attrs, "state");
 
     for meta in meta {
         match meta {
+            // Get the custom name for the state enum.
             Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
                 match name_value.lit {
                     Lit::Str(str_lit) => {
@@ -160,6 +193,8 @@ pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
                     _ => abort!(name_value, "expected string literal"),
                 }
             }
+
+            // Get the derives for the state enum.
             Meta::List(meta_list) if meta_list.path.is_ident("derive") => {
                 for nested_meta in &meta_list.nested {
                     match nested_meta {
@@ -170,6 +205,8 @@ pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
                     }
                 }
             }
+
+            // Other attributes are not recognized.
             _ => abort!(meta, "unknown attribute"),
         }
     }
@@ -178,6 +215,7 @@ pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
 
     for meta in meta {
         match meta {
+            // Get the custom name for the superstate enum.
             Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
                 match name_value.lit {
                     Lit::Str(str_lit) => {
@@ -186,6 +224,8 @@ pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
                     _ => abort!(name_value, "expected string literal"),
                 }
             }
+
+            // Get the derives of the superstate enum.
             Meta::List(meta_list) if meta_list.path.is_ident("derive") => {
                 for nested_meta in &meta_list.nested {
                     match nested_meta {
@@ -196,6 +236,8 @@ pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
                     }
                 }
             }
+
+            // Other attributes are not recognized.
             _ => abort!(meta, "unknown attribute"),
         }
     }
@@ -208,6 +250,7 @@ pub fn analyze_state_machine(item_impl: &ItemImpl) -> StateMachine {
         superstate_derives,
         external_input_pattern,
         external_inputs,
+        visibility,
     }
 }
 
@@ -233,6 +276,9 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
                 Pat::Ident(_) => {
                     state_inputs.push(input.clone());
                 }
+                Pat::Reference(_) => {
+                    state_inputs.push(input.clone());
+                }
                 Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
                 Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
                 Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
@@ -241,7 +287,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
                     "wildcard pattern is not supported";
                     help = "consider giving the input a name"
                 ),
-                _ => abort!(pat_type, "patterns are not suppprted"),
+                _ => abort!(pat_type, "patterns are not supported"),
             },
         }
     }
@@ -281,6 +327,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     }
 }
 
+/// Retrieve the information regarding the superstate.
 pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine) -> Superstate {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.iter().cloned().collect();
@@ -302,6 +349,9 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
                 Pat::Ident(_) => {
                     state_inputs.push(input.clone());
                 }
+                Pat::Reference(_) => {
+                    state_inputs.push(input.clone());
+                }
                 Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
                 Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
                 Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
@@ -310,7 +360,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
                     "wildcard pattern is not supported";
                     help = "consider giving the input a name"
                 ),
-                _ => abort!(pat_type, "patterns are not suppprted"),
+                _ => abort!(pat_type, "patterns are not supported"),
             },
         }
     }
@@ -350,6 +400,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     }
 }
 
+/// Retrieve the information regarding the action.
 pub fn analyze_action(method: &ImplItemMethod) -> Action {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.clone().into_iter().collect();
@@ -407,6 +458,9 @@ pub fn get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
 fn valid_state_analyze() {
     use syn::parse_quote;
 
+    let attribute_arg: NestedMeta = parse_quote!(input = "input");
+    let attribute_args = vec![attribute_arg];
+
     let item_impl: ItemImpl = parse_quote!(
         #[state_machine]
         #[state(derive(Copy, Clone))]
@@ -431,7 +485,7 @@ fn valid_state_analyze() {
         }
     );
 
-    let actual = analyze(item_impl.clone());
+    let actual = analyze(attribute_args, item_impl.clone());
 
     let object_ty = parse_quote!(Blinky);
 
@@ -439,8 +493,9 @@ fn valid_state_analyze() {
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let superstate_name = parse_quote!(Superstate);
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
-    let input = parse_quote!(input);
-    let input_idents = vec![parse_quote!(input)];
+    let external_input_pattern = parse_quote!(input);
+    let external_inputs = vec![parse_quote!(input)];
+    let visibility = parse_quote!(pub);
 
     let state_machine = StateMachine {
         object_ty,
@@ -448,8 +503,9 @@ fn valid_state_analyze() {
         state_derives,
         superstate_name,
         superstate_derives,
-        external_input_pattern: input,
-        external_inputs: input_idents,
+        external_input_pattern,
+        external_inputs,
+        visibility,
     };
 
     let state = State {

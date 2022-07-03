@@ -27,12 +27,12 @@ mod tests {
     }
 
     #[derive(Debug)]
-    enum StateWrapper {
+    pub enum StateWrapper {
         Leaf(State),
         Super(Superstate),
     }
 
-    struct Foo {
+    pub struct Foo {
         pub path: Vec<(StateWrapper, Action)>,
     }
 
