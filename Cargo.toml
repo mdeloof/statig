@@ -9,4 +9,5 @@ members = [
     "examples/blinky",
     "examples/history",
     "examples/bench",
+    "examples/calculator",
 ]
