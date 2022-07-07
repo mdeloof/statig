@@ -216,6 +216,13 @@ use core::cmp::Ordering;
 
 pub use stateful_macro::{action, state, state_machine, superstate};
 
+pub mod prelude {
+    pub use crate::state_machine;
+    pub use crate::Response::*;
+    pub use crate::Result;
+    pub use crate::Stateful;
+}
+
 pub trait Stateful {
     type State: State<Object = Self>;
 
