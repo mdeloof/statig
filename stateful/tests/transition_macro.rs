@@ -45,8 +45,8 @@ mod tests {
     }
 
     #[state_machine]
-    #[state(derive(Clone, Copy, Debug, PartialEq))]
-    #[superstate(derive(Clone, Copy, Debug, PartialEq))]
+    #[state(derive(Clone, Copy, Debug, PartialEq, Eq))]
+    #[superstate(derive(Clone, Copy, Debug, PartialEq, Eq))]
     impl Foo {
         /// s11
         #[state(

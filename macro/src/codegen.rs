@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse_quote, Arm, Attribute, ItemEnum, ItemFn, ItemImpl, Variant};
+use syn::{parse_quote, Arm, ItemEnum, ItemFn, ItemImpl, Variant};
 
 use crate::lower::Ir;
 
@@ -228,12 +228,12 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 }
             }
 
-            fn same_state(
-                left: &<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>,
-                state: &<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>
-            ) -> bool {
-                core::mem::discriminant(left) == core::mem::discriminant(state)
-            }
+            // fn same_state(
+            //     left: &<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>,
+            //     state: &<<Self::Object as stateful::Stateful>::State as stateful::State>::Superstate<'_>
+            // ) -> bool {
+            //     core::mem::discriminant(left) == core::mem::discriminant(state)
+            // }
         }
     )
 }

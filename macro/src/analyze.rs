@@ -10,7 +10,7 @@ use syn::{
 };
 
 /// Model of the state machine.
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct Model {
     /// A copy of the item impl that was parsed.
     pub item_impl: ItemImpl,

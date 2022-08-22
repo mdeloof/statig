@@ -382,7 +382,10 @@ where
     }
 }
 
-pub trait State {
+pub trait State
+where
+    Self: Sized,
+{
     type Superstate<'a>: Superstate<Object = Self::Object>
     where
         Self: 'a;
@@ -402,7 +405,9 @@ pub trait State {
 
     fn superstate(&mut self) -> Option<Self::Superstate<'_>>;
 
-    fn same_state(lhs: &Self, rhs: &Self) -> bool;
+    fn same_state(lhs: &Self, rhs: &Self) -> bool {
+        core::mem::discriminant(lhs) == core::mem::discriminant(rhs)
+    }
 
     fn depth(&mut self) -> usize {
         match self.superstate() {
@@ -525,7 +530,20 @@ where
     fn same_state(
         lhs: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
         rhs: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
-    ) -> bool;
+    ) -> bool {
+        use core::mem::{discriminant, transmute_copy, Discriminant};
+
+        // Generic associated types are invariant over any lifetime arguments, so the
+        // compiler won't allow us to compare them directly. Instead we need to coerce them
+        // to have the same lifetime by transmuting them to the same type.
+
+        let lhs: Discriminant<<<Self::Object as Stateful>::State as State>::Superstate<'_>> =
+            unsafe { transmute_copy(&discriminant(lhs)) };
+        let rhs: Discriminant<<<Self::Object as Stateful>::State as State>::Superstate<'_>> =
+            unsafe { transmute_copy(&discriminant(rhs)) };
+
+        lhs == rhs
+    }
 
     fn depth(&mut self) -> usize {
         match self.superstate() {
