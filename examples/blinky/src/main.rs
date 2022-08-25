@@ -1,75 +1,105 @@
 #![feature(generic_associated_types)]
 #![allow(unused)]
 
-use stateful::state_machine;
-use stateful::Response::*;
-use stateful::Result;
-use stateful::ResultExt;
+use stateful::prelude::*;
 use stateful::StateMachine;
-use stateful::Stateful;
 use std::io::Write;
 
 #[derive(Default)]
 pub struct Blinky;
 
+pub enum State {
+    On { led: bool, counter: isize },
+    Off { led: bool },
+}
+
+pub enum Superstate<'a> {
+    Playing { led: &'a mut bool },
+}
+
 // The `stateful` trait needs to be implemented on the type that will
 // imlement the state machine.
-impl stateful::Stateful for Blinky {
-    /// The enum that represents the state, this type is derived by the
-    /// `#[state_machine]` macro.
-    type State = StateEnum;
+impl StateMachine for Blinky {
+    /// The enum that represents the state.
+    type State = State;
+
+    type Superstate<'a> = Superstate<'a>;
 
     /// The input type that will be submitted to the state machine.
     type Input = Event;
 
-    /// The initial state of the state machine.
-    const INIT_STATE: StateEnum = StateEnum::on(false, 23);
+    type Context = Self;
 
-    fn on_transition(&mut self, source: &Self::State, _target: &Self::State) {}
+    /// The initial state of the state machine.
+    const INIT_STATE: State = State::On {
+        led: false,
+        counter: 10,
+    };
+
+    fn on_transition(blinky: &mut Blinky, source: &Self::State, _target: &Self::State) {}
 }
 
-impl Default for StateEnum {
-    fn default() -> Self {
-        Blinky::INIT_STATE
+impl stateful::State<Blinky> for State {
+    fn call_handler(&mut self, blinky: &mut Blinky, input: &Event) -> Response<Self> {
+        match self {
+            State::On { led, counter } => blinky.on(led, counter, input),
+            State::Off { led } => blinky.off(led, input),
+        }
+    }
+
+    fn call_entry_action(&mut self, blinky: &mut Blinky) {
+        match self {
+            State::On { .. } => {}
+            State::Off { led } => blinky.enter_off(led),
+        }
+    }
+
+    fn superstate(&mut self) -> Option<Superstate<'_>> {
+        match self {
+            State::On { led, .. } => Some(Superstate::Playing { led }),
+            State::Off { led, .. } => Some(Superstate::Playing { led }),
+        }
+    }
+}
+
+impl<'a> stateful::Superstate<Blinky> for Superstate<'a> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<State> {
+        match self {
+            Superstate::Playing { led } => blinky.playing(led),
+        }
     }
 }
 
 pub struct Event;
 
-// This macro will generate some code, such as the `StateEnum` type.
-#[state_machine]
-// You can rename the enum that is derived by the state machine macro as well
-// as add traits that will be derived from it.
-#[state(name = "StateEnum", derive(Clone))]
 impl Blinky {
     // Every state needs to have a `#[state]` attribute added to it.
-    #[state(superstate = "playing")]
-    fn on(&mut self, led: &mut bool, counter: &mut isize, input: &Event) -> Result<StateEnum> {
+    fn on(&mut self, led: &mut bool, counter: &mut isize, input: &Event) -> Response<State> {
         println!("On");
-        Ok(Transition(StateEnum::off(false)))
+        Transition(State::Off { led: false })
     }
 
     // Actions can access state-local storage.
-    #[action]
     fn enter_off(&mut self, led: &mut bool) {
         println!("entered off");
         *led = false;
     }
 
-    #[state(superstate = "playing", entry_action = "enter_off")]
-    fn off(&mut self, led: &mut bool, input: &Event) -> Result<StateEnum> {
+    fn off(&mut self, led: &mut bool, input: &Event) -> Response<State> {
         println!("Off");
-        Ok(Transition(StateEnum::on(true, 34)))
+        Transition(State::On {
+            led: true,
+            counter: 10,
+        })
     }
 
-    #[superstate]
-    fn playing(&mut self, led: &mut bool) -> Result<StateEnum> {
-        Ok(Handled)
+    fn playing(&mut self, led: &mut bool) -> Response<State> {
+        Handled
     }
 }
 
 fn main() {
-    let mut state_machine = StateMachine::<Blinky>::default();
+    let mut state_machine = Blinky::state_machine().init();
 
     for _ in 0..10 {
         state_machine.handle(&Event {});

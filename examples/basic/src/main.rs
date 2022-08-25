@@ -1,52 +1,70 @@
 #![feature(generic_associated_types)]
 #![allow(unused)]
 
-use stateful::state_machine;
-use stateful::Response::*;
-use stateful::Result;
-use stateful::ResultExt;
-use stateful::{StateMachine, Stateful};
-use std::io::Write;
+use stateful::prelude::*;
 
+#[derive(Default)]
 pub struct Blinky {
     led: bool,
+}
+
+#[derive(Debug)]
+pub enum State {
+    On,
+    Off,
 }
 
 pub struct Event;
 
 // The `stateful` trait needs to be implemented on the type that will be
 // the context for the state machine.
-impl Stateful for Blinky {
-    /// The enum that represents the state. This type is derived by the
-    /// `#[state_machine]` macro.
+impl StateMachine for Blinky {
+    /// The enum that represents the state.
     type State = State;
+
+    /// We are not using any superstates for this state machine, so we set it to `()`.
+    type Superstate<'a> = ();
 
     /// The input type that will be submitted to the state machine.
     type Input = Event;
 
+    /// As a context we use the [Blinky] struct itself.
+    type Context = Self;
+
     /// The initial state of the state machine.
-    const INIT_STATE: State = State::on();
+    const INIT_STATE: State = State::Off;
+
+    /// This method is called on every transition of the state machine.
+    fn on_transition(_: &mut Blinky, _: &State, target: &State) {
+        println!("Transitioned to `{target:?}`");
+    }
 }
 
-#[state_machine]
+impl stateful::State<Blinky> for State {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+        match self {
+            State::On => blinky.on(event),
+            State::Off => blinky.off(event),
+        }
+    }
+}
+
 impl Blinky {
-    #[state]
-    fn on(&mut self, input: &Event) -> Result<State> {
+    fn on(&mut self, input: &Event) -> Response<State> {
         self.led = false;
         // Transition to the `off` state.
-        Ok(Transition(State::off()))
+        Transition(State::Off)
     }
 
-    #[state]
-    fn off(&mut self, input: &Event) -> Result<State> {
+    fn off(&mut self, input: &Event) -> Response<State> {
         self.led = true;
         // Transition to the `on` state.
-        Ok(Transition(State::on()))
+        Transition(State::On)
     }
 }
 
 fn main() {
-    let mut state_machine = StateMachine::new(Blinky { led: false });
+    let mut state_machine = Blinky::state_machine().init();
 
     state_machine.handle(&Event);
 }

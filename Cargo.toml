@@ -2,7 +2,6 @@
 members = [
     # Core stateful crates
     "stateful",
-    "macro",
 
     # Examples
     "examples/basic",

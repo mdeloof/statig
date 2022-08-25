@@ -7,9 +7,7 @@ description = "Hierarchical state machine with function pointers"
 readme = "README.md"
 keywords = ["hierarchical state machine"]
 
-
 [dependencies]
-stateful_macro = { path = "../macro" }
 
 [dev-dependencies]
 heapless = "0.7"

@@ -3,11 +3,10 @@
 #[cfg(test)]
 mod tests {
 
-    use stateful::Response::*;
-    use stateful::{StateMachine, Stateful};
+    use stateful::prelude::*;
     use std::fmt;
 
-    type Result = stateful::Result<State>;
+    type Response = stateful::Response<State>;
 
     #[derive(Clone)]
     enum Event {
@@ -29,25 +28,120 @@ mod tests {
         Super(Superstate),
     }
 
+    #[derive(Default)]
     struct Foo {
         pub path: Vec<(StateWrapper, Action)>,
     }
 
-    impl Stateful for Foo {
+    #[derive(Copy, Clone, PartialEq, Debug)]
+    enum State {
+        S11,
+        S12,
+        S211,
+    }
+
+    #[derive(Copy, Clone, PartialEq, Debug)]
+    enum Superstate {
+        S,
+        S1,
+        S2,
+        S21,
+    }
+
+    impl StateMachine for Foo {
         type State = State;
 
+        type Superstate<'a> = Superstate;
+
         type Input = Event;
+
+        type Context = Self;
 
         const INIT_STATE: State = State::S11;
     }
 
+    impl stateful::State<Foo> for State {
+        fn call_handler(&mut self, object: &mut Foo, input: &Event) -> stateful::Response<Self> {
+            match self {
+                State::S211 {} => Foo::s211(object, input),
+                State::S11 {} => Foo::s11(object, input),
+                State::S12 {} => Foo::s12(object, input),
+            }
+        }
+
+        fn call_entry_action(&mut self, object: &mut Foo) {
+            match self {
+                State::S211 {} => Foo::enter_s211(object),
+                State::S11 {} => Foo::enter_s11(object),
+                State::S12 {} => Foo::enter_s12(object),
+            }
+        }
+
+        fn call_exit_action(&mut self, object: &mut Foo) {
+            match self {
+                State::S211 {} => Foo::exit_s211(object),
+                State::S11 {} => Foo::exit_s11(object),
+                State::S12 {} => Foo::exit_s12(object),
+            }
+        }
+
+        fn superstate(&mut self) -> Option<Superstate> {
+            match self {
+                State::S211 {} => Some(Superstate::S21 {}),
+                State::S11 {} => Some(Superstate::S1 {}),
+                State::S12 {} => Some(Superstate::S1 {}),
+            }
+        }
+    }
+
+    impl stateful::Superstate<Foo> for Superstate {
+        fn call_handler(&mut self, object: &mut Foo, input: &Event) -> stateful::Response<State>
+        where
+            Self: Sized,
+        {
+            match self {
+                Superstate::S21 {} => Foo::s21(object, input),
+                Superstate::S {} => Foo::s(object, input),
+                Superstate::S2 {} => Foo::s2(object, input),
+                Superstate::S1 {} => Foo::s1(object, input),
+            }
+        }
+
+        fn call_entry_action(&mut self, object: &mut Foo) {
+            match self {
+                Superstate::S21 {} => Foo::enter_s21(object),
+                Superstate::S {} => Foo::enter_s(object),
+                Superstate::S2 {} => Foo::enter_s2(object),
+                Superstate::S1 {} => Foo::enter_s1(object),
+            }
+        }
+
+        fn call_exit_action(&mut self, object: &mut Foo) {
+            match self {
+                Superstate::S21 {} => Foo::exit_s21(object),
+                Superstate::S {} => Foo::exit_s(object),
+                Superstate::S2 {} => Foo::exit_s2(object),
+                Superstate::S1 {} => Foo::exit_s1(object),
+            }
+        }
+
+        fn superstate(&mut self) -> Option<Superstate> {
+            match self {
+                Superstate::S21 {} => Some(Superstate::S2 {}),
+                Superstate::S {} => None,
+                Superstate::S2 {} => Some(Superstate::S {}),
+                Superstate::S1 {} => Some(Superstate::S {}),
+            }
+        }
+    }
+
     impl Foo {
         /// s11
-        pub fn s11(&mut self, event: &Event) -> Result {
+        pub fn s11(&mut self, event: &Event) -> Response {
             match event {
-                Event::A => Ok(Transition(State::S11)),
-                Event::B => Ok(Transition(State::S12)),
-                _ => Ok(Super),
+                Event::A => Transition(State::S11),
+                Event::B => Transition(State::S12),
+                _ => Super,
             }
         }
 
@@ -62,10 +156,10 @@ mod tests {
         }
 
         /// s12
-        pub fn s12(&mut self, event: &Event) -> Result {
+        pub fn s12(&mut self, event: &Event) -> Response {
             match event {
-                Event::C => Ok(Transition(State::S211)),
-                _ => Ok(Super),
+                Event::C => Transition(State::S211),
+                _ => Super,
             }
         }
 
@@ -81,8 +175,8 @@ mod tests {
 
         /// s1
         #[allow(unused)]
-        pub fn s1(&mut self, event: &Event) -> Result {
-            Ok(Super)
+        pub fn s1(&mut self, event: &Event) -> Response {
+            Super
         }
 
         fn enter_s1(&mut self) {
@@ -97,8 +191,8 @@ mod tests {
 
         /// s211
         #[allow(unused)]
-        pub fn s211(&mut self, event: &Event) -> Result {
-            Ok(Super)
+        pub fn s211(&mut self, event: &Event) -> Response {
+            Super
         }
 
         fn enter_s211(&mut self) {
@@ -113,8 +207,8 @@ mod tests {
 
         /// s21
         #[allow(unused)]
-        pub fn s21(&mut self, event: &Event) -> Result {
-            Ok(Super)
+        pub fn s21(&mut self, event: &Event) -> Response {
+            Super
         }
 
         fn enter_s21(&mut self) {
@@ -128,10 +222,10 @@ mod tests {
         }
 
         /// s2
-        pub fn s2(&mut self, event: &Event) -> Result {
+        pub fn s2(&mut self, event: &Event) -> Response {
             match event {
-                Event::D => Ok(Transition(State::S11)),
-                _ => Ok(Super),
+                Event::D => Transition(State::S11),
+                _ => Super,
             }
         }
 
@@ -147,8 +241,8 @@ mod tests {
 
         /// s
         #[allow(unused)]
-        pub fn s(&mut self, event: &Event) -> Result {
-            Ok(Handled)
+        pub fn s(&mut self, event: &Event) -> Response {
+            Handled
         }
 
         fn enter_s(&mut self) {
@@ -168,165 +262,9 @@ mod tests {
         }
     }
 
-    #[derive(Copy, Clone, PartialEq, Debug)]
-    enum State {
-        S11,
-        S12,
-        S211,
-    }
-
-    impl stateful::State for State {
-        type Superstate<'a> = Superstate;
-
-        type Object = Foo;
-
-        fn call_handler(
-            &mut self,
-            object: &mut Self::Object,
-            input: &<Self::Object as Stateful>::Input,
-        ) -> stateful::Result<Self>
-        where
-            Self: Sized,
-        {
-            match self {
-                State::S211 {} => Foo::s211(object, input),
-                State::S11 {} => Foo::s11(object, input),
-                State::S12 {} => Foo::s12(object, input),
-            }
-        }
-
-        fn call_entry_action(&mut self, object: &mut Self::Object) {
-            match self {
-                State::S211 {} => Foo::enter_s211(object),
-                State::S11 {} => Foo::enter_s11(object),
-                State::S12 {} => Foo::enter_s12(object),
-            }
-        }
-
-        fn call_exit_action(&mut self, object: &mut Self::Object) {
-            match self {
-                State::S211 {} => Foo::exit_s211(object),
-                State::S11 {} => Foo::exit_s11(object),
-                State::S12 {} => Foo::exit_s12(object),
-            }
-        }
-
-        fn superstate(&mut self) -> Option<Self::Superstate<'_>> {
-            match self {
-                State::S211 {} => Some(Superstate::S21 {}),
-                State::S11 {} => Some(Superstate::S1 {}),
-                State::S12 {} => Some(Superstate::S1 {}),
-            }
-        }
-
-        fn same_state(lhs: &Self, rhs: &Self) -> bool {
-            #[allow(clippy::match_like_matches_macro)]
-            match (lhs, rhs) {
-                (State::S211 { .. }, State::S211 { .. }) => true,
-                (State::S11 { .. }, State::S11 { .. }) => true,
-                (State::S12 { .. }, State::S12 { .. }) => true,
-                _ => false,
-            }
-        }
-
-        fn depth(&mut self) -> usize {
-            match self {
-                State::S11 => 3,
-                State::S12 => 3,
-                State::S211 => 4,
-            }
-        }
-    }
-
-    #[derive(Copy, Clone, PartialEq, Debug)]
-    enum Superstate {
-        S,
-        S1,
-        S2,
-        S21,
-    }
-
-    impl<'a> stateful::Superstate for Superstate
-    where
-        Self: 'a,
-    {
-        type Object = Foo;
-
-        fn call_handler(
-            &mut self,
-            object: &mut Self::Object,
-            input: &<Self::Object as Stateful>::Input,
-        ) -> stateful::Result<<Self::Object as Stateful>::State>
-        where
-            Self: Sized,
-        {
-            match self {
-                Superstate::S21 {} => Foo::s21(object, input),
-                Superstate::S {} => Foo::s(object, input),
-                Superstate::S2 {} => Foo::s2(object, input),
-                Superstate::S1 {} => Foo::s1(object, input),
-            }
-        }
-
-        fn call_entry_action(&mut self, object: &mut Self::Object) {
-            match self {
-                Superstate::S21 {} => Foo::enter_s21(object),
-                Superstate::S {} => Foo::enter_s(object),
-                Superstate::S2 {} => Foo::enter_s2(object),
-                Superstate::S1 {} => Foo::enter_s1(object),
-            }
-        }
-
-        fn call_exit_action(&mut self, object: &mut Self::Object) {
-            match self {
-                Superstate::S21 {} => Foo::exit_s21(object),
-                Superstate::S {} => Foo::exit_s(object),
-                Superstate::S2 {} => Foo::exit_s2(object),
-                Superstate::S1 {} => Foo::exit_s1(object),
-            }
-        }
-
-        fn superstate(
-            &mut self,
-        ) -> Option<<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>>
-        {
-            match self {
-                Superstate::S21 {} => Some(Superstate::S2 {}),
-                Superstate::S {} => None,
-                Superstate::S2 {} => Some(Superstate::S {}),
-                Superstate::S1 {} => Some(Superstate::S {}),
-            }
-        }
-
-        fn same_state(
-            lhs: &<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>,
-            rhs: &<<Self::Object as Stateful>::State as stateful::State>::Superstate<'_>,
-        ) -> bool {
-            #[allow(clippy::match_like_matches_macro)]
-            match (lhs, rhs) {
-                (Superstate::S21 { .. }, Superstate::S21 { .. }) => true,
-                (Superstate::S { .. }, Superstate::S { .. }) => true,
-                (Superstate::S2 { .. }, Superstate::S2 { .. }) => true,
-                (Superstate::S1 { .. }, Superstate::S1 { .. }) => true,
-                _ => false,
-            }
-        }
-
-        fn depth(&mut self) -> usize {
-            match self {
-                Superstate::S => 1,
-                Superstate::S1 => 2,
-                Superstate::S2 => 2,
-                Superstate::S21 => 3,
-            }
-        }
-    }
-
     #[test]
     fn test_transition_path() {
-        let mut state_machine = StateMachine::new(Foo { path: Vec::new() });
-
-        state_machine.init();
+        let mut state_machine = Foo::state_machine().init();
 
         state_machine.handle(&Event::A);
         state_machine.handle(&Event::B);

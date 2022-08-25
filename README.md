@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/mdeloof/stateful/actions/workflows/ci.yml/badge.svg)
 
-Ergonomic state machines for designing event-driven systems.
+Hierarchial state machines for designing event-driven systems.
 
 **Features**
 
@@ -21,40 +21,55 @@ Ergonomic state machines for designing event-driven systems.
 ## Stateful in action
 
 ```rust
-struct Blinky {
+#[derive(Default)]
+pub struct Blinky {
     led: bool,
 }
 
-struct Event;
+pub enum State {
+    On,
+    Off,
+}
 
-impl Stateful for Blinky {
+impl StateMachine for Blinky {
     type State = State;
+
+    type Superstate<'a> = ();
 
     type Input = Event;
 
-    const INIT_STATE: State = State::on();
+    type Context = Self;
+
+    const INIT_STATE: State = State::Off;
 }
 
-#[state_machine]
+impl stateful::State<Blinky> for State {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+        match self {
+            State::On => blinky.on(event),
+            State::Off => blinky.off(event),
+        }
+    }
+}
+
 impl Blinky {
-    #[state]
-    fn on(&mut self, input: &Event) -> Result<State> {
+    fn on(&mut self, event: &Event) -> Response<State> {
         self.led = false;
-        Ok(Transition(State::off()))
+        Transition(State::Off)
     }
 
-    #[state]
-    fn off(&mut self, input: &Event) -> Result<State> {
+    fn off(&mut self, event: &Event) -> Response<State> {
         self.led = true;
-        Ok(Transition(State::on()))
+        Transition(State::On)
     }
 }
 
 fn main() {
-    let mut state_machine = StateMachine::new(Blinky { led: false });
+    let mut state_machine = Blinky::state_machine().init();
 
     state_machine.handle(&Event);
 }
+
 ```
 (See the [`basic`](examples/basic/src/main.rs) example for the full code with comments.)
 
@@ -64,36 +79,60 @@ fn main() {
 
 ### States
 
-States are defined by writing methods inside the `impl` block and adding the `#[state]` attribute to them. By default the `input` argument will map to the input handled by the state machine.
+States are defined by adding a variant to the `State` enum and writing an associated
+function that can take several arguments such as the state machine input (`Event`) and
+context (`Self`). The variant and function are then mapped to each other in `call_handler`.
 
 ```rust
-#[state]
-fn on(input: &Event) -> Result<State> {
-    Ok(Transition(State::off()))
+enum State {
+    On,
+    Off,
 }
-```
 
-Every state must return a `Response` wrapped inside a `Result`. A `Response` can be one of three things: `Handled`, `Transition` or `Super`.
-
-
-### Superstates
-
-Superstates allow you to create a hierarchy of states. States can defer an input to their superstate by returning the `Super` response.
-
-```rust
-#[state(superstate = "playing")]
-fn on(input: &Event) -> Result<State> {
-    match input {
-        Event::TimerElapsed => Ok(Transition(State::off())),
-        Event::ButtonPressed => Ok(Super)
+impl Blinky {
+    fn on(event: &Event) -> Response<State> {
+        Transition(State::Off)
     }
 }
 
-#[superstate]
-fn playing(input: &Event) -> Result<State> {
-    match input {
-        Event::ButtonPressed => Ok(Transition(State::paused())),
-        _ => Ok(Handled)
+impl stateful::State for State {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+        match self {
+            State::On => blinky.on(event),
+            State::Off => blinky.off(event),
+        }
+    }
+}
+```
+
+Every state must return a `Response` which is one of three things: `Handled`, `Transition` or `Super`.
+
+### Superstates
+
+Superstates allow you to create a hierarchy of states. States can defer an input to their
+superstate by returning the `Super` response. Superstates are defined by adding a variant 
+to the `Superstate` enum and writing an associated function. The superstate is mapped to its
+substates in the `superstate` method.
+
+```rust
+enum Superstate {
+    Playing,
+}
+
+impl stateful::State<Blinky> for State {
+    fn superstate(&mut self) -> Option<Superstate> {
+        match self {
+            State::On => Some(Superstate::Playing),
+            State::Off => Some(Superstate::Playing),
+        }
+    }
+}
+
+impl stateful::Superstate<Blinky> for Superstate {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<State> {
+        match self {
+            Superstate::Playing => blinky.playing(),
+        }
     }
 }
 ```
@@ -105,19 +144,19 @@ Superstates can themselves also have superstates.
 Actions run when entering or leaving states during a transition.
 
 ```rust
-#[state(entry_action = "enter_on", exit_action = "exit_on")]
-fn on(input: &Event) -> Result<State> {
-    Ok(Transition(State::off()))
+impl Blinky {
+    fn enter_off() {
+        println!("entered off");
+    }
 }
 
-#[action]
-fn enter_on() {
-    println!("Entered on");
-}
-
-#[action]
-fn exit_on() {
-    println!("Exited on");
+impl stateful::State<Blinky> for State {
+    fn call_entry_action(&mut self, blinky: &mut Blinky) {
+        match self {
+            State::On => {},
+            State::Off => Blinky::enter_off(),
+        }
+    }
 }
 ```
 
@@ -126,19 +165,24 @@ fn exit_on() {
 If the type on which your state machine is implemented has any fields, you can access them inside all states, superstates or actions.
 
 ```rust
-#[state]
-fn on(&mut self, input: &Event) -> Result<State> {
-    self.led = false;
-    Ok(Transition(State::off()))
+struct Blinky {
+    led: bool
 }
-```
 
-Or alternatively, set `led` inside the entry action.
+impl Blinky {
+    fn enter_off(&self) {
+        self.led = false;
+        println!("entered off");
+    }
+}
 
-```rust
-#[action]
-fn enter_off(&mut self) {
-    self.led = false;
+impl stateful::State<Blinky> for State {
+    fn call_entry_action(&mut self, blinky: &mut Blinky) {
+        match self {
+            State::On => {},
+            State::Off => blinky.enter_off(),
+        }
+    }
 }
 ```
 
@@ -147,45 +191,32 @@ fn enter_off(&mut self) {
 Sometimes you have data that only exists in a certain state. Instead of adding this data to the context and potentially having to unwrap an `Option<T>`, you can add it as an input to your state handler.
 
 ```rust
-#[state]
-fn on(counter: &mut u32, input: &Event) -> Result<State> {
-    Event::TimerElapsed => {
+enum State {
+    Off { led: bool },
+    On { led: bool, counter: isize },
+}
+
+impl Blinky {
+    fn on(&mut self, led: &mut bool, counter: &mut isize, event: &Event) -> Response<State> {
         *counter -= 1;
-        if counter  == 0 {
-            Ok(Transition(State::off()))
-        } else {
-            Ok(Handled)
+        match counter {
+            0 => Transition(State::Off { led: false }),
+            _ => Super
         }
     }
-    Event::ButtonPressed => Ok(Super)
 }
+
+impl stateful::State<Blinky> for State {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+        match self {
+            State::Off { led } => blinky.on(led, event),
+            State::On { led, counter } => blinky.on(led, counter, event),
+        }
+    }
+}   
 ```
 
 `counter` is only available in the `on` state but can also be accessed in its superstates and actions.
-
-### Error handling
-
-To handle results inside your state handlers, you can use the `ResultExt` trait to map them to responses.
-
-```rust
-#[state]
-fn file_open(file: &mut File, input: &Event) -> Result<State> {
-    match input {
-        Event::WriteRequest { data } => {
-            file.write_all(data).or_transition(State::file_closed())?;
-            Ok(Handled)
-        }
-        _ => Ok(Super)
-    }
-}
-```
-
-
-## FAQ
-
-### **What is this `#[state_machine]` proc-macro doing to my code? 🤨**
-
-Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` block and derives some code based on its content and adds it to your source file. Your code will still be there, unchanged. In fact `#[state_machine]` could have been a derive macro, but at the moment Rust only allows derive macros to be used on enums and structs. If you'd like to see what the generated code looks like take a look at the test [with](./stateful/tests/transition_macro.rs) and [without](./stateful/tests/transition.rs) macros.
 
 ## Credits
 

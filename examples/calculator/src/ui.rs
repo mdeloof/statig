@@ -1,14 +1,14 @@
 use eframe::egui::{self, Button, Label, Response, RichText, Style, Visuals, WidgetText};
 use eframe::egui::{Layout, Ui};
 use eframe::epaint::{FontFamily, FontId};
-use stateful::StateMachine;
+use stateful::InitializedStatemachine;
 
 use crate::state::{Calculator, Event, Operator};
 
-pub struct App(pub StateMachine<Calculator>);
+pub struct App(pub InitializedStatemachine<Calculator>);
 
 impl std::ops::Deref for App {
-    type Target = StateMachine<Calculator>;
+    type Target = InitializedStatemachine<Calculator>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

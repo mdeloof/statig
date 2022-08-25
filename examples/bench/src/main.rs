@@ -1,15 +1,10 @@
 #![feature(generic_associated_types)]
 #![allow(unused)]
 
-use stateful::state_machine;
-use stateful::Response::*;
-use stateful::Result;
-use stateful::ResultExt;
-use stateful::{StateMachine, Stateful};
+use stateful::prelude::*;
+use std::io::Empty;
 use std::io::Write;
 use std::time::Instant;
-
-pub struct Blinky;
 
 pub enum Event {
     StartPlayback,
@@ -29,76 +24,100 @@ pub enum Event {
     CdDetected,
 }
 
+#[derive(Default)]
+pub struct CdPlayer;
+
+#[derive(Debug)]
+pub enum State {
+    Empty,
+    Open,
+    Stopped,
+    Playing,
+    Pause,
+}
+
 // The `stateful` trait needs to be implemented on the type that will be
 // the context for the state machine.
-impl Stateful for Blinky {
-    /// The enum that represents the state. This type is derived by the
-    /// `#[state_machine]` macro.
+impl StateMachine for CdPlayer {
+    /// The enum that represents the state.
     type State = State;
+
+    type Superstate<'a> = ();
 
     /// The input type that will be submitted to the state machine.
     type Input = Event;
 
+    type Context = Self;
+
     /// The initial state of the state machine.
-    const INIT_STATE: State = State::empty();
+    const INIT_STATE: State = State::Empty;
 }
 
-#[state_machine]
-#[state(derive(Debug))]
-impl Blinky {
-    #[state]
-    fn empty(input: &Event) -> Result<State> {
+impl stateful::State<CdPlayer> for State {
+    fn call_handler(&mut self, cd_player: &mut CdPlayer, input: &Event) -> Response<Self> {
+        match self {
+            State::Empty => CdPlayer::empty(input),
+            State::Open => CdPlayer::open(input),
+            State::Stopped => CdPlayer::stopped(input),
+            State::Playing => CdPlayer::playing(input),
+            State::Pause => CdPlayer::pause(input),
+        }
+    }
+}
+
+impl CdPlayer {
+    fn empty(input: &Event) -> Response<State> {
         match input {
-            Event::CdDetected => Ok(Transition(State::stopped())),
-            Event::OpenClose => Ok(Transition(State::open())),
-            _ => Ok(Super),
+            Event::CdDetected => (Transition(State::Stopped)),
+            Event::OpenClose => (Transition(State::Open)),
+            _ => (Super),
         }
     }
 
-    #[state]
-    fn open(input: &Event) -> Result<State> {
+    fn open(input: &Event) -> Response<State> {
         match input {
-            Event::OpenClose => Ok(Transition(State::empty())),
-            _ => Ok(Super),
+            Event::OpenClose => (Transition(State::Empty)),
+            _ => (Super),
         }
     }
 
-    #[state]
-    fn stopped(input: &Event) -> Result<State> {
+    fn stopped(input: &Event) -> Response<State> {
         match input {
-            Event::Play => Ok(Transition(State::playing())),
-            Event::OpenClose => Ok(Transition(State::open())),
-            Event::Stop => Ok(Transition(State::stopped())),
-            _ => Ok(Super),
+            Event::Play => (Transition(State::Playing)),
+            Event::OpenClose => (Transition(State::Open)),
+            Event::Stop => (Transition(State::Stopped)),
+            _ => (Super),
         }
     }
 
-    #[state]
-    fn playing(input: &Event) -> Result<State> {
+    fn playing(input: &Event) -> Response<State> {
         match input {
-            Event::OpenClose => Ok(Transition(State::open())),
-            Event::Pause2 => Ok(Transition(State::pause())),
-            Event::Stop => Ok(Transition(State::stopped())),
-            _ => Ok(Super),
+            Event::OpenClose => (Transition(State::Open)),
+            Event::Pause2 => (Transition(State::Pause)),
+            Event::Stop => (Transition(State::Stopped)),
+            _ => (Super),
         }
     }
 
-    #[state]
-    fn pause(input: &Event) -> Result<State> {
+    fn pause(input: &Event) -> Response<State> {
         match input {
-            Event::EndPause => Ok(Transition(State::playing())),
-            Event::Stop => Ok(Transition(State::stopped())),
-            _ => Ok(Super),
+            Event::EndPause => (Transition(State::Playing)),
+            Event::Stop => (Transition(State::Stopped)),
+            _ => (Super),
         }
     }
 }
 
 fn main() {
-    let mut state_machine = StateMachine::new(Blinky);
+    let mut state_machine = CdPlayer::state_machine().init();
+
+    let loops: u32 = rand::random();
+
+    println!("Loop count: {loops}");
 
     let instant = Instant::now();
 
-    for _ in 0..1_000_000 {
+    for _ in 0..loops {
         state_machine.handle(&Event::OpenClose);
         state_machine.handle(&Event::OpenClose);
         state_machine.handle(&Event::CdDetected);
@@ -114,7 +133,13 @@ fn main() {
         state_machine.handle(&Event::OpenClose);
     }
 
-    println!("Duration: {:?}", instant.elapsed());
+    let total_duration = instant.elapsed();
+    let loop_duration = total_duration.div_f64(loops as f64);
+    let million_loop_duration = loop_duration.mul_f64(1_000_000.0);
+
+    println!("Total duration: {total_duration:?}");
+    println!("Average loop duration: {loop_duration:?}");
+    println!("Duration 1M loops: {million_loop_duration:?}");
 
     println!("Final state: {:?}", state_machine.state());
 }

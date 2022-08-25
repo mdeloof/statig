@@ -92,11 +92,11 @@
 //!
 //! use stateful::{
 //!     Response::{Handled, Super, Transition},
-//!     Stateful, StateMachine
+//!     prelude::*
 //! };
 //!
 //! // The response that will be returned by the state handlers.
-//! type Result = stateful::Result<State>;
+//! type Response = stateful::Response<State>;
 //!
 //! // Define your event type.
 //! pub enum Event {
@@ -105,28 +105,72 @@
 //! }
 //!
 //! // Define your data type.
+//! #[derive(Default)]
 //! pub struct Blinky {
 //!     light: bool,
 //! }
 //!
+//! pub enum State {
+//!     On,
+//!     Off,
+//!     Paused
+//! }
+//!
+//! pub enum Superstate {
+//!     Playing
+//! }
+//!
 //! // Implement the `Stateful` trait.
-//! impl stateful::Stateful for Blinky {
+//! impl StateMachine for Blinky {
 //!     // The state enum.
 //!     type State = State;
 //!     
+//!     // The superstate enum.
+//!     type Superstate<'a> = Superstate;
+//!     
 //!     type Input = Event;
 //!
+//!     type Context = Self;
+//!
 //!     // The initial state of the state machine
-//!     const INIT_STATE: State = State::On {};
+//!     const INIT_STATE: State = State::On;
 //! }
 //!
-//! // Every state is a function. The `state_machine` macro derives an enum
-//! // with variants for every state handler. The impl block with this
-//! // attribute should only contain state handlers.
-//! #[stateful::state_machine]
-//! // Name the state enum.
+//! impl stateful::State<Blinky> for State {
+//!     fn call_handler(&mut self, blinky: &mut Blinky, input: &Event) -> Response {
+//!         match self {
+//!             State::On => blinky.on(input),
+//!             State::Off => blinky.off(input),
+//!             State::Paused => blinky.paused(input)
+//!         }
+//!     }
+//!
+//!     fn call_entry_action(&mut self, blinky: &mut Blinky) {
+//!         match self {
+//!             State::On => blinky.enter_on(),
+//!             State::Off => blinky.enter_off(),
+//!             _ => {}
+//!         }
+//!     }
+//!
+//!     fn superstate(&mut self) -> Option<Superstate> {
+//!         match self {
+//!             State::On => Some(Superstate::Playing),
+//!             State::Off => Some(Superstate::Playing),
+//!             State::Paused => None
+//!         }
+//!     }
+//! }
+//!
+//! impl stateful::Superstate<Blinky> for Superstate {
+//!     fn call_handler(&mut self, blinky: &mut Blinky, input: &Event) -> Response {
+//!         match self {
+//!             Superstate::Playing => blinky.playing(input)
+//!         }
+//!     }
+//! }
+//!
 //! impl Blinky {
-//!     #[action]
 //!     fn enter_on(&mut self) {
 //!         self.light = true;
 //!         println!("On");
@@ -134,79 +178,66 @@
 //!     
 //!     // The state handler `on` has `Playing` as a parent state. Every
 //!     // time we enter this state we want to call the method `enter_on`.
-//!     #[state(superstate = "playing", entry_action = "enter_on")]
-//!     fn on(&mut self, input: &Event) -> Result {
+//!     fn on(&mut self, input: &Event) -> Response {
 //!         match input {
 //!             // When the event `TimerElapsed` is received, transition to
 //!             // state `Off`.
-//!             Event::TimerElapsed => Ok(Transition(State::Off {})),
-//!             _ => Ok(Super),
+//!             Event::TimerElapsed => Transition(State::Off {}),
+//!             _ => Super,
 //!         }
 //!     }
 //!
-//!     #[action]
 //!     fn enter_off(&mut self) {
 //!         self.light = false;
 //!         println!("Off");
 //!     }
 //!
-//!     #[state(superstate = "playing", entry_action = "enter_off")]
-//!     fn off(&mut self, input: &Event) -> Result {
+//!     fn off(&mut self, input: &Event) -> Response {
 //!         match input {
-//!             Event::TimerElapsed => Ok(Transition(State::On {})),
-//!             _ => Ok(Super),
+//!             Event::TimerElapsed => Transition(State::On {}),
+//!             _ => Super,
 //!         }
 //!     }
 //!     
-//!     // The `derive_state` macro will take the snake_case name and convert
-//!     // it to PascalCase to create the state variant. So `playing` becomes
-//!     // `Playing`.
-//!     #[superstate]
-//!     fn playing(&mut self, input: &Event) -> Result {
+//!     fn playing(&mut self, input: &Event) -> Response {
 //!         match input {
-//!             Event::ButtonPressed => Ok(Transition(State::Paused {})),
-//!             _ => Ok(Handled),
+//!             Event::ButtonPressed => Transition(State::Paused {}),
+//!             _ => Handled,
 //!         }
 //!     }
 //!     
-//!     #[action]
 //!     fn enter_paused(&mut self) {
 //!         println!("Paused");
 //!     }
 //!
-//!     #[state(exit_action = "enter_paused")]
-//!     fn paused(&mut self, input: &Event) -> Result {
+//!     fn paused(&mut self, input: &Event) -> Response {
 //!         match input {
-//!             Event::ButtonPressed => Ok(Transition(State::On {})),
-//!             _ => Ok(Handled),
+//!             Event::ButtonPressed => Transition(State::On {}),
+//!             _ => Handled,
 //!         }
 //!     }
 //! }
 //!
-//!     let mut state_machine = StateMachine::new(Blinky { light: false });
+//! let mut state_machine = Blinky::state_machine().init();
 //!
-//!     // Calling `init()` performs the transition into the initial state.
-//!     state_machine.init();
+//! for _ in 0..10 {
+//!     // Dispatch an event to the state machine.
+//!     state_machine.handle(&Event::TimerElapsed);
+//! }
 //!
-//!     for _ in 0..10 {
-//!         // Dispatch an event to the state machine.
-//!         state_machine.handle(&Event::TimerElapsed);
-//!     }
+//! state_machine.handle(&Event::ButtonPressed);
 //!
-//!     state_machine.handle(&Event::ButtonPressed);
+//! for _ in 0..10 {
+//!     // The state machine is paused, so the `TimerElapsed` event does
+//!     // not cause any transition.
+//!     state_machine.handle(&Event::TimerElapsed);
+//! }
 //!
-//!     for _ in 0..10 {
-//!         // The state machine is paused, so the `TimerElapsed` event does
-//!         // not cause any transition.
-//!         state_machine.handle(&Event::TimerElapsed);
-//!     }
+//! state_machine.handle(&Event::ButtonPressed);
 //!
-//!     state_machine.handle(&Event::ButtonPressed);
-//!
-//!     for _ in 0..10 {
-//!         state_machine.handle(&Event::TimerElapsed);
-//!     }
-//!
+//! for _ in 0..10 {
+//!     state_machine.handle(&Event::TimerElapsed);
+//! }
 //! ```
 
 #![no_std]
@@ -214,26 +245,59 @@
 
 use core::cmp::Ordering;
 
-pub use stateful_macro::{action, state, state_machine, superstate};
-
 pub mod prelude {
-    pub use crate::state_machine;
-    pub use crate::Response::*;
-    pub use crate::Result;
-    pub use crate::Stateful;
+    pub use crate::Response::{self, *};
+    pub use crate::{State, StateExt, StateMachine, StateMachineExt, Superstate, SuperstateExt};
 }
 
-pub trait Stateful {
-    type State: State<Object = Self>;
+pub trait StateMachine
+where
+    Self: Sized,
+{
+    type Context;
 
     type Input;
 
+    type State: State<Self>;
+
+    type Superstate<'a>: Superstate<Self>
+    where
+        Self::State: 'a;
+
     const INIT_STATE: Self::State;
 
-    fn on_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
+    /// Method that is called *after* every transition.
+    fn on_transition(_context: &mut Self::Context, _source: &Self::State, _target: &Self::State) {}
 }
 
-pub type Result<S> = core::result::Result<Response<S>, Error<S>>;
+pub trait StateMachineExt: StateMachine {
+    /// Create an uninitialized state machine. Use [UninitializedStateMachine::init] to initialize it.
+    ///
+    /// This methods assume the context implements [Default].
+    fn state_machine() -> UninitializedStateMachine<Self>
+    where
+        Self: Sized,
+        Self::Context: Default,
+    {
+        UninitializedStateMachine {
+            context: Self::Context::default(),
+            state: Self::INIT_STATE,
+        }
+    }
+
+    /// Create an uninitialized state machine with a given context.
+    fn with_context(context: Self::Context) -> UninitializedStateMachine<Self>
+    where
+        Self: Sized,
+    {
+        UninitializedStateMachine {
+            context,
+            state: Self::INIT_STATE,
+        }
+    }
+}
+
+impl<T> StateMachineExt for T where T: StateMachine {}
 
 pub enum Response<S> {
     Handled,
@@ -241,170 +305,140 @@ pub enum Response<S> {
     Transition(S),
 }
 
-pub enum Error<S> {
-    Handled,
-    Super,
-    Transition(S),
-}
-
-pub trait ResultExt<T, S> {
-    fn or_transition(self, state: S) -> core::result::Result<T, Error<S>>;
-
-    fn or_handle(self) -> core::result::Result<T, Error<S>>;
-
-    fn or_super(self) -> core::result::Result<T, Error<S>>;
-}
-
-impl<T, E, S> ResultExt<T, S> for core::result::Result<T, E> {
-    fn or_transition(self, state: S) -> core::result::Result<T, Error<S>> {
-        self.map_err(|_| Error::Transition(state))
-    }
-
-    fn or_handle(self) -> core::result::Result<T, Error<S>> {
-        self.map_err(|_| Error::Handled)
-    }
-
-    fn or_super(self) -> core::result::Result<T, Error<S>> {
-        self.map_err(|_| Error::Super)
-    }
-}
-
-impl<T, S> ResultExt<T, S> for core::option::Option<T> {
-    fn or_transition(self, state: S) -> core::result::Result<T, Error<S>> {
-        self.ok_or(Error::Transition(state))
-    }
-
-    fn or_handle(self) -> core::result::Result<T, Error<S>> {
-        self.ok_or(Error::Handled)
-    }
-
-    fn or_super(self) -> core::result::Result<T, Error<S>> {
-        self.ok_or(Error::Super)
-    }
-}
-
-pub struct StateMachine<O>
+pub struct UninitializedStateMachine<O>
 where
-    O: Stateful,
+    O: StateMachine,
 {
-    object: O,
-    state: <O as Stateful>::State,
+    context: O::Context,
+    state: <O as StateMachine>::State,
 }
 
-impl<O> StateMachine<O>
+impl<O> UninitializedStateMachine<O>
 where
-    O: Stateful,
+    O: StateMachine,
 {
-    pub fn new(object: O) -> Self {
-        Self {
-            object,
-            state: <O as Stateful>::INIT_STATE,
-        }
+    pub fn init(self) -> InitializedStatemachine<O> {
+        let mut state_machine: InitializedStatemachine<O> = InitializedStatemachine {
+            context: self.context,
+            state: self.state,
+        };
+        state_machine.init();
+        state_machine
     }
+}
 
-    pub fn state(&self) -> &<O as Stateful>::State {
+pub struct InitializedStatemachine<O>
+where
+    O: StateMachine,
+{
+    context: O::Context,
+    state: <O as StateMachine>::State,
+}
+
+impl<O> InitializedStatemachine<O>
+where
+    O: StateMachine,
+{
+    pub fn state(&self) -> &<O as StateMachine>::State {
         &self.state
     }
 
     /// # Safety
+    ///
     /// Mutating the state externally could break the state machines internal
     /// invariants.
-    pub unsafe fn state_mut(&mut self) -> &mut <O as Stateful>::State {
+    pub unsafe fn state_mut(&mut self) -> &mut <O as StateMachine>::State {
         &mut self.state
     }
 
-    pub fn init(&mut self) {
-        let enter_levels = self.state.depth();
-        self.state.enter(&mut self.object, enter_levels);
-    }
-
     pub fn handle(&mut self, event: &O::Input) {
-        let result = self.state.handle(&mut self.object, event);
-        match result {
-            Ok(response) => match response {
-                Response::Super => {}
-                Response::Handled => {}
-                Response::Transition(state) => self.transition(state),
-            },
-            Err(error) => match error {
-                Error::Handled => {}
-                Error::Super => {}
-                Error::Transition(state) => self.transition(state),
-            },
+        let response = self.state.handle(&mut self.context, event);
+        match response {
+            Response::Super => {}
+            Response::Handled => {}
+            Response::Transition(state) => self.transition(state),
         }
     }
 
-    pub fn transition(&mut self, mut target: <O as Stateful>::State) {
+    fn init(&mut self) {
+        let enter_levels = self.state.depth();
+        self.state.enter(&mut self.context, enter_levels);
+    }
+
+    fn transition(&mut self, mut target: <O as StateMachine>::State) {
         // Get the transition path we need to perform from one state to the next.
         let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
 
-        // Perform the exit towards the common ancestor state.
-        self.state.exit(&mut self.object, exit_levels);
+        // Perform the exit from the previous state towards the common ancestor state.
+        self.state.exit(&mut self.context, exit_levels);
 
         // Update the state.
         core::mem::swap(&mut self.state, &mut target);
 
-        // Perform the enter actions.
-        self.state.enter(&mut self.object, enter_levels);
+        // Perform the entry actions from the common ancestor state into the new state.
+        self.state.enter(&mut self.context, enter_levels);
 
-        self.object.on_transition(&target, &self.state);
+        <O as StateMachine>::on_transition(&mut self.context, &target, &self.state);
     }
 }
 
-impl<O> Default for StateMachine<O>
+impl<O> Default for InitializedStatemachine<O>
 where
-    O: Stateful + Default,
+    O: StateMachine,
+    O::Context: Default,
 {
     fn default() -> Self {
         Self {
-            object: <O as Default>::default(),
-            state: <O as Stateful>::INIT_STATE,
+            context: <<O as StateMachine>::Context as Default>::default(),
+            state: <O as StateMachine>::INIT_STATE,
         }
     }
 }
 
-impl<O> core::ops::Deref for StateMachine<O>
+impl<O> core::ops::Deref for InitializedStatemachine<O>
 where
-    O: Stateful,
+    O: StateMachine,
 {
-    type Target = O;
+    type Target = O::Context;
+
     fn deref(&self) -> &Self::Target {
-        &self.object
+        &self.context
     }
 }
 
-impl<O> core::ops::DerefMut for StateMachine<O>
+impl<O> core::ops::DerefMut for InitializedStatemachine<O>
 where
-    O: Stateful,
+    O: StateMachine,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.object
+        &mut self.context
     }
 }
 
-pub trait State
+pub trait State<SM>
 where
     Self: Sized,
+    SM: StateMachine,
 {
-    type Superstate<'a>: Superstate<Object = Self::Object>
-    where
-        Self: 'a;
-    type Object: Stateful<State = Self>;
-
     fn call_handler(
         &mut self,
-        object: &mut Self::Object,
-        input: &<Self::Object as Stateful>::Input,
-    ) -> Result<Self>
-    where
-        Self: Sized;
+        _context: &mut <SM as StateMachine>::Context,
+        _input: &<SM as StateMachine>::Input,
+    ) -> Response<Self>;
 
-    fn call_entry_action(&mut self, object: &mut Self::Object);
+    fn call_entry_action(&mut self, _context: &mut <SM as StateMachine>::Context) {}
 
-    fn call_exit_action(&mut self, object: &mut Self::Object);
+    fn call_exit_action(&mut self, _context: &mut <SM as StateMachine>::Context) {}
 
-    fn superstate(&mut self) -> Option<Self::Superstate<'_>>;
+    fn superstate(&mut self) -> Option<<SM as StateMachine>::Superstate<'_>> {
+        None
+    }
+}
 
+pub trait StateExt<SM>: State<SM>
+where
+    SM: StateMachine<State = Self>,
+{
     fn same_state(lhs: &Self, rhs: &Self) -> bool {
         core::mem::discriminant(lhs) == core::mem::discriminant(rhs)
     }
@@ -423,7 +457,7 @@ where
 
         match (source.superstate(), target.superstate()) {
             (Some(source), Some(target)) => {
-                <<Self as State>::Superstate<'_> as Superstate>::common_ancestor_depth(
+                <<SM as StateMachine>::Superstate<'_> as SuperstateExt<SM>>::common_ancestor_depth(
                     source, target,
                 )
             }
@@ -440,7 +474,8 @@ where
         let target_depth = target.depth();
 
         if let (Some(source), Some(target)) = (self.superstate(), target.superstate()) {
-            let common_state_depth = Self::Superstate::common_ancestor_depth(source, target);
+            let common_state_depth =
+                <SM as StateMachine>::Superstate::common_ancestor_depth(source, target);
             (
                 source_depth - common_state_depth,
                 target_depth - common_state_depth,
@@ -452,84 +487,111 @@ where
 
     fn handle(
         &mut self,
-        object: &mut Self::Object,
-        event: &<Self::Object as Stateful>::Input,
-    ) -> Result<Self>
+        context: &mut <SM as StateMachine>::Context,
+        event: &<SM as StateMachine>::Input,
+    ) -> Response<Self>
     where
         Self: Sized,
     {
-        match self.call_handler(object, event) {
-            Ok(response) => match response {
-                Response::Handled => Ok(Response::Handled),
-                Response::Super => match self.superstate() {
-                    Some(mut superstate) => superstate.handle(object, event),
-                    None => Ok(Response::Super),
-                },
-                Response::Transition(state) => Ok(Response::Transition(state)),
+        let response = self.call_handler(context, event);
+        match response {
+            Response::Handled => Response::Handled,
+            Response::Super => match self.superstate() {
+                Some(mut superstate) => superstate.handle(context, event),
+                None => Response::Super,
             },
-            Err(error) => match error {
-                Error::Handled => Err(Error::Handled),
-                Error::Super => match self.superstate() {
-                    Some(mut superstate) => superstate.handle(object, event),
-                    None => Err(Error::Super),
-                },
-                Error::Transition(state) => Err(Error::Transition(state)),
-            },
+            Response::Transition(state) => Response::Transition(state),
         }
     }
 
-    fn enter(&mut self, object: &mut Self::Object, levels: usize) {
+    fn enter(&mut self, context: &mut <SM as StateMachine>::Context, levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_entry_action(object),
+            1 => self.call_entry_action(context),
             _ => {
                 if let Some(mut superstate) = self.superstate() {
-                    superstate.enter(object, levels - 1);
+                    superstate.enter(context, levels - 1);
                 }
-                self.call_entry_action(object);
+                self.call_entry_action(context);
             }
         }
     }
 
-    fn exit(&mut self, object: &mut Self::Object, levels: usize) {
+    fn exit(&mut self, context: &mut <SM as StateMachine>::Context, levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_exit_action(object),
+            1 => self.call_exit_action(context),
             _ => {
-                self.call_exit_action(object);
+                self.call_exit_action(context);
                 if let Some(mut superstate) = self.superstate() {
-                    superstate.exit(object, levels - 1);
+                    superstate.exit(context, levels - 1);
                 }
             }
         }
     }
 }
 
-pub trait Superstate
+impl<T, SM> StateExt<SM> for T
 where
-    Self: Sized,
+    T: State<SM>,
+    SM: StateMachine<State = T>,
 {
-    type Object: Stateful;
+}
 
+pub trait Superstate<SM>
+where
+    SM: StateMachine,
+{
     fn call_handler(
         &mut self,
-        object: &mut Self::Object,
-        event: &<Self::Object as Stateful>::Input,
-    ) -> Result<<Self::Object as Stateful>::State>;
+        context: &mut <SM as StateMachine>::Context,
+        event: &<SM as StateMachine>::Input,
+    ) -> Response<<SM as StateMachine>::State>;
 
-    fn call_entry_action(&mut self, object: &mut Self::Object);
+    fn call_entry_action(&mut self, _object: &mut <SM as StateMachine>::Context) {}
 
-    fn call_exit_action(&mut self, object: &mut Self::Object);
+    fn call_exit_action(&mut self, _object: &mut <SM as StateMachine>::Context) {}
 
-    fn superstate(
-        &mut self,
-    ) -> Option<<<Self::Object as Stateful>::State as State>::Superstate<'_>>
+    fn superstate(&mut self) -> Option<<SM as StateMachine>::Superstate<'_>>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        None
+    }
+}
 
+impl<SM> Superstate<SM> for ()
+where
+    SM: StateMachine,
+{
+    fn call_handler(
+        &mut self,
+        _context: &mut <SM as StateMachine>::Context,
+        _event: &<SM as StateMachine>::Input,
+    ) -> Response<<SM as StateMachine>::State> {
+        Response::Handled
+    }
+
+    fn call_entry_action(&mut self, _object: &mut <SM as StateMachine>::Context) {}
+
+    fn call_exit_action(&mut self, _object: &mut <SM as StateMachine>::Context) {}
+
+    fn superstate(&mut self) -> Option<<SM as StateMachine>::Superstate<'_>>
+    where
+        Self: Sized,
+    {
+        None
+    }
+}
+
+pub trait SuperstateExt<SM>: Superstate<SM>
+where
+    SM: StateMachine,
+    Self: Sized,
+{
     fn same_state(
-        lhs: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
-        rhs: &<<Self::Object as Stateful>::State as State>::Superstate<'_>,
+        lhs: &<SM as StateMachine>::Superstate<'_>,
+        rhs: &<SM as StateMachine>::Superstate<'_>,
     ) -> bool {
         use core::mem::{discriminant, transmute_copy, Discriminant};
 
@@ -537,9 +599,9 @@ where
         // compiler won't allow us to compare them directly. Instead we need to coerce them
         // to have the same lifetime by transmuting them to the same type.
 
-        let lhs: Discriminant<<<Self::Object as Stateful>::State as State>::Superstate<'_>> =
+        let lhs: Discriminant<<SM as StateMachine>::Superstate<'_>> =
             unsafe { transmute_copy(&discriminant(lhs)) };
-        let rhs: Discriminant<<<Self::Object as Stateful>::State as State>::Superstate<'_>> =
+        let rhs: Discriminant<<SM as StateMachine>::Superstate<'_>> =
             unsafe { transmute_copy(&discriminant(rhs)) };
 
         lhs == rhs
@@ -553,8 +615,8 @@ where
     }
 
     fn common_ancestor_depth(
-        mut source: <<Self::Object as Stateful>::State as State>::Superstate<'_>,
-        mut target: <<Self::Object as Stateful>::State as State>::Superstate<'_>,
+        mut source: <SM as StateMachine>::Superstate<'_>,
+        mut target: <SM as StateMachine>::Superstate<'_>,
     ) -> usize {
         match source.depth().cmp(&target.depth()) {
             Ordering::Equal => match Self::same_state(&source, &target) {
@@ -577,57 +639,55 @@ where
 
     fn handle(
         &mut self,
-        object: &mut Self::Object,
-        event: &<Self::Object as Stateful>::Input,
-    ) -> Result<<Self::Object as Stateful>::State>
+        context: &mut <SM as StateMachine>::Context,
+        event: &<SM as StateMachine>::Input,
+    ) -> Response<<SM as StateMachine>::State>
     where
         Self: Sized,
     {
-        match self.call_handler(object, event) {
-            Ok(response) => match response {
-                Response::Handled => Ok(Response::Handled),
-                Response::Super => match self.superstate() {
-                    Some(mut superstate) => superstate.handle(object, event),
-                    None => Ok(Response::Super),
-                },
-                Response::Transition(state) => Ok(Response::Transition(state)),
+        let response = self.call_handler(context, event);
+        match response {
+            Response::Handled => Response::Handled,
+            Response::Super => match self.superstate() {
+                Some(mut superstate) => superstate.handle(context, event),
+                None => Response::Super,
             },
-            Err(error) => match error {
-                Error::Handled => Err(Error::Handled),
-                Error::Super => match self.superstate() {
-                    Some(mut superstate) => superstate.handle(object, event),
-                    None => Err(Error::Super),
-                },
-                Error::Transition(state) => Err(Error::Transition(state)),
-            },
+            Response::Transition(state) => Response::Transition(state),
         }
     }
 
-    fn enter(&mut self, object: &mut Self::Object, mut levels: usize) {
+    fn enter(&mut self, context: &mut <SM as StateMachine>::Context, mut levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_entry_action(object),
+            1 => self.call_entry_action(context),
             _ => {
                 if let Some(mut superstate) = self.superstate() {
                     levels -= 1;
-                    superstate.enter(object, levels);
+                    superstate.enter(context, levels);
                 }
-                self.call_entry_action(object);
+                self.call_entry_action(context);
             }
         }
     }
 
-    fn exit(&mut self, object: &mut Self::Object, mut levels: usize) {
+    fn exit(&mut self, context: &mut <SM as StateMachine>::Context, mut levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_exit_action(object),
+            1 => self.call_exit_action(context),
             _ => {
-                self.call_exit_action(object);
+                self.call_exit_action(context);
                 if let Some(mut superstate) = self.superstate() {
                     levels -= 1;
-                    superstate.exit(object, levels);
+                    superstate.exit(context, levels);
                 }
             }
         }
     }
+}
+
+impl<T, SM> SuperstateExt<SM> for T
+where
+    T: Superstate<SM>,
+    SM: StateMachine,
+{
 }

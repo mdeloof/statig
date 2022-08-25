@@ -1,6 +1,6 @@
 #![feature(generic_associated_types)]
 
-use stateful::StateMachine;
+use stateful::prelude::*;
 
 mod state;
 mod ui;
@@ -14,9 +14,8 @@ fn main() {
         initial_window_size: Some((300.0, 400.0).into()),
         ..Default::default()
     };
-    let mut state_machine: StateMachine<Calculator> = StateMachine::default();
 
-    state_machine.init();
+    let state_machine = Calculator::state_machine().init();
 
     eframe::run_native(
         "Calculator",
