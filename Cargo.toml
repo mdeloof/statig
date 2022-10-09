@@ -2,11 +2,18 @@
 members = [
     # Core stateful crates
     "stateful",
+    "macro",
 
     # Examples
-    "examples/basic",
-    "examples/blinky",
-    "examples/history",
-    "examples/bench",
-    "examples/calculator",
+    "examples/macro/basic",
+    "examples/macro/blinky",
+    "examples/macro/bench",
+    "examples/macro/history",
+    "examples/macro/calculator",
+
+    "examples/no_macro/basic",
+    "examples/no_macro/blinky",
+    "examples/no_macro/bench",
+    "examples/no_macro/history",
+    "examples/no_macro/calculator",
 ]

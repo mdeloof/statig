@@ -1,5 +1,3 @@
-#![feature(generic_associated_types)]
-
 #[cfg(test)]
 mod tests {
 
@@ -53,7 +51,7 @@ mod tests {
 
         type Superstate<'a> = Superstate;
 
-        type Input = Event;
+        type Event = Event;
 
         type Context = Self;
 
@@ -61,11 +59,11 @@ mod tests {
     }
 
     impl stateful::State<Foo> for State {
-        fn call_handler(&mut self, object: &mut Foo, input: &Event) -> stateful::Response<Self> {
+        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> stateful::Response<Self> {
             match self {
-                State::S211 {} => Foo::s211(object, input),
-                State::S11 {} => Foo::s11(object, input),
-                State::S12 {} => Foo::s12(object, input),
+                State::S211 {} => Foo::s211(object, event),
+                State::S11 {} => Foo::s11(object, event),
+                State::S12 {} => Foo::s12(object, event),
             }
         }
 
@@ -95,15 +93,15 @@ mod tests {
     }
 
     impl stateful::Superstate<Foo> for Superstate {
-        fn call_handler(&mut self, object: &mut Foo, input: &Event) -> stateful::Response<State>
+        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> stateful::Response<State>
         where
             Self: Sized,
         {
             match self {
-                Superstate::S21 {} => Foo::s21(object, input),
-                Superstate::S {} => Foo::s(object, input),
-                Superstate::S2 {} => Foo::s2(object, input),
-                Superstate::S1 {} => Foo::s1(object, input),
+                Superstate::S21 {} => Foo::s21(object, event),
+                Superstate::S {} => Foo::s(object, event),
+                Superstate::S2 {} => Foo::s2(object, event),
+                Superstate::S1 {} => Foo::s1(object, event),
             }
         }
 
@@ -264,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_transition_path() {
-        let mut state_machine = Foo::state_machine().init();
+        let mut state_machine = Foo::default().state_machine().init();
 
         state_machine.handle(&Event::A);
         state_machine.handle(&Event::B);

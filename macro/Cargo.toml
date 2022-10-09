@@ -1,0 +1,19 @@
+[package]
+name = "stateful_macro"
+version = "0.1.0"
+edition = "2021"
+authors = ["Maxim Deloof"]
+license = "MIT"
+description = "Macros for deriving hierarchical state machines"
+readme = "../README.md"
+repository = "https://github.com/mdeloof/stateful"
+keywords = ["fsm", "hsm", "finite-state-machine", "hierarchical-state-machine"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0", features = ["full", "quote", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
+proc-macro-error = "1.0.4"
