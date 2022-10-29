@@ -2,6 +2,7 @@ use core::cmp::Ordering;
 
 use crate::Response;
 use crate::StateMachine;
+use crate::StateOrSuperstate;
 
 /// An enum that represents the superstates of the state machine.
 pub trait Superstate<M>
@@ -96,10 +97,15 @@ where
         Self: Sized,
     {
         let response = self.call_handler(context, event);
+
         match response {
             Response::Handled => Response::Handled,
             Response::Super => match self.superstate() {
-                Some(mut superstate) => superstate.handle(context, event),
+                Some(mut superstate) => {
+                    M::on_dispatch(context, StateOrSuperstate::Superstate(&superstate), event);
+
+                    superstate.handle(context, event)
+                }
                 None => Response::Super,
             },
             Response::Transition(state) => Response::Transition(state),

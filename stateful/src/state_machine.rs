@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+
 use crate::Response;
 use crate::State;
 use crate::StateExt;
@@ -25,6 +27,15 @@ where
 
     /// Initial state of the state machine.
     const INIT_STATE: Self::State;
+
+    /// Method that is called *before* an event is dispatched to a state or
+    /// superstate handler.
+    fn on_dispatch(
+        _context: &mut Self::Context,
+        _state: StateOrSuperstate<'_, '_, Self>,
+        _event: &Self::Event,
+    ) {
+    }
 
     /// Method that is called *after* every transition.
     fn on_transition(_context: &mut Self::Context, _source: &Self::State, _target: &Self::State) {}
@@ -156,6 +167,7 @@ where
     /// Handle the given event.
     pub fn handle(&mut self, event: &M::Event) {
         let response = self.state.handle(&mut self.context, event);
+
         match response {
             Response::Super => {}
             Response::Handled => {}
@@ -217,5 +229,29 @@ where
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.context
+    }
+}
+
+pub enum StateOrSuperstate<'a, 'b, M: StateMachine>
+where
+    M::State: 'b,
+{
+    State(&'a M::State),
+    Superstate(&'a M::Superstate<'b>),
+}
+
+impl<'a, 'b, M: StateMachine> core::fmt::Debug for StateOrSuperstate<'a, 'b, M>
+where
+    M::State: Debug,
+    M::Superstate<'b>: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::State(state) => f.debug_tuple("State").field(state as &dyn Debug).finish(),
+            Self::Superstate(superstate) => f
+                .debug_tuple("Superstate")
+                .field(superstate as &dyn Debug)
+                .finish(),
+        }
     }
 }

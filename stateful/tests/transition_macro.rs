@@ -6,7 +6,7 @@ mod tests {
 
     type Response = stateful::Response<State>;
 
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     enum Event {
         A,
         B,
@@ -41,6 +41,14 @@ mod tests {
         type Context = Self;
 
         const INIT_STATE: State = State::s11();
+
+        fn on_dispatch(
+            _context: &mut Self::Context,
+            state: stateful::StateOrSuperstate<'_, '_, Self>,
+            event: &Self::Event,
+        ) {
+            println!("dispatching event {:?} to {:?}", event, state);
+        }
     }
 
     #[state_machine(
