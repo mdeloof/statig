@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use stateful::prelude::*;
+use statig::prelude::*;
 use std::io::Empty;
 use std::io::Write;
 use std::time::Instant;
@@ -26,7 +26,7 @@ pub enum Event {
 #[derive(Default)]
 pub struct CdPlayer;
 
-// The `stateful` trait needs to be implemented on the type that will be
+// The `statig` trait needs to be implemented on the type that will be
 // the context for the state machine.
 impl StateMachine for CdPlayer {
     /// The enum that represents the state.

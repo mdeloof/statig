@@ -1,4 +1,4 @@
-use stateful::prelude::*;
+use statig::prelude::*;
 
 pub enum Event {
     Ac,

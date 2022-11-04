@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-use stateful::prelude::*;
-use stateful::StateMachine;
+use statig::prelude::*;
+use statig::StateMachine;
 use std::io::Write;
 
 #[derive(Default)]
@@ -16,7 +16,7 @@ pub enum Superstate<'a> {
     Playing { led: &'a mut bool },
 }
 
-// The `stateful` trait needs to be implemented on the type that will
+// The `statig` trait needs to be implemented on the type that will
 // imlement the state machine.
 impl StateMachine for Blinky {
     /// The enum that represents the state.
@@ -38,7 +38,7 @@ impl StateMachine for Blinky {
     fn on_transition(blinky: &mut Blinky, source: &Self::State, _target: &Self::State) {}
 }
 
-impl stateful::State<Blinky> for State {
+impl statig::State<Blinky> for State {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
         match self {
             State::On { led, counter } => blinky.on(led, counter, event),
@@ -61,7 +61,7 @@ impl stateful::State<Blinky> for State {
     }
 }
 
-impl<'a> stateful::Superstate<Blinky> for Superstate<'a> {
+impl<'a> statig::Superstate<Blinky> for Superstate<'a> {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<State> {
         match self {
             Superstate::Playing { led } => blinky.playing(led),

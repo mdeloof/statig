@@ -1,13 +1,13 @@
 #![allow(unused)]
 
-use stateful::prelude::*;
-use stateful::StateMachine;
+use statig::prelude::*;
+use statig::StateMachine;
 use std::io::Write;
 
 #[derive(Default)]
 pub struct Blinky;
 
-// The `stateful` trait needs to be implemented on the type that will
+// The `statig` trait needs to be implemented on the type that will
 // imlement the state machine.
 impl StateMachine for Blinky {
     /// The enum that represents the state.

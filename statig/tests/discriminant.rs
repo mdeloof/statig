@@ -38,7 +38,7 @@
 //! considered the same.
 #[cfg(test)]
 mod test {
-    use stateful::prelude::*;
+    use statig::prelude::*;
 
     struct Event;
 
@@ -65,13 +65,13 @@ mod test {
         const INIT_STATE: Self::State = State::S11;
     }
 
-    impl stateful::State<Foo> for State {
+    impl statig::State<Foo> for State {
         fn call_handler(&mut self, _context: &mut Foo, _event: &Event) -> Response<Self> {
             Handled
         }
     }
 
-    impl stateful::Superstate<Foo> for Superstate {
+    impl statig::Superstate<Foo> for Superstate {
         fn call_handler(&mut self, _context: &mut Foo, _event: &Event) -> Response<State> {
             Handled
         }

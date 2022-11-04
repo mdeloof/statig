@@ -1,12 +1,12 @@
 [package]
-name = "stateful_macro"
+name = "statig_macro"
 version = "0.1.0"
 edition = "2021"
 authors = ["Maxim Deloof"]
 license = "MIT"
 description = "Macros for deriving hierarchical state machines"
 readme = "../README.md"
-repository = "https://github.com/mdeloof/stateful"
+repository = "https://github.com/mdeloof/statig"
 keywords = ["fsm", "hsm", "finite-state-machine", "hierarchical-state-machine"]
 
 [lib]

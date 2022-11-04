@@ -14,7 +14,7 @@ pub fn codegen(ir: Ir) -> TokenStream {
     let superstate_impl = codegen_superstate_impl_superstate(&ir);
 
     quote!(
-        use stateful::{state, superstate, action};
+        use statig::{state, superstate, action};
 
         #item_impl
 
@@ -91,15 +91,15 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
         superstate_arms.push(parse_quote!(#pat => #superstate_pat));
     }
 
-    call_handler_arms.push(parse_quote!(_ => stateful::Response::Super));
+    call_handler_arms.push(parse_quote!(_ => statig::Response::Super));
     call_entry_action_arms.push(parse_quote!(_ => {}));
     call_exit_action_arms.push(parse_quote!(_ => {}));
     superstate_arms.push(parse_quote!(_ => None));
     same_state_arms.push(parse_quote!(_ => false));
 
     parse_quote!(
-        impl stateful::State<#object_ty> for #state_ty {
-            fn call_handler(&mut self, context: &mut #object_ty, #external_input_pattern: &<#object_ty as StateMachine>::Event) -> stateful::Response<Self> where Self: Sized {
+        impl statig::State<#object_ty> for #state_ty {
+            fn call_handler(&mut self, context: &mut #object_ty, #external_input_pattern: &<#object_ty as StateMachine>::Event) -> statig::Response<Self> where Self: Sized {
                 #[allow(unused)]
                 match self {
                     #(#call_handler_arms),*
@@ -120,7 +120,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#object_ty as stateful::StateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#object_ty as statig::StateMachine>::Superstate<'_>> {
                 #[allow(unused)]
                 match self {
                     #(#superstate_arms),*
@@ -172,22 +172,22 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
         superstate_arms.push(parse_quote!(#pat => #superstate_pat));
     }
 
-    call_handler_arms.push(parse_quote!(_ => stateful::Response::Super));
+    call_handler_arms.push(parse_quote!(_ => statig::Response::Super));
     call_entry_action_arms.push(parse_quote!(_ => {}));
     call_exit_action_arms.push(parse_quote!(_ => {}));
     superstate_arms.push(parse_quote!(_ => None));
     same_state_arms.push(parse_quote!(_ => false));
 
     parse_quote!(
-        impl<'a> stateful::Superstate<#object_ty> for #superstate_ty
+        impl<'a> statig::Superstate<#object_ty> for #superstate_ty
         where
             Self: 'a,
         {
             fn call_handler(
                 &mut self,
                 context: &mut #object_ty,
-                #external_input_pattern: &<#object_ty as stateful::StateMachine>::Event
-            ) -> stateful::Response<<#object_ty as stateful::StateMachine>::State> where Self: Sized {
+                #external_input_pattern: &<#object_ty as statig::StateMachine>::Event
+            ) -> statig::Response<<#object_ty as statig::StateMachine>::State> where Self: Sized {
                 #[allow(unused)]
                 match self {
                     #(#call_handler_arms),*
@@ -214,7 +214,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#object_ty as stateful::StateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#object_ty as statig::StateMachine>::Superstate<'_>> {
                 #[allow(unused)]
                 match self {
                     #(#superstate_arms),*

@@ -3,7 +3,7 @@
 //! Based on the [calculator example](https://github.com/QuantumLeaps/qpc/tree/master/examples/workstation/calc)
 //! in the `qpc` repo.
 
-use stateful::prelude::*;
+use statig::prelude::*;
 
 mod state;
 mod ui;

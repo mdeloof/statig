@@ -2,7 +2,7 @@
 mod tests {
     use core::cell::RefCell;
 
-    use stateful::prelude::*;
+    use statig::prelude::*;
 
     #[derive(Default)]
     struct Counter;

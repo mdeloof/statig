@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    # Core stateful crates
-    "stateful",
+    # Core statig crates
+    "statig",
     "macro",
 
     # Examples

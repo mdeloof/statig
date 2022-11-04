@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use stateful::prelude::*;
+use statig::prelude::*;
 use std::io::Empty;
 use std::io::Write;
 use std::time::Instant;
@@ -35,7 +35,7 @@ pub enum State {
     Pause,
 }
 
-// The `stateful` trait needs to be implemented on the type that will be
+// The `statig` trait needs to be implemented on the type that will be
 // the context for the state machine.
 impl StateMachine for CdPlayer {
     /// The enum that represents the state.
@@ -52,7 +52,7 @@ impl StateMachine for CdPlayer {
     const INIT_STATE: State = State::Empty;
 }
 
-impl stateful::State<CdPlayer> for State {
+impl statig::State<CdPlayer> for State {
     fn call_handler(&mut self, cd_player: &mut CdPlayer, event: &Event) -> Response<Self> {
         match self {
             State::Empty => CdPlayer::empty(event),

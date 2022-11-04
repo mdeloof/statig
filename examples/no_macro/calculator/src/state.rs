@@ -1,4 +1,4 @@
-use stateful::prelude::*;
+use statig::prelude::*;
 
 pub enum Event {
     Ac,
@@ -69,7 +69,7 @@ impl StateMachine for Calculator {
     const INIT_STATE: State = State::Begin;
 }
 
-impl stateful::State<Calculator> for State {
+impl statig::State<Calculator> for State {
     fn call_handler(&mut self, calculator: &mut Calculator, event: &Event) -> Response<Self> {
         match self {
             State::Begin => Calculator::begin(calculator, event),
@@ -125,7 +125,7 @@ impl stateful::State<Calculator> for State {
     }
 }
 
-impl<'a> stateful::Superstate<Calculator> for Superstate<'a> {
+impl<'a> statig::Superstate<Calculator> for Superstate<'a> {
     fn call_handler(&mut self, calculator: &mut Calculator, event: &Event) -> Response<State> {
         match self {
             Superstate::Ready => Calculator::ready(calculator, event),

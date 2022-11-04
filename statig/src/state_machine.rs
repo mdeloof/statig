@@ -94,7 +94,7 @@ where
     /// the initial state.
     ///
     /// ```
-    /// # use stateful::prelude::*;
+    /// # use statig::prelude::*;
     /// # #[derive(Default)]
     /// # pub struct Blinky {
     /// #     led: bool,

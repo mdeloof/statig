@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-use stateful::prelude::*;
-use stateful::StateMachine;
+use statig::prelude::*;
+use statig::StateMachine;
 use std::io::Write;
 
 pub enum Event {

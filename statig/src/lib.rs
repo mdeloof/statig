@@ -1,4 +1,4 @@
-//! # Stateful
+//! # statig
 //!
 //! Hierarchical state machines for designing event-driven systems.
 //!
@@ -9,10 +9,10 @@
 //! - Compatible with `#![no_std]`, no dynamic memory allocation
 //! - (Optional) macro's for reducing boilerplate.
 //!
-//! ## Stateful in action
+//! ## statig in action
 //!
 //! ```rust
-//! # use stateful::prelude::*;
+//! # use statig::prelude::*;
 //! #[derive(Default)]
 //! pub struct Blinky {
 //!     led: bool,
@@ -23,7 +23,7 @@
 //! impl StateMachine for Blinky {
 //!     type State = State;
 //!     
-//!     type Superstate<'a> = ();
+//!     type Superstate<'a> = Superstate;
 //!     
 //!     type Event = Event;
 //!     
@@ -65,7 +65,7 @@
 //! event handled by the state machine.
 //!
 //! ```rust
-//! # use stateful::prelude::*;
+//! # use statig::prelude::*;
 //! # #[derive(Default)]
 //! # pub struct Blinky {
 //! #     led: bool,
@@ -112,7 +112,7 @@
 //! to their superstate by returning the `Super` response.
 //!
 //! ```
-//! # use stateful::prelude::*;
+//! # use statig::prelude::*;
 //! # #[derive(Default)]
 //! # pub struct Blinky {
 //! #     led: bool,
@@ -178,7 +178,7 @@
 //! Actions run when entering or leaving states during a transition.
 //!
 //! ```
-//! # use stateful::prelude::*;
+//! # use statig::prelude::*;
 //! # #[derive(Default)]
 //! # pub struct Blinky {
 //! #     led: bool,
@@ -232,7 +232,7 @@
 //! can access them inside all states, superstates or actions.
 //!
 //! ```
-//! # use stateful::prelude::*;
+//! # use statig::prelude::*;
 //! # #[derive(Default)]
 //! # pub struct Blinky {
 //! #     led: bool,
@@ -271,7 +271,7 @@
 //! Or alternatively, set `led` inside the entry action.
 //!
 //! ```
-//! # use stateful::prelude::*;
+//! # use statig::prelude::*;
 //! # #[derive(Default)]
 //! # pub struct Blinky {
 //! #     led: bool,
@@ -317,7 +317,7 @@
 //! `Option<T>`, you can add it as an input to your state handler.
 //!
 //! ```
-//! # use stateful::prelude::*;
+//! # use statig::prelude::*;
 //! # #[derive(Default)]
 //! # pub struct Blinky {
 //! #     led: bool,
@@ -377,8 +377,8 @@
 //! file. Your code will still be there, unchanged. In fact `#[state_machine]`
 //! could have been a derive macro, but at the moment Rust only allows derive macros
 //! to be used on enums and structs. If you'd like to see what the generated code
-//! looks like take a look at the test [with](./stateful/tests/transition_macro.rs)
-//! and [without](./stateful/tests/transition.rs) macros.
+//! looks like take a look at the test [with](./statig/tests/transition_macro.rs)
+//! and [without](./statig/tests/transition.rs) macros.
 //!
 //! ## Credits
 //!
@@ -440,7 +440,7 @@ pub use superstate::*;
 ///
 ///   </br>
 #[cfg(feature = "macro")]
-pub use stateful_macro::state_machine;
+pub use statig_macro::state_machine;
 
 /// Attribute for tagging a state.
 ///
@@ -479,7 +479,7 @@ pub use stateful_macro::state_machine;
 ///
 ///   </br>
 #[cfg(feature = "macro")]
-pub use stateful_macro::state;
+pub use statig_macro::state;
 
 /// Attribute for tagging a superstate.
 ///
@@ -522,14 +522,14 @@ pub use stateful_macro::state;
 ///
 ///   </br>
 #[cfg(feature = "macro")]
-pub use stateful_macro::superstate;
+pub use statig_macro::superstate;
 
 /// Attribute for tagging an action.
 ///
 /// This macro does nothing on its own but is detected by the `state_machine`
 /// macro when added to a method.
 #[cfg(feature = "macro")]
-pub use stateful_macro::action;
+pub use statig_macro::action;
 
 pub mod prelude {
     pub use crate::Response::{self, *};
@@ -539,7 +539,7 @@ pub mod prelude {
     };
 
     #[cfg(feature = "macro")]
-    pub use stateful_macro::state_machine;
+    pub use statig_macro::state_machine;
 }
 
 /// Response that can be returned by a state machine.

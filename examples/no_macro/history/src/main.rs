@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-use stateful::prelude::*;
-use stateful::StateMachine;
+use statig::prelude::*;
+use statig::StateMachine;
 use std::io::Write;
 
 pub enum Event {
@@ -46,7 +46,7 @@ impl StateMachine for Dishwasher {
     }
 }
 
-impl stateful::State<Dishwasher> for State {
+impl statig::State<Dishwasher> for State {
     fn call_handler(&mut self, context: &mut Dishwasher, event: &Event) -> Response<Self> {
         match self {
             State::DoorOpened => Dishwasher::door_opened(context, event),
@@ -68,7 +68,7 @@ impl stateful::State<Dishwasher> for State {
     }
 }
 
-impl stateful::Superstate<Dishwasher> for Superstate {
+impl statig::Superstate<Dishwasher> for Superstate {
     fn call_handler(&mut self, context: &mut Dishwasher, event: &Event) -> Response<State> {
         match self {
             Superstate::DoorClosed => Dishwasher::door_closed(event),

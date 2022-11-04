@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
 
-    use stateful::prelude::*;
+    use statig::prelude::*;
     use std::fmt;
 
-    type Response = stateful::Response<State>;
+    type Response = statig::Response<State>;
 
     #[derive(Clone, Debug)]
     enum Event {
@@ -44,7 +44,7 @@ mod tests {
 
         fn on_dispatch(
             _context: &mut Self::Context,
-            state: stateful::StateOrSuperstate<'_, '_, Self>,
+            state: statig::StateOrSuperstate<'_, '_, Self>,
             event: &Self::Event,
         ) {
             println!("dispatching event {:?} to {:?}", event, state);

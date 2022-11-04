@@ -3,13 +3,13 @@
 #[cfg(test)]
 mod tests {
 
-    use stateful::prelude::*;
+    use statig::prelude::*;
     use std::io::Write;
 
     #[derive(Default)]
     struct Blinky;
 
-    // The `stateful` trait needs to be implemented on the type that will
+    // The `statig` trait needs to be implemented on the type that will
     // imlement the state machine.
     impl StateMachine for Blinky {
         /// The enum that represents the state, this type is derived by the
@@ -81,7 +81,7 @@ mod tests {
         }
     }
 
-    impl stateful::State<Blinky> for StateEnum {
+    impl statig::State<Blinky> for StateEnum {
         fn call_handler(&mut self, object: &mut Blinky, event: &Event) -> Response<StateEnum>
         where
             Self: Sized,
@@ -118,7 +118,7 @@ mod tests {
         Playing { led: &'sub mut bool },
     }
 
-    impl<'sub> stateful::Superstate<Blinky> for Superstate<'sub> {
+    impl<'sub> statig::Superstate<Blinky> for Superstate<'sub> {
         fn call_handler(&mut self, object: &mut Blinky, event: &Event) -> Response<StateEnum> {
             match self {
                 Superstate::Playing { led } => Blinky::playing(object, led),

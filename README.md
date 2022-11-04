@@ -1,6 +1,6 @@
-# Stateful
+# statig
 
-![CI](https://github.com/mdeloof/stateful/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/mdeloof/statig/actions/workflows/ci.yml/badge.svg)
 
 Hierarchical state machines for designing event-driven systems.
 
@@ -13,13 +13,13 @@ Hierarchical state machines for designing event-driven systems.
 
 > **Note**
 >
-> At the moment `stateful` requires Rust nightly as it uses generic associated types. 
+> At the moment `statig` requires Rust nightly as it uses generic associated types. 
 > [Stabilization for GAT's](https://github.com/rust-lang/rust/pull/96709) is on the 
 > horizon however.
 
 ---
 
-## Stateful in action
+## statig in action
 
 ```rust
 #[derive(Default)]
@@ -32,7 +32,7 @@ pub struct Event;
 impl StateMachine for Blinky { 
     type State = State;
     
-    type Superstate<'a> = ();
+    type Superstate<'a> = Superstate;
     
     type Event = Event;
     
@@ -180,7 +180,7 @@ fn on(counter: &mut u32, event: &Event) -> Response<State> {
 
 ### **What is this `#[state_machine]` proc-macro doing to my code? 🤨**
 
-Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` block and derives some code based on its content and adds it to your source file. Your code will still be there, unchanged. In fact `#[state_machine]` could have been a derive macro, but at the moment Rust only allows derive macros to be used on enums and structs. If you'd like to see what the generated code looks like take a look at the test [with](./stateful/tests/transition_macro.rs) and [without](./stateful/tests/transition.rs) macros.
+Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` block and derives some code based on its content and adds it to your source file. Your code will still be there, unchanged. In fact `#[state_machine]` could have been a derive macro, but at the moment Rust only allows derive macros to be used on enums and structs. If you'd like to see what the generated code looks like take a look at the test [with](./statig/tests/transition_macro.rs) and [without](./statig/tests/transition.rs) macros.
 
 ## Credits
 

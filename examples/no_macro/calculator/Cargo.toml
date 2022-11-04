@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 eframe = "0.18"
-stateful = { path = "../../../stateful" }
+statig = { path = "../../../statig" }

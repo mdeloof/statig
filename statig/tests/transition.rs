@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
 
-    use stateful::prelude::*;
+    use statig::prelude::*;
     use std::fmt;
 
-    type Response = stateful::Response<State>;
+    type Response = statig::Response<State>;
 
     #[derive(Clone)]
     enum Event {
@@ -58,8 +58,8 @@ mod tests {
         const INIT_STATE: State = State::S11;
     }
 
-    impl stateful::State<Foo> for State {
-        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> stateful::Response<Self> {
+    impl statig::State<Foo> for State {
+        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> statig::Response<Self> {
             match self {
                 State::S211 {} => Foo::s211(object, event),
                 State::S11 {} => Foo::s11(object, event),
@@ -92,8 +92,8 @@ mod tests {
         }
     }
 
-    impl stateful::Superstate<Foo> for Superstate {
-        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> stateful::Response<State>
+    impl statig::Superstate<Foo> for Superstate {
+        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> statig::Response<State>
         where
             Self: Sized,
         {

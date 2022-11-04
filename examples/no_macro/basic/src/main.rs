@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use stateful::prelude::*;
+use statig::prelude::*;
 
 #[derive(Default)]
 pub struct Blinky {
@@ -15,7 +15,7 @@ pub enum State {
 
 pub struct Event;
 
-// The `stateful` trait needs to be implemented on the type that will be
+// The `statig` trait needs to be implemented on the type that will be
 // the context for the state machine.
 impl StateMachine for Blinky {
     /// The enum that represents the state.
@@ -39,7 +39,7 @@ impl StateMachine for Blinky {
     }
 }
 
-impl stateful::State<Blinky> for State {
+impl statig::State<Blinky> for State {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
         match self {
             State::On => blinky.on(event),
