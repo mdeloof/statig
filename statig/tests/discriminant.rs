@@ -56,8 +56,6 @@ mod test {
     impl StateMachine for Foo {
         type Event = Event;
 
-        type Context = Self;
-
         type State = State;
 
         type Superstate<'a> = Superstate;

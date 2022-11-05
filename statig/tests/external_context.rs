@@ -15,8 +15,6 @@ mod tests {
     }
 
     impl StateMachine for Counter {
-        type Context = Self;
-
         type State = State;
 
         type Superstate<'a> = Superstate;

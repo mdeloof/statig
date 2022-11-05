@@ -27,8 +27,6 @@
 //!     
 //!     type Event = Event;
 //!     
-//!     type Context = Self;
-//!     
 //!     const INIT_STATE: State = State::off();
 //! }
 //!
@@ -80,8 +78,6 @@
 //! #     
 //! #     type Event = Event;
 //! #     
-//! #     type Context = Self;
-//! #     
 //! #     const INIT_STATE: State = State::off();
 //! # }
 //! #
@@ -129,8 +125,6 @@
 //! #     type Superstate<'a> = Superstate;
 //! #     
 //! #     type Event = Event;
-//! #     
-//! #     type Context = Self;
 //! #     
 //! #     const INIT_STATE: State = State::off();
 //! # }
@@ -196,8 +190,6 @@
 //! #     
 //! #     type Event = Event;
 //! #     
-//! #     type Context = Self;
-//! #     
 //! #     const INIT_STATE: State = State::off();
 //! # }
 //! #
@@ -247,8 +239,6 @@
 //! #     
 //! #     type Event = Event;
 //! #     
-//! #     type Context = Self;
-//! #     
 //! #     const INIT_STATE: State = State::off();
 //! # }
 //! #
@@ -285,8 +275,6 @@
 //! #     type Superstate<'a> = ();
 //! #     
 //! #     type Event = Event;
-//! #     
-//! #     type Context = Self;
 //! #     
 //! #     const INIT_STATE: State = State::off();
 //! # }
@@ -334,8 +322,6 @@
 //! #     type Superstate<'a> = ();
 //! #     
 //! #     type Event = Event;
-//! #     
-//! #     type Context = Self;
 //! #     
 //! #     const INIT_STATE: State = State::on(10);
 //! # }
@@ -534,8 +520,7 @@ pub use statig_macro::action;
 pub mod prelude {
     pub use crate::Response::{self, *};
     pub use crate::{
-        State, StateExt, StateMachine, StateMachineContextEqSelfExt, StateMachineContextNeSelfExt,
-        Superstate, SuperstateExt,
+        State, StateExt, StateMachine, StateMachineContext, Superstate, SuperstateExt,
     };
 
     #[cfg(feature = "macro")]

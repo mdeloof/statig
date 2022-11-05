@@ -11,14 +11,8 @@ pub struct Blinky {
 pub struct Event;
 
 /// The `StateMachine` trait needs to be implemented on a custom type and
-/// defines all the types associated with the state machine. In most cases
-/// you'll want to also use this type as the context of the state machine.
-/// That way you can access it in your state and action handlers with the
-/// `self` argument.
+/// defines all the types associated with the state machine.
 impl StateMachine for Blinky {
-    /// As a context we use the [Blinky] struct itself.
-    type Context = Self;
-
     /// The event type that will be submitted to the state machine.
     type Event = Event;
 
@@ -41,7 +35,7 @@ impl StateMachine for Blinky {
     const INIT_STATE: State = State::off();
 
     /// This method is called on every transition of the state machine.
-    fn on_transition(_: &mut Blinky, _: &State, target: &State) {
+    fn on_transition(&mut self, _: &State, target: &State) {
         println!("Transitioned to `{target:?}`");
     }
 }

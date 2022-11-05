@@ -27,15 +27,11 @@ impl StateMachine for Blinky {
     /// The event type that will be submitted to the state machine.
     type Event = Event;
 
-    type Context = Self;
-
     /// The initial state of the state machine.
     const INIT_STATE: State = State::On {
         led: false,
         counter: 10,
     };
-
-    fn on_transition(blinky: &mut Blinky, source: &Self::State, _target: &Self::State) {}
 }
 
 impl statig::State<Blinky> for State {

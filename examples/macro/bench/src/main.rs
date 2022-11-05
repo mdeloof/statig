@@ -37,8 +37,6 @@ impl StateMachine for CdPlayer {
     /// The event type that will be submitted to the state machine.
     type Event = Event;
 
-    type Context = Self;
-
     /// The initial state of the state machine.
     const INIT_STATE: State = State::empty();
 }

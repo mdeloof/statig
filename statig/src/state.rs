@@ -12,15 +12,15 @@ where
     /// Call the handler for the current state and let it handle the given event.
     fn call_handler(
         &mut self,
-        context: &mut <M as StateMachine>::Context,
+        context: &mut M,
         event: &<M as StateMachine>::Event,
     ) -> Response<Self>;
 
     /// Call the entry action for the current state.
-    fn call_entry_action(&mut self, #[allow(unused)] context: &mut <M as StateMachine>::Context) {}
+    fn call_entry_action(&mut self, #[allow(unused)] context: &mut M) {}
 
     /// Call the exit action for the current state.
-    fn call_exit_action(&mut self, #[allow(unused)] context: &mut <M as StateMachine>::Context) {}
+    fn call_exit_action(&mut self, #[allow(unused)] context: &mut M) {}
 
     /// Return the superstate of the current state, if there is one.
     fn superstate(&mut self) -> Option<<M as StateMachine>::Superstate<'_>> {
@@ -86,11 +86,7 @@ where
     }
 
     /// Handle the given event in the current state.
-    fn handle(
-        &mut self,
-        context: &mut <M as StateMachine>::Context,
-        event: &<M as StateMachine>::Event,
-    ) -> Response<Self>
+    fn handle(&mut self, context: &mut M, event: &<M as StateMachine>::Event) -> Response<Self>
     where
         Self: Sized,
     {
@@ -114,7 +110,7 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current state.
-    fn enter(&mut self, context: &mut <M as StateMachine>::Context, levels: usize) {
+    fn enter(&mut self, context: &mut M, levels: usize) {
         match levels {
             0 => (),
             1 => self.call_entry_action(context),
@@ -129,7 +125,7 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(&mut self, context: &mut <M as StateMachine>::Context, levels: usize) {
+    fn exit(&mut self, context: &mut M, levels: usize) {
         match levels {
             0 => (),
             1 => self.call_exit_action(context),

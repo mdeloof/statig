@@ -38,12 +38,10 @@ mod tests {
 
         type Event = Event;
 
-        type Context = Self;
-
         const INIT_STATE: State = State::s11();
 
         fn on_dispatch(
-            _context: &mut Self::Context,
+            &mut self,
             state: statig::StateOrSuperstate<'_, '_, Self>,
             event: &Self::Event,
         ) {

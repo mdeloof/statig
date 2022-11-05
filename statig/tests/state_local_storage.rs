@@ -21,15 +21,11 @@ mod tests {
         /// The event type that will be submitted to the state machine.
         type Event = Event;
 
-        type Context = Self;
-
         /// The initial state of the state machine.
         const INIT_STATE: StateEnum = StateEnum::On {
             led: false,
             counter: 23,
         };
-
-        fn on_transition(context: &mut Self, source: &Self::State, _target: &Self::State) {}
     }
 
     impl Default for StateEnum {

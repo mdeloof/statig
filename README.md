@@ -30,8 +30,6 @@ impl StateMachine for Blinky {
     
     type Event = Event;
     
-    type Context = Self;
-    
     const INIT_STATE: State = State::off();
 }
 

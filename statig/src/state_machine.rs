@@ -10,10 +10,6 @@ pub trait StateMachine
 where
     Self: Sized,
 {
-    /// Data that is shared across all states. In most cases you'll want to set
-    /// this to `Self`.
-    type Context;
-
     /// Event that is processed by the state machine.
     type Event;
 
@@ -30,33 +26,14 @@ where
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.
-    fn on_dispatch(
-        _context: &mut Self::Context,
-        _state: StateOrSuperstate<'_, '_, Self>,
-        _event: &Self::Event,
-    ) {
-    }
+    fn on_dispatch(&mut self, _state: StateOrSuperstate<'_, '_, Self>, _event: &Self::Event) {}
 
     /// Method that is called *after* every transition.
-    fn on_transition(_context: &mut Self::Context, _source: &Self::State, _target: &Self::State) {}
-}
-
-/// A state machine where the context is not of type `Self`.
-pub trait StateMachineContextNeSelfExt: StateMachine {
-    /// Create an uninitialized state machine. Use [UninitializedStateMachine::init] to initialize it.
-    fn state_machine(context: Self::Context) -> UninitializedStateMachine<Self>
-    where
-        Self: Sized,
-    {
-        UninitializedStateMachine {
-            context,
-            state: Self::INIT_STATE,
-        }
-    }
+    fn on_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
 }
 
 /// A state machine where the context is of type `Self`.
-pub trait StateMachineContextEqSelfExt: StateMachine<Context = Self> {
+pub trait StateMachineContext: StateMachine {
     /// Create an uninitialized state machine. Use [UninitializedStateMachine::init] to initialize it.
     fn state_machine(self) -> UninitializedStateMachine<Self>
     where
@@ -69,9 +46,7 @@ pub trait StateMachineContextEqSelfExt: StateMachine<Context = Self> {
     }
 }
 
-impl<T> StateMachineContextNeSelfExt for T where T: StateMachine {}
-
-impl<T> StateMachineContextEqSelfExt for T where T: StateMachine<Context = Self> {}
+impl<T> StateMachineContext for T where T: StateMachine {}
 
 /// A state machine that has not yet been initialized.
 ///
@@ -82,7 +57,7 @@ pub struct UninitializedStateMachine<O>
 where
     O: StateMachine,
 {
-    context: O::Context,
+    context: O,
     state: <O as StateMachine>::State,
 }
 
@@ -108,8 +83,6 @@ where
     /// #     type Superstate<'a> = ();
     /// #     
     /// #     type Event = Event;
-    /// #     
-    /// #     type Context = Self;
     /// #     
     /// #     const INIT_STATE: State = State::on();
     /// # }
@@ -141,7 +114,7 @@ pub struct InitializedStatemachine<M>
 where
     M: StateMachine,
 {
-    context: M::Context,
+    context: M,
     state: <M as StateMachine>::State,
 }
 
@@ -201,12 +174,11 @@ where
 
 impl<M> Default for InitializedStatemachine<M>
 where
-    M: StateMachine,
-    M::Context: Default,
+    M: StateMachine + Default,
 {
     fn default() -> Self {
         Self {
-            context: <<M as StateMachine>::Context as Default>::default(),
+            context: <M as Default>::default(),
             state: <M as StateMachine>::INIT_STATE,
         }
     }
@@ -216,7 +188,7 @@ impl<M> core::ops::Deref for InitializedStatemachine<M>
 where
     M: StateMachine,
 {
-    type Target = M::Context;
+    type Target = M;
 
     fn deref(&self) -> &Self::Target {
         &self.context

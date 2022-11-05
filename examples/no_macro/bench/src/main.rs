@@ -35,7 +35,7 @@ pub enum State {
     Pause,
 }
 
-// The `statig` trait needs to be implemented on the type that will be
+// The `StateMachine` trait needs to be implemented on the type that will be
 // the context for the state machine.
 impl StateMachine for CdPlayer {
     /// The enum that represents the state.
@@ -45,8 +45,6 @@ impl StateMachine for CdPlayer {
 
     /// The event type that will be submitted to the state machine.
     type Event = Event;
-
-    type Context = Self;
 
     /// The initial state of the state machine.
     const INIT_STATE: State = State::Empty;

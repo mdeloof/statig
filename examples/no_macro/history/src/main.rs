@@ -35,14 +35,12 @@ impl StateMachine for Dishwasher {
 
     type Event = Event;
 
-    type Context = Self;
-
     const INIT_STATE: State = State::Idle;
 
     // On every transition we update the previous state, so we can
     // transition back to it.
-    fn on_transition(dishwasher: &mut Dishwasher, source: &Self::State, _: &Self::State) {
-        dishwasher.previous_state = source.clone();
+    fn on_transition(&mut self, source: &Self::State, _: &Self::State) {
+        self.previous_state = source.clone();
     }
 }
 

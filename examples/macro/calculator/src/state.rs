@@ -38,8 +38,6 @@ impl StateMachine for Calculator {
 
     type Superstate<'a> = Superstate<'a>;
 
-    type Context = Self;
-
     type Event = Event;
 
     const INIT_STATE: State = State::begin();

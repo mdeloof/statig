@@ -12,15 +12,15 @@ where
     /// Call the handler for the current superstate.
     fn call_handler(
         &mut self,
-        context: &mut <M as StateMachine>::Context,
+        context: &mut M,
         event: &<M as StateMachine>::Event,
     ) -> Response<<M as StateMachine>::State>;
 
     /// Call the entry action for the current superstate.
-    fn call_entry_action(&mut self, _object: &mut <M as StateMachine>::Context) {}
+    fn call_entry_action(&mut self, _object: &mut M) {}
 
     /// Call the exit action for the current superstate.
-    fn call_exit_action(&mut self, _object: &mut <M as StateMachine>::Context) {}
+    fn call_exit_action(&mut self, _object: &mut M) {}
 
     /// Return the superstate of the current superstate, if there is one.
     fn superstate(&mut self) -> Option<<M as StateMachine>::Superstate<'_>>
@@ -90,7 +90,7 @@ where
     /// Handle the given event in the current superstate.
     fn handle(
         &mut self,
-        context: &mut <M as StateMachine>::Context,
+        context: &mut M,
         event: &<M as StateMachine>::Event,
     ) -> Response<<M as StateMachine>::State>
     where
@@ -114,7 +114,7 @@ where
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current superstate.
-    fn enter(&mut self, context: &mut <M as StateMachine>::Context, mut levels: usize) {
+    fn enter(&mut self, context: &mut M, mut levels: usize) {
         match levels {
             0 => (),
             1 => self.call_entry_action(context),
@@ -130,7 +130,7 @@ where
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(&mut self, context: &mut <M as StateMachine>::Context, mut levels: usize) {
+    fn exit(&mut self, context: &mut M, mut levels: usize) {
         match levels {
             0 => (),
             1 => self.call_exit_action(context),
@@ -152,15 +152,15 @@ where
 {
     fn call_handler(
         &mut self,
-        _context: &mut <M as StateMachine>::Context,
+        _context: &mut M,
         _event: &<M as StateMachine>::Event,
     ) -> Response<<M as StateMachine>::State> {
         Response::Handled
     }
 
-    fn call_entry_action(&mut self, _object: &mut <M as StateMachine>::Context) {}
+    fn call_entry_action(&mut self, _object: &mut M) {}
 
-    fn call_exit_action(&mut self, _object: &mut <M as StateMachine>::Context) {}
+    fn call_exit_action(&mut self, _object: &mut M) {}
 
     fn superstate(&mut self) -> Option<<M as StateMachine>::Superstate<'_>>
     where

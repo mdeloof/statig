@@ -15,8 +15,8 @@ pub enum State {
 
 pub struct Event;
 
-// The `statig` trait needs to be implemented on the type that will be
-// the context for the state machine.
+/// The `StateMachine` trait needs to be implemented on the type that will be
+/// the context for the state machine.
 impl StateMachine for Blinky {
     /// The enum that represents the state.
     type State = State;
@@ -27,14 +27,11 @@ impl StateMachine for Blinky {
     /// The event type that will be submitted to the state machine.
     type Event = Event;
 
-    /// As a context we use the [Blinky] struct itself.
-    type Context = Self;
-
     /// The initial state of the state machine.
     const INIT_STATE: State = State::Off;
 
     /// This method is called on every transition of the state machine.
-    fn on_transition(_: &mut Blinky, _: &State, target: &State) {
+    fn on_transition(&mut self, _: &State, target: &State) {
         println!("Transitioned to `{target:?}`");
     }
 }

@@ -53,8 +53,6 @@ mod tests {
 
         type Event = Event;
 
-        type Context = Self;
-
         const INIT_STATE: State = State::S11;
     }
 
