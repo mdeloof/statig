@@ -60,7 +60,7 @@ impl Calculator {
             Event::Operator {
                 operator: Operator::Sub,
             } => {
-                self.display = "- 0".to_string();
+                self.display = "-0".to_string();
                 Transition(State::negated1())
             }
 
@@ -114,10 +114,7 @@ impl Calculator {
 
             Event::Operator { operator } => {
                 let operand1 = str::parse(&self.display).unwrap();
-                Transition(State::OpEntered {
-                    operand1,
-                    operator: *operator,
-                })
+                Transition(State::op_entered(operand1, *operator))
             }
 
             Event::Ac => Transition(State::begin()),
@@ -251,10 +248,7 @@ impl Calculator {
 
             Event::Operator { operator } => {
                 let operand1 = str::parse(&self.display).unwrap();
-                Transition(State::OpEntered {
-                    operand1,
-                    operator: *operator,
-                })
+                Transition(State::op_entered(operand1, *operator))
             }
 
             Event::Equal => {
@@ -280,26 +274,17 @@ impl Calculator {
         match event {
             Event::Digit { digit: 0 } => {
                 self.display = "0".to_string();
-                Transition(State::Zero2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::zero2(*operand1, *operator))
             }
 
             Event::Digit { digit } => {
                 self.display = digit.to_string();
-                Transition(State::Int2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::int2(*operand1, *operator))
             }
 
             Event::Point => {
                 self.display = "0.".to_string();
-                Transition(State::Frac2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::frac2(*operand1, *operator))
             }
 
             Event::Operator {
@@ -307,10 +292,7 @@ impl Calculator {
             } => {
                 self.display.clear();
                 self.display.push_str("-0");
-                Transition(State::Negated2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::negated2(*operand1, *operator))
             }
 
             Event::Operator { .. } => Handled,
@@ -330,18 +312,12 @@ impl Calculator {
 
             Event::Digit { digit } => {
                 self.display = digit.to_string();
-                Transition(State::Int2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::int2(*operand1, *operator))
             }
 
             Event::Point => {
                 self.display = "0.".to_string();
-                Transition(State::Frac2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::frac2(*operand1, *operator))
             }
 
             _ => Super,
@@ -357,10 +333,7 @@ impl Calculator {
         match event {
             Event::Point => {
                 self.display.push('.');
-                Transition(State::Frac2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::frac2(*operand1, *operator))
             }
 
             Event::Digit { digit } => {
@@ -408,10 +381,7 @@ impl Calculator {
 
             Event::Ce => {
                 self.display = "0".to_string();
-                Transition(State::OpEntered {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::op_entered(*operand1, *operator))
             }
 
             Event::Equal => {
@@ -425,10 +395,7 @@ impl Calculator {
             } => {
                 let operand2 = str::parse(&self.display).unwrap();
                 let result = operator.eval(*operand1, operand2);
-                Transition(State::OpEntered {
-                    operand1: result,
-                    operator: *next_operator,
-                })
+                Transition(State::op_entered(result, *next_operator))
             }
 
             _ => Super,
@@ -449,39 +416,27 @@ impl Calculator {
                 self.display.clear();
                 self.display.push('-');
                 self.display.push_str(&digit.to_string());
-                Transition(State::Zero2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::zero2(*operand1, *operator))
             }
 
             Event::Digit { digit } => {
                 self.display.clear();
                 self.display.push('-');
                 self.display.push_str(&digit.to_string());
-                Transition(State::Int2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::int2(*operand1, *operator))
             }
 
             Event::Point => {
                 self.display.clear();
                 self.display.push_str("-0.");
-                Transition(State::Frac2 {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::frac2(*operand1, *operator))
             }
 
             Event::Operator { .. } => Handled,
 
             Event::Ac => {
                 self.display.clear();
-                Transition(State::OpEntered {
-                    operand1: *operand1,
-                    operator: *operator,
-                })
+                Transition(State::op_entered(*operand1, *operator))
             }
 
             _ => Super,
