@@ -204,11 +204,14 @@ where
     }
 }
 
+/// Holds a reference to either a state or superstate.
 pub enum StateOrSuperstate<'a, 'b, M: StateMachine>
 where
     M::State: 'b,
 {
+    /// Reference to a state.
     State(&'a M::State),
+    /// Reference to a superstate.
     Superstate(&'a M::Superstate<'b>),
 }
 
