@@ -15,6 +15,8 @@ Hierarchical state machines for designing event-driven systems.
 
 ## statig in action
 
+A simple blinky state machine:
+
 ```rust
 #[derive(Default)]
 pub struct Blinky {
@@ -173,6 +175,10 @@ fn on(counter: &mut u32, event: &Event) -> Response<State> {
 ### **What is this `#[state_machine]` proc-macro doing to my code? 🤨**
 
 Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` block and derives some code based on its content and adds it to your source file. Your code will still be there, unchanged. In fact `#[state_machine]` could have been a derive macro, but at the moment Rust only allows derive macros to be used on enums and structs. If you'd like to see what the generated code looks like take a look at the test [with](./statig/tests/transition_macro.rs) and [without](./statig/tests/transition.rs) macros.
+
+### What advantage does this have over using the typestate pattern?
+
+I would say they serve a different purpose. The [typestate pattern](http://cliffle.com/blog/rust-typestate/) is very useful for designing an API as it is able to enforce the validity of operations at compile time by making each state a unique type. But `statig` is designed to model a dynamic system where events originate externally and the order of operations is determined at run time. More concretely, this means that the state machine is going to sit in a loop where events are read from a queue and submitted to the state machine using the `handle()` method. If we want to do the same with a state machine that uses the type state pattern we'd have to use an enum to wrap all our different states and match events to operations on these states. This means extra boilerplate code for little advantage as the order of operations is unknown so it can't be checked at compile time. On the other hand `statig` gives you the ability to create a hierarchy of states which I find to be invaluable as state machines grow in complexity.
 
 ## Credits
 
