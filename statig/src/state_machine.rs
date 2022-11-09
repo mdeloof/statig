@@ -172,6 +172,16 @@ where
     }
 }
 
+impl<M> InitializedStatemachine<M>
+where
+    M: StateMachine<Event = ()>,
+{
+    /// This is the same as `handle(())` in the case `Event` is of type `()`.
+    pub fn step(&mut self) {
+        self.handle(&());
+    }
+}
+
 impl<M> Default for InitializedStatemachine<M>
 where
     M: StateMachine + Default,
