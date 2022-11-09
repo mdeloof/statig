@@ -1,6 +1,10 @@
 # statig
 
-![CI](https://github.com/mdeloof/statig/actions/workflows/ci.yml/badge.svg)
+[![Current crates.io version](https://img.shields.io/crates/v/statig.svg)](https://crates.io/crates/statig)
+[![Documentation](https://docs.rs/statig/badge.svg)](https://docs.rs/statig)
+[![Rust version](https://img.shields.io/badge/Rust-1.65.0-blue)](https://releases.rs/docs/released/1.65.0)
+[![CI](https://github.com/mdeloof/statig/actions/workflows/ci.yml/badge.svg)](https://github.com/mdeloof/statig/actions/workflows/ci.yml)
+
 
 Hierarchical state machines for designing event-driven systems.
 
@@ -8,7 +12,7 @@ Hierarchical state machines for designing event-driven systems.
 
 - Hierachical state machines
 - State-local storage
-- Compatible with `#![no_std]`, no dynamic memory allocation
+- Compatible with `#![no_std]`, no heap memory allocation
 - (Optional) macro's for reducing boilerplate.
 
 ---
@@ -18,7 +22,7 @@ Hierarchical state machines for designing event-driven systems.
 - [Statig in action](#statig-in-action)
 - [Concepts](#concepts)
     - [States](#states)
-    - [Superstates](#superstate)
+    - [Superstates](#superstates)
     - [Actions](#actions)
     - [Context](#context)
     - [State-local storage](#state-local-storage)
@@ -194,26 +198,25 @@ A lot of the implemenation details are dealt with by the `#[state_machine]` macr
 The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be tought of as graph.
 
 ```
-                               ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐                  
-                                         Top                            
-                               └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘                  
-                                          │                             
-                         ┌────────────────┴─────────────────┐           
-                         │                                  │           
-                                                 ╔═════════════════════╗
-             ┌─────────────────────┐             ║       Paused        ║
-             │       Playing       │             ╚═════════════════════╝
-             │─────────────────────│                                    
-             │ counter: &'a usize  │                                    
-             └─────────────────────┘                                    
-                        │                                               
-           ┌────────────┴────────────┐                                  
-           │                         │                                  
-╔═════════════════════╗   ╔═════════════════════╗                       
-║         On          ║   ║         Off         ║                       
-║─────────────────────║   ║─────────────────────║                       
-║ counter: usize      ║   ║ counter: usize      ║                       
-╚═════════════════════╝   ╚═════════════════════╝                       
+                          ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐             
+                                    Top                       
+                          └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘             
+                                     │                        
+                        ┌────────────┴────────────┐           
+                        │                         │           
+             ┌─────────────────────┐   ╔═════════════════════╗
+             │       Playing       │   ║       Paused        ║
+             │─────────────────────│   ╚═════════════════════╝
+             │ counter: &'a usize  │                          
+             └─────────────────────┘                          
+                        │                                     
+           ┌────────────┴────────────┐                        
+           │                         │                        
+╔═════════════════════╗   ╔═════════════════════╗             
+║         On          ║   ║         Off         ║             
+║─────────────────────║   ║─────────────────────║             
+║ counter: usize      ║   ║ counter: usize      ║             
+╚═════════════════════╝   ╚═════════════════════╝                                 
 ```
 
 Nodes at the edge of the graph are called leaf-states and are represented by an `enum` in `statig`. If data only exists in a particular state we can give that state ownership of the data. This is referred to as 'state-local storage'. For example `counter` only exists in the `On` and `Off` state.
@@ -293,7 +296,7 @@ Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` bl
 
 ### What advantage does this have over using the typestate pattern?
 
-I would say they serve a different purpose. The [typestate pattern](http://cliffle.com/blog/rust-typestate/) is very useful for designing an API as it is able to enforce the validity of operations at compile time by making each state a unique type. But `statig` is designed to model a dynamic system where events originate externally and the order of operations is determined at run time. More concretely, this means that the state machine is going to sit in a loop where events are read from a queue and submitted to the state machine using the `handle()` method. If we want to do the same with a state machine that uses the type state pattern we'd have to use an enum to wrap all our different states and match events to operations on these states. This means extra boilerplate code for little advantage as the order of operations is unknown so it can't be checked at compile time. On the other hand `statig` gives you the ability to create a hierarchy of states which I find to be invaluable as state machines grow in complexity.
+I would say they serve a different purpose. The [typestate pattern](http://cliffle.com/blog/rust-typestate/) is very useful for designing an API as it is able to enforce the validity of operations at compile time by making each state a unique type. But `statig` is designed to model a dynamic system where events originate externally and the order of operations is determined at run time. More concretely, this means that the state machine is going to sit in a loop where events are read from a queue and submitted to the state machine using the `handle()` method. If we want to do the same with a state machine that uses the typestate pattern we'd have to use an enum to wrap all our different states and match events to operations on these states. This means extra boilerplate code for little advantage as the order of operations is unknown so it can't be checked at compile time. On the other hand `statig` gives you the ability to create a hierarchy of states which I find to be invaluable as state machines grow in complexity.
 
 ---
 

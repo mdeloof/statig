@@ -375,7 +375,7 @@
 //! the order of operations is determined at run time. More concretely, this means
 //! that the state machine is going to sit in a loop where events are read from
 //! a queue and submitted to the state machine using the `handle()` method. If
-//! we want to do the same with a state machine that uses the type state pattern
+//! we want to do the same with a state machine that uses the typestate pattern
 //! we'd have to use an enum to wrap all our different states and match events
 //! to operations on these states. This means extra boilerplate code for little
 //! advantage as the order of operations is unknown so it can't be checked at
