@@ -44,17 +44,7 @@ pub struct Blinky {
 
 pub struct Event;
 
-impl StateMachine for Blinky { 
-    type State = State;
-    
-    type Superstate<'a> = Superstate;
-    
-    type Event = Event;
-    
-    const INIT_STATE: State = State::off();
-}
-
-#[state_machine]
+#[state_machine(init = "State::on()")]
 impl Blinky {
     #[state]
     fn on(&mut self, event: &Event) -> Response<State> {

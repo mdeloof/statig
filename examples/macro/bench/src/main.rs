@@ -26,22 +26,7 @@ pub enum Event {
 #[derive(Default)]
 pub struct CdPlayer;
 
-// The `statig` trait needs to be implemented on the type that will be
-// the context for the state machine.
-impl StateMachine for CdPlayer {
-    /// The enum that represents the state.
-    type State = State;
-
-    type Superstate<'a> = ();
-
-    /// The event type that will be submitted to the state machine.
-    type Event = Event;
-
-    /// The initial state of the state machine.
-    const INIT_STATE: State = State::empty();
-}
-
-#[state_machine(state(derive(Debug)))]
+#[state_machine(init = "State::empty()", state(derive(Debug)))]
 impl CdPlayer {
     #[state]
     fn empty(event: &Event) -> Response<State> {

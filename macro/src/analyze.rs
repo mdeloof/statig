@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::format_ident;
 use syn::parse::Parser;
-use syn::{parse_quote, Field, MetaList, Visibility};
+use syn::{parse_quote, ExprCall, Field, MetaList, Visibility};
 use syn::{
     Attribute, AttributeArgs, FnArg, Ident, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta,
     NestedMeta, Pat, Path, Type,
@@ -28,6 +27,8 @@ pub struct Model {
 /// General information regarding the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct StateMachine {
+    /// The inital state of the state machine.
+    pub init_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub context_ty: Type,
     /// The name for the state type.
@@ -149,6 +150,8 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let context_ty = item_impl.self_ty.as_ref().clone();
 
+    let mut init_state: Option<ExprCall> = None;
+
     let mut state_name = parse_quote!(State);
     let mut state_derives = Vec::new();
     let mut superstate_name = parse_quote!(Superstate);
@@ -162,6 +165,14 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 
     for arg in attribute_args {
         match arg {
+            NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("init") => {
+                match &name_value.lit {
+                    Lit::Str(input_pat) => {
+                        init_state = input_pat.parse().ok();
+                    }
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
             NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("event") => {
                 external_input_pattern = match &name_value.lit {
                     Lit::Str(input_pat) => input_pat.parse().unwrap(),
@@ -185,6 +196,10 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
             _ => abort!(arg, "argument not recognized"),
         }
     }
+
+    let Some(init_state) = init_state else {
+        abort!(init_state, "no init state defined");
+    };
 
     let external_inputs = get_idents_from_pat(&external_input_pattern);
 
@@ -265,6 +280,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     }
 
     StateMachine {
+        init_state,
         context_ty,
         state_name,
         state_derives,
@@ -500,10 +516,11 @@ pub fn get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
 fn valid_state_analyze() {
     use syn::parse_quote;
 
+    let init_arg: NestedMeta = parse_quote!(init = "State::on()");
     let input_arg: NestedMeta = parse_quote!(event = "event");
     let state_arg: NestedMeta = parse_quote!(state(derive(Copy, Clone)));
     let superstate_arg: NestedMeta = parse_quote!(superstate(derive(Copy, Clone)));
-    let attribute_args = vec![input_arg, state_arg, superstate_arg];
+    let attribute_args = vec![init_arg, input_arg, state_arg, superstate_arg];
 
     let item_impl: ItemImpl = parse_quote!(
         impl Blinky {
@@ -523,10 +540,15 @@ fn valid_state_analyze() {
 
             #[action]
             fn enter_on(&mut self) {}
+
+            #[action]
+            fn enter_off(&mut self) {}
         }
     );
 
     let actual = analyze(attribute_args, item_impl.clone());
+
+    let init_state = parse_quote!(State::on());
 
     let context_ty = parse_quote!(Blinky);
 
@@ -539,6 +561,7 @@ fn valid_state_analyze() {
     let visibility = parse_quote!(pub);
 
     let state_machine = StateMachine {
+        init_state,
         context_ty,
         state_name,
         state_derives,
@@ -573,8 +596,13 @@ fn valid_state_analyze() {
         external_inputs: vec![parse_quote!(event: &Event)],
     };
 
-    let action = Action {
+    let entry_action = Action {
         handler_name: parse_quote!(enter_on),
+        inputs: vec![parse_quote!(&mut self)],
+    };
+
+    let exit_action = Action {
+        handler_name: parse_quote!(enter_off),
         inputs: vec![parse_quote!(&mut self)],
     };
 
@@ -584,7 +612,8 @@ fn valid_state_analyze() {
 
     states.insert(state.handler_name.clone(), state);
     superstates.insert(superstate.handler_name.clone(), superstate);
-    actions.insert(action.handler_name.clone(), action);
+    actions.insert(entry_action.handler_name.clone(), entry_action);
+    actions.insert(exit_action.handler_name.clone(), exit_action);
 
     let expected = Model {
         item_impl,

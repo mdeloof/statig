@@ -7,24 +7,9 @@ use std::io::Write;
 #[derive(Default)]
 pub struct Blinky;
 
-// The `statig` trait needs to be implemented on the type that will
-// imlement the state machine.
-impl StateMachine for Blinky {
-    /// The enum that represents the state.
-    type State = State;
-
-    type Superstate<'a> = Superstate<'a>;
-
-    /// The event type that will be submitted to the state machine.
-    type Event = Event;
-
-    /// The initial state of the state machine.
-    const INIT_STATE: State = State::on(false, 10);
-}
-
 pub struct Event;
 
-#[state_machine]
+#[state_machine(init = "State::on(true, 10)")]
 impl Blinky {
     // Every state needs to have a `#[state]` attribute added to it.
     #[state(superstate = "playing")]

@@ -31,25 +31,8 @@ mod tests {
         pub path: Vec<(StateWrapper, Action)>,
     }
 
-    impl StateMachine for Foo {
-        type State = State;
-
-        type Superstate<'a> = Superstate;
-
-        type Event = Event;
-
-        const INIT_STATE: State = State::s11();
-
-        fn on_dispatch(
-            &mut self,
-            state: statig::StateOrSuperstate<'_, '_, Self>,
-            event: &Self::Event,
-        ) {
-            println!("dispatching event {:?} to {:?}", event, state);
-        }
-    }
-
     #[state_machine(
+        init = "State::s11()",
         event = "event",
         state(derive(Eq, PartialEq, Debug)),
         superstate(derive(Eq, PartialEq, Debug))

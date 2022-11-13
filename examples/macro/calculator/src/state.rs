@@ -33,18 +33,8 @@ pub struct Calculator {
     pub display: String,
 }
 
-impl StateMachine for Calculator {
-    type State = State;
-
-    type Superstate<'a> = Superstate<'a>;
-
-    type Event = Event;
-
-    const INIT_STATE: State = State::begin();
-}
-
 /// Calculator is a state machine.
-#[state_machine]
+#[state_machine(init = "State::begin()")]
 impl Calculator {
     #[action]
     fn enter_begin(&mut self) {

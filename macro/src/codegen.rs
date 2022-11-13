@@ -7,6 +7,7 @@ use crate::lower::Ir;
 pub fn codegen(ir: Ir) -> TokenStream {
     let item_impl = &ir.item_impl;
 
+    let state_machine_impl = codegen_state_machine_impl(&ir);
     let state_enum = codegen_state(&ir);
     let state_impl = codegen_state_impl(&ir);
     let state_impl_state = codegen_state_impl_state(&ir);
@@ -18,6 +19,8 @@ pub fn codegen(ir: Ir) -> TokenStream {
 
         #item_impl
 
+        #state_machine_impl
+
         #state_enum
 
         #state_impl
@@ -27,6 +30,24 @@ pub fn codegen(ir: Ir) -> TokenStream {
         #superstate_enum
 
         #superstate_impl
+    )
+}
+
+fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
+    let object_ty = &ir.state_machine.context_ty;
+    let event_ty = &ir.state_machine.event_ty;
+    let state_ty = &ir.state_machine.state_ty;
+    let superstate_ty = &ir.state_machine.superstate_ty;
+
+    let init_state = &ir.state_machine.init_state;
+
+    parse_quote!(
+        impl statig::StateMachine for #object_ty {
+            type Event = #event_ty;
+            type State = #state_ty;
+            type Superstate<'a> = #superstate_ty;
+            const INIT_STATE: #state_ty = #init_state;
+        }
     )
 }
 

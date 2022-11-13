@@ -77,17 +77,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # impl StateMachine for Blinky {
-    /// #     type State = State;
-    /// #     
-    /// #     type Superstate<'a> = ();
-    /// #     
-    /// #     type Event = Event;
-    /// #     
-    /// #     const INIT_STATE: State = State::on();
-    /// # }
-    /// #
-    /// # #[state_machine]
+    /// # #[state_machine(init = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
     /// #     fn on(event: &Event) -> Response<State> { Handled }

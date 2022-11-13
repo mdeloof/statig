@@ -20,17 +20,7 @@
 //!
 //! pub struct Event;
 //!
-//! impl StateMachine for Blinky {
-//!     type State = State;
-//!     
-//!     type Superstate<'a> = Superstate;
-//!     
-//!     type Event = Event;
-//!     
-//!     const INIT_STATE: State = State::off();
-//! }
-//!
-//! #[state_machine]
+//! #[state_machine(init = "State::on()")]
 //! impl Blinky {
 //!     #[state]
 //!     fn on(&mut self, event: &Event) -> Response<State> {
@@ -71,17 +61,7 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # impl StateMachine for Blinky {
-//! #     type State = State;
-//! #     
-//! #     type Superstate<'a> = ();
-//! #     
-//! #     type Event = Event;
-//! #     
-//! #     const INIT_STATE: State = State::off();
-//! # }
-//! #
-//! # #[state_machine]
+//! # #[state_machine(init = "State::off()")]
 //! # impl Blinky {
 //! #
 //! #[state]
@@ -119,17 +99,7 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # impl StateMachine for Blinky {
-//! #     type State = State;
-//! #     
-//! #     type Superstate<'a> = Superstate;
-//! #     
-//! #     type Event = Event;
-//! #     
-//! #     const INIT_STATE: State = State::off();
-//! # }
-//! #
-//! # #[state_machine]
+//! # #[state_machine(init = "State::off()")]
 //! # impl Blinky {
 //! #
 //! #[state(superstate = "playing")]
@@ -183,17 +153,7 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # impl StateMachine for Blinky {
-//! #     type State = State;
-//! #     
-//! #     type Superstate<'a> = Superstate;
-//! #     
-//! #     type Event = Event;
-//! #     
-//! #     const INIT_STATE: State = State::off();
-//! # }
-//! #
-//! # #[state_machine]
+//! # #[state_machine(init = "State::off()")]
 //! # impl Blinky {
 //! #     #[state]
 //! #     fn off(&mut self, event: &Event) -> Response<State> {
@@ -232,17 +192,7 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # impl StateMachine for Blinky {
-//! #     type State = State;
-//! #     
-//! #     type Superstate<'a> = ();
-//! #     
-//! #     type Event = Event;
-//! #     
-//! #     const INIT_STATE: State = State::off();
-//! # }
-//! #
-//! # #[state_machine]
+//! # #[state_machine(init = "State::off()")]
 //! # impl Blinky {
 //! #
 //! #[state]
@@ -269,17 +219,7 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # impl StateMachine for Blinky {
-//! #     type State = State;
-//! #     
-//! #     type Superstate<'a> = ();
-//! #     
-//! #     type Event = Event;
-//! #     
-//! #     const INIT_STATE: State = State::off();
-//! # }
-//! #
-//! # #[state_machine]
+//! # #[state_machine(init = "State::off()")]
 //! # impl Blinky {
 //! #     #[state]
 //! #     fn on(&mut self, event: &Event) -> Response<State> {
@@ -316,17 +256,7 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # impl StateMachine for Blinky {
-//! #     type State = State;
-//! #     
-//! #     type Superstate<'a> = ();
-//! #     
-//! #     type Event = Event;
-//! #     
-//! #     const INIT_STATE: State = State::on(10);
-//! # }
-//! #
-//! # #[state_machine]
+//! # #[state_machine(init = "State::on(10)")]
 //! # impl Blinky {
 //! #
 //! #[state]

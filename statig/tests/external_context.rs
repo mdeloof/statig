@@ -14,17 +14,7 @@ mod tests {
         TimerElapsed,
     }
 
-    impl StateMachine for Counter {
-        type State = State;
-
-        type Superstate<'a> = Superstate;
-
-        type Event = (RefCell<ExternalContext>, Event);
-
-        const INIT_STATE: State = State::up();
-    }
-
-    #[state_machine(event = "(external_context, event)")]
+    #[state_machine(init = "State::up()", event = "(external_context, event)")]
     impl Counter {
         #[state]
         fn up(external_context: &RefCell<ExternalContext>, event: &Event) -> Response<State> {

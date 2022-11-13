@@ -1,7 +1,8 @@
 use proc_macro2::Span;
 use proc_macro_error::abort;
 use quote::format_ident;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
 use syn::parse::Parser;
 use syn::{parse_quote, Expr, Field, ItemImpl, Lifetime, Type};
 use syn::{ExprCall, FnArg, Ident, Pat, Path, Variant};
@@ -28,8 +29,12 @@ pub struct Ir {
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 /// General information regarding the state machine.
 pub struct StateMachine {
+    /// Initial state.
+    pub init_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub context_ty: Type,
+    /// The type of the event.
+    pub event_ty: Type,
     /// The type of the state enum.
     pub state_ty: Type,
     /// Derives that will be applied on the state type.
@@ -102,6 +107,8 @@ pub struct Action {
 
 pub fn lower(model: &Model) -> Ir {
     let item_impl = model.item_impl.clone();
+
+    let init_state = model.state_machine.init_state.clone();
 
     let state_name = &model.state_machine.state_name;
     let state_ty = parse_quote!(#state_name);
@@ -222,6 +229,55 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
+    // Finding event types
+    let mut event_idents = model
+        .state_machine
+        .external_inputs
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+    let mut event_idents_types: HashMap<Ident, Type> = HashMap::new();
+
+    for state in model.states.values() {
+        for external_input in &state.external_inputs {
+            if let FnArg::Typed(pat_type) = external_input {
+                if let Pat::Ident(external_input_ident) = &*pat_type.pat {
+                    if event_idents.remove(&external_input_ident.ident) {
+                        let ty = match &*pat_type.ty {
+                            Type::Reference(reference) => reference.elem.deref().clone(),
+                            _ => todo!(),
+                        };
+                        event_idents_types.insert(external_input_ident.ident.clone(), ty);
+                    }
+                }
+            }
+        }
+    }
+
+    for superstates in model.superstates.values() {
+        for external_input in &superstates.external_inputs {
+            if let FnArg::Typed(pat_type) = external_input {
+                if let Pat::Ident(external_input_ident) = &*pat_type.pat {
+                    if event_idents.remove(&external_input_ident.ident) {
+                        let ty = match &*pat_type.ty {
+                            Type::Reference(reference) => reference.elem.deref().clone(),
+                            _ => todo!(),
+                        };
+                        event_idents_types.insert(external_input_ident.ident.clone(), ty);
+                    }
+                }
+            }
+        }
+    }
+
+    let event_ty = match event_idents_types.is_empty() {
+        true => parse_quote!(()),
+        false => pat_to_type(
+            &model.state_machine.external_input_pattern,
+            &event_idents_types,
+        ),
+    };
+
     let context_ty = model.state_machine.context_ty.clone();
     let state_derives = model.state_machine.state_derives.clone();
 
@@ -233,7 +289,9 @@ pub fn lower(model: &Model) -> Ir {
     let external_input_pattern = model.state_machine.external_input_pattern.clone();
 
     let state_machine = StateMachine {
+        init_state,
         context_ty,
+        event_ty,
         state_ty,
         state_derives,
         superstate_ident,
@@ -436,9 +494,80 @@ fn snake_case_to_pascal_case(snake: &Ident) -> Ident {
     format_ident!("{}", pascal)
 }
 
+fn pat_to_type(pat: &Pat, idents: &HashMap<Ident, Type>) -> Type {
+    match pat {
+        Pat::Box(pat) => {
+            let ty = pat_to_type(&pat.pat, idents);
+            parse_quote!(Box<#ty>)
+        }
+        Pat::Ident(pat) => match idents.get(&pat.ident) {
+            Some(ty) => ty.clone(),
+            None => {
+                abort!(pat,
+                    "ident could not be matched to type";
+                    help = "make sure the ident is used in at least one state or superstate"
+                )
+            }
+        },
+        Pat::Lit(pat) => abort!(
+            pat,
+            "`literal` patterns are not supported";
+            help = "pattern in function must be irrefutable"
+        ),
+        Pat::Macro(pat) => abort!(pat, "macro pattern not supported"),
+        Pat::Or(pat) => abort!(
+            pat,
+            "`or` patterns are not supported";
+            help = "pattern in function must be irrefutable"
+        ),
+        Pat::Path(pat) => abort!(
+            pat,
+            "`path` patterns are not supported";
+            help = "pattern in function must be irrefutable"
+        ),
+        Pat::Range(pat) => abort!(
+            pat,
+            "`range` patterns are not supported";
+            help = "pattern in function must be irrefutable"
+        ),
+        Pat::Reference(pat) => abort!(pat, "`reference` patterns are not supported"),
+        Pat::Rest(pat) => abort!(
+            pat,
+            "`rest` patterns are not supported";
+            help = "pattern in function must be irrefutable"
+        ),
+        Pat::Slice(pat) => abort!(
+            pat,
+            "`slice` patterns are not supported";
+            help = "pattern in function must be irrefutable"
+        ),
+        Pat::Struct(pat) => {
+            let ty = &pat.path;
+            parse_quote!(#ty)
+        }
+        Pat::Tuple(tuple) => {
+            let types: Vec<_> = tuple
+                .elems
+                .iter()
+                .map(|pat| pat_to_type(pat, idents))
+                .collect();
+            parse_quote!((#(#types),*))
+        }
+        Pat::TupleStruct(pat) => {
+            let ty = &pat.path;
+            parse_quote!(#ty)
+        }
+        Pat::Type(pat) => pat.ty.deref().clone(),
+        Pat::Verbatim(_) => abort!(pat, "`verbatim` patterns are not supported"),
+        Pat::Wild(_) => abort!(pat, "`wildcard` patterns are not supported"),
+        _ => todo!(),
+    }
+}
+
 #[cfg(test)]
 fn create_analyze_state_machine() -> analyze::StateMachine {
     analyze::StateMachine {
+        init_state: parse_quote!(State::on()),
         context_ty: parse_quote!(Blinky),
         state_name: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
@@ -453,7 +582,9 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
 #[cfg(test)]
 fn create_lower_state_machine() -> StateMachine {
     StateMachine {
+        init_state: parse_quote!(State::on()),
         context_ty: parse_quote!(Blinky),
+        event_ty: parse_quote!(()),
         state_ty: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_ident: parse_quote!(Superstate),
@@ -643,6 +774,29 @@ fn test_lower() {
 
     let actual = lower(&model);
     let expected = create_lower_model();
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_pat_to_type() {
+    let idents: HashMap<_, _> = [
+        (parse_quote!(counter), parse_quote!(i32)),
+        (parse_quote!(context), parse_quote!(Context)),
+    ]
+    .into();
+
+    let pat = parse_quote!(Vec3 { x, y, z });
+
+    let actual = pat_to_type(&pat, &idents);
+    let expected = parse_quote!(Vec3);
+
+    assert_eq!(actual, expected);
+
+    let pat = parse_quote!((counter, context));
+
+    let actual = pat_to_type(&pat, &idents);
+    let expected = parse_quote!((i32, Context));
 
     assert_eq!(actual, expected);
 }

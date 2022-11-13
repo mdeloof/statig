@@ -15,23 +15,7 @@ pub struct Dishwasher {
     previous_state: State,
 }
 
-impl StateMachine for Dishwasher {
-    type State = State;
-
-    type Superstate<'a> = Superstate;
-
-    type Event = Event;
-
-    const INIT_STATE: State = State::Idle {};
-
-    // On every transition we update the previous state, so we can
-    // transition back to it.
-    fn on_transition(&mut self, source: &Self::State, _: &Self::State) {
-        self.previous_state = source.clone();
-    }
-}
-
-#[state_machine(state(derive(Debug, Clone)))]
+#[state_machine(init = "State::idle()", state(derive(Debug, Clone)))]
 impl Dishwasher {
     #[state]
     fn idle(event: &Event) -> Response<State> {
