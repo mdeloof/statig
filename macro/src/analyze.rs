@@ -163,22 +163,16 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     for arg in attribute_args {
         match arg {
             NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("event") => {
-                match &name_value.lit {
-                    Lit::Str(input_pat) => {
-                        let token_stream: TokenStream = str::parse(&input_pat.value()).unwrap();
-                        external_input_pattern = parse_quote!(#token_stream);
-                    }
+                external_input_pattern = match &name_value.lit {
+                    Lit::Str(input_pat) => input_pat.parse().unwrap(),
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
             NestedMeta::Meta(Meta::NameValue(name_value))
                 if name_value.path.is_ident("visibility") =>
             {
-                match &name_value.lit {
-                    Lit::Str(input_pat) => {
-                        let token_stream: TokenStream = str::parse(&input_pat.value()).unwrap();
-                        visibility = parse_quote!(#token_stream);
-                    }
+                visibility = match &name_value.lit {
+                    Lit::Str(input_pat) => input_pat.parse().unwrap(),
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
