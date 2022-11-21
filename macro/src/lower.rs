@@ -45,6 +45,8 @@ pub struct StateMachine {
     pub superstate_ty: Type,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
+    pub on_transition: Option<Path>,
+    pub on_dispatch: Option<Path>,
     /// The visibility for the derived types,
     pub visibility: Visibility,
     pub external_input_pattern: Pat,
@@ -115,6 +117,9 @@ pub fn lower(model: &Model) -> Ir {
 
     let superstate_ident = &model.state_machine.superstate_name;
     let mut superstate_ty = parse_quote!(#superstate_ident);
+
+    let on_transition = model.state_machine.on_transition.clone();
+    let on_dispatch = model.state_machine.on_dispatch.clone();
 
     let mut states: HashMap<Ident, State> = model
         .states
@@ -297,6 +302,8 @@ pub fn lower(model: &Model) -> Ir {
         superstate_ident,
         superstate_ty,
         superstate_derives,
+        on_transition,
+        on_dispatch,
         visibility,
         external_input_pattern,
     };
@@ -573,6 +580,8 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_name: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
+        on_transition: None,
+        on_dispatch: None,
         external_input_pattern: parse_quote!(input),
         external_inputs: vec![parse_quote!(input)],
         visibility: parse_quote!(pub),
@@ -590,6 +599,8 @@ fn create_lower_state_machine() -> StateMachine {
         superstate_ident: parse_quote!(Superstate),
         superstate_ty: parse_quote!(Superstate<'a>),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
+        on_transition: None,
+        on_dispatch: None,
         visibility: parse_quote!(pub),
         external_input_pattern: parse_quote!(input),
     }

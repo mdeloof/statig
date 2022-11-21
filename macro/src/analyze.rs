@@ -45,6 +45,10 @@ pub struct StateMachine {
     pub external_inputs: Vec<Ident>,
     /// The visibility of the derived types.
     pub visibility: Visibility,
+    /// Optional `on_transition` callback.
+    pub on_transition: Option<Path>,
+    ///Optional `on_dispatch` callback.
+    pub on_dispatch: Option<Path>,
 }
 
 /// Information regarding a state.
@@ -157,6 +161,9 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let mut superstate_name = parse_quote!(Superstate);
     let mut superstate_derives = Vec::new();
 
+    let mut on_transition = None;
+    let mut on_dispatch = None;
+
     let mut visibility = parse_quote!(pub);
     let mut external_input_pattern = parse_quote!(event);
 
@@ -180,6 +187,22 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                 }
             }
             NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("on_transition") =>
+            {
+                on_transition = match &name_value.lit {
+                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("on_dispatch") =>
+            {
+                on_dispatch = match &name_value.lit {
+                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
                 if name_value.path.is_ident("visibility") =>
             {
                 visibility = match &name_value.lit {
@@ -187,12 +210,14 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
+
             NestedMeta::Meta(Meta::List(list)) if list.path.is_ident("state") => {
                 state_meta = list.clone();
             }
             NestedMeta::Meta(Meta::List(list)) if list.path.is_ident("superstate") => {
                 superstate_meta = list.clone();
             }
+
             _ => abort!(arg, "argument not recognized"),
         }
     }
@@ -286,6 +311,8 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         state_derives,
         superstate_name,
         superstate_derives,
+        on_dispatch,
+        on_transition,
         external_input_pattern,
         external_inputs,
         visibility,
@@ -556,6 +583,8 @@ fn valid_state_analyze() {
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let superstate_name = parse_quote!(Superstate);
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
+    let on_transition = None;
+    let on_dispatch = None;
     let external_input_pattern = parse_quote!(event);
     let external_inputs = vec![parse_quote!(event)];
     let visibility = parse_quote!(pub);
@@ -567,6 +596,8 @@ fn valid_state_analyze() {
         state_derives,
         superstate_name,
         superstate_derives,
+        on_transition,
+        on_dispatch,
         external_input_pattern,
         external_inputs,
         visibility,

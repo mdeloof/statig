@@ -41,12 +41,34 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
 
     let init_state = &ir.state_machine.init_state;
 
+    let on_transition = match &ir.state_machine.on_transition {
+        None => quote!(),
+        Some(on_transition) => quote!(
+            fn on_transition(&mut self, source: &Self::State, target: &Self::State) {
+                #on_transition(self, source, target);
+            }
+        ),
+    };
+
+    let on_dispatch = match &ir.state_machine.on_dispatch {
+        None => quote!(),
+        Some(on_dispatch) => quote!(
+            fn on_dispatch(&mut self, state: statig::StateOrSuperstate<'_, '_, Self>, event: &Self::Event) {
+                #on_dispatch(self, state, event);
+            }
+        ),
+    };
+
     parse_quote!(
         impl statig::StateMachine for #object_ty {
             type Event = #event_ty;
             type State = #state_ty;
             type Superstate<'a> = #superstate_ty;
             const INIT_STATE: #state_ty = #init_state;
+
+            #on_transition
+
+            #on_dispatch
         }
     )
 }
