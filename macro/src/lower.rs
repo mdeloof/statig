@@ -322,16 +322,18 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
     let context_ty = &state_machine.context_ty;
     let state_name = &state_machine.state_name;
 
-    let mut variant_fields = state.local_storage.clone();
+    let mut variant_fields: Vec<_> = state
+        .state_inputs
+        .iter()
+        .map(fn_arg_to_state_field)
+        .collect();
 
-    for input in &state.state_inputs {
-        let input_ident = fn_arg_to_ident(input);
-
-        if !variant_fields
-            .iter()
-            .any(|field| field.ident.as_ref().unwrap() == &input_ident)
-        {
-            variant_fields.push(fn_arg_to_state_field(input));
+    for field in &state.local_storage {
+        match variant_fields.iter_mut().find(|f| f.ident == field.ident) {
+            Some(item) => {
+                *item = field.clone();
+            }
+            None => variant_fields.push(field.clone()),
         }
     }
 
@@ -369,16 +371,18 @@ pub fn lower_superstate(
     let context_ty = &state_machine.context_ty;
     let superstate_ty = &state_machine.superstate_name;
 
-    let mut variant_fields = superstate.local_storage.clone();
+    let mut variant_fields: Vec<_> = superstate
+        .state_inputs
+        .iter()
+        .map(fn_arg_to_superstate_field)
+        .collect();
 
-    for input in &superstate.state_inputs {
-        let input_ident = fn_arg_to_ident(input);
-
-        if !variant_fields
-            .iter()
-            .any(|field| field.ident.as_ref().unwrap() == &input_ident)
-        {
-            variant_fields.push(fn_arg_to_superstate_field(input));
+    for field in &superstate.local_storage {
+        match variant_fields.iter_mut().find(|f| f.ident == field.ident) {
+            Some(item) => {
+                *item = field.clone();
+            }
+            None => variant_fields.push(field.clone()),
         }
     }
 
