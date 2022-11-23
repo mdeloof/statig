@@ -53,7 +53,7 @@ mod tests {
 
         type Event = Event;
 
-        const INIT_STATE: State = State::S11;
+        const INITIAL: State = State::S11;
     }
 
     impl statig::State<Foo> for State {

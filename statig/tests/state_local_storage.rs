@@ -22,7 +22,7 @@ mod tests {
         type Event = Event;
 
         /// The initial state of the state machine.
-        const INIT_STATE: StateEnum = StateEnum::On {
+        const INITIAL: StateEnum = StateEnum::On {
             led: false,
             counter: 23,
         };
@@ -30,7 +30,7 @@ mod tests {
 
     impl Default for StateEnum {
         fn default() -> Self {
-            Blinky::INIT_STATE
+            Blinky::INITIAL
         }
     }
 

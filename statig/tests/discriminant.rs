@@ -60,7 +60,7 @@ mod test {
 
         type Superstate<'a> = Superstate;
 
-        const INIT_STATE: Self::State = State::S11;
+        const INITIAL: Self::State = State::S11;
     }
 
     impl statig::State<Foo> for State {

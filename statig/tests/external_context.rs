@@ -14,7 +14,7 @@ mod tests {
         TimerElapsed,
     }
 
-    #[state_machine(init = "State::up()", event = "(external_context, event)")]
+    #[state_machine(initial = "State::up()", event = "(external_context, event)")]
     impl Counter {
         #[state]
         fn up(external_context: &RefCell<ExternalContext>, event: &Event) -> Response<State> {

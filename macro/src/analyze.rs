@@ -28,7 +28,7 @@ pub struct Model {
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct StateMachine {
     /// The inital state of the state machine.
-    pub init_state: ExprCall,
+    pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub context_ty: Type,
     /// The name for the state type.
@@ -154,7 +154,7 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let context_ty = item_impl.self_ty.as_ref().clone();
 
-    let mut init_state: Option<ExprCall> = None;
+    let mut initial_state: Option<ExprCall> = None;
 
     let mut state_name = parse_quote!(State);
     let mut state_derives = Vec::new();
@@ -172,10 +172,12 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 
     for arg in attribute_args {
         match arg {
-            NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("init") => {
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("initial") =>
+            {
                 match &name_value.lit {
                     Lit::Str(input_pat) => {
-                        init_state = input_pat.parse().ok();
+                        initial_state = input_pat.parse().ok();
                     }
                     _ => abort!(name_value, "must be a string literal"),
                 }
@@ -222,8 +224,8 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         }
     }
 
-    let Some(init_state) = init_state else {
-        abort!(init_state, "no init state defined");
+    let Some(initial_state) = initial_state else {
+        abort!(initial_state, "no init state defined");
     };
 
     let external_inputs = get_idents_from_pat(&external_input_pattern);
@@ -305,7 +307,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     }
 
     StateMachine {
-        init_state,
+        initial_state,
         context_ty,
         state_name,
         state_derives,
@@ -543,7 +545,7 @@ pub fn get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
 fn valid_state_analyze() {
     use syn::parse_quote;
 
-    let init_arg: NestedMeta = parse_quote!(init = "State::on()");
+    let init_arg: NestedMeta = parse_quote!(initial = "State::on()");
     let input_arg: NestedMeta = parse_quote!(event = "event");
     let state_arg: NestedMeta = parse_quote!(state(derive(Copy, Clone)));
     let superstate_arg: NestedMeta = parse_quote!(superstate(derive(Copy, Clone)));
@@ -575,7 +577,7 @@ fn valid_state_analyze() {
 
     let actual = analyze(attribute_args, item_impl.clone());
 
-    let init_state = parse_quote!(State::on());
+    let initial_state = parse_quote!(State::on());
 
     let context_ty = parse_quote!(Blinky);
 
@@ -590,7 +592,7 @@ fn valid_state_analyze() {
     let visibility = parse_quote!(pub);
 
     let state_machine = StateMachine {
-        init_state,
+        initial_state,
         context_ty,
         state_name,
         state_derives,

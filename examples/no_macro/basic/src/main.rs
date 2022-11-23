@@ -28,7 +28,7 @@ impl StateMachine for Blinky {
     type Event = Event;
 
     /// The initial state of the state machine.
-    const INIT_STATE: State = State::Off;
+    const INITIAL: State = State::Off;
 
     /// This method is called on every transition of the state machine.
     fn on_transition(&mut self, _: &State, target: &State) {

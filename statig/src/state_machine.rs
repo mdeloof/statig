@@ -22,7 +22,7 @@ where
         Self::State: 'a;
 
     /// Initial state of the state machine.
-    const INIT_STATE: Self::State;
+    const INITIAL: Self::State;
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.
@@ -41,7 +41,7 @@ pub trait StateMachineContext: StateMachine {
     {
         UninitializedStateMachine {
             context: self,
-            state: Self::INIT_STATE,
+            state: Self::INITIAL,
         }
     }
 }
@@ -77,7 +77,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(init = "State::on()")]
+    /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
     /// #     fn on(event: &Event) -> Response<State> { Handled }
@@ -179,7 +179,7 @@ where
     fn default() -> Self {
         Self {
             context: <M as Default>::default(),
-            state: <M as StateMachine>::INIT_STATE,
+            state: <M as StateMachine>::INITIAL,
         }
     }
 }

@@ -7,13 +7,19 @@ use std::io::Write;
 #[derive(Default)]
 pub struct Blinky;
 
-pub enum State {
-    On { led: bool, counter: isize },
-    Off { led: bool },
+pub enum Event {
+    TimerElapsed,
+    ButtonPressed,
 }
 
-pub enum Superstate<'a> {
-    Playing { led: &'a mut bool },
+pub enum State {
+    LedOn,
+    LedOff,
+    NotBlinking,
+}
+
+pub enum Superstate {
+    Blinking,
 }
 
 // The `statig` trait needs to be implemented on the type that will
@@ -22,80 +28,76 @@ impl StateMachine for Blinky {
     /// The enum that represents the state.
     type State = State;
 
-    type Superstate<'a> = Superstate<'a>;
+    type Superstate<'a> = Superstate;
 
     /// The event type that will be submitted to the state machine.
     type Event = Event;
 
     /// The initial state of the state machine.
-    const INIT_STATE: State = State::On {
-        led: false,
-        counter: 10,
-    };
+    const INITIAL: State = State::LedOn;
 }
 
 impl statig::State<Blinky> for State {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
         match self {
-            State::On { led, counter } => blinky.on(led, counter, event),
-            State::Off { led } => blinky.off(led, event),
+            State::LedOn => Blinky::led_on(event),
+            State::LedOff => Blinky::led_off(event),
+            State::NotBlinking => Blinky::not_blinking(event),
         }
     }
 
-    fn call_entry_action(&mut self, blinky: &mut Blinky) {
+    fn superstate(&mut self) -> Option<Superstate> {
         match self {
-            State::On { .. } => {}
-            State::Off { led } => blinky.enter_off(led),
-        }
-    }
-
-    fn superstate(&mut self) -> Option<Superstate<'_>> {
-        match self {
-            State::On { led, .. } => Some(Superstate::Playing { led }),
-            State::Off { led, .. } => Some(Superstate::Playing { led }),
+            State::LedOn => Some(Superstate::Blinking),
+            State::LedOff => Some(Superstate::Blinking),
+            State::NotBlinking => None,
         }
     }
 }
 
-impl<'a> statig::Superstate<Blinky> for Superstate<'a> {
+impl statig::Superstate<Blinky> for Superstate {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<State> {
         match self {
-            Superstate::Playing { led } => blinky.playing(led),
+            Superstate::Blinking => Blinky::blinking(event),
         }
     }
 }
 
-pub struct Event;
-
 impl Blinky {
-    fn on(&mut self, led: &mut bool, counter: &mut isize, event: &Event) -> Response<State> {
-        println!("On");
-        Transition(State::Off { led: false })
+    fn led_on(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::LedOff),
+            _ => Super,
+        }
     }
 
-    // Actions can access state-local storage.
-    fn enter_off(&mut self, led: &mut bool) {
-        println!("entered off");
-        *led = false;
+    fn led_off(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::LedOn),
+            _ => Super,
+        }
     }
 
-    fn off(&mut self, led: &mut bool, event: &Event) -> Response<State> {
-        println!("Off");
-        Transition(State::On {
-            led: true,
-            counter: 10,
-        })
+    fn blinking(event: &Event) -> Response<State> {
+        match event {
+            Event::ButtonPressed => Transition(State::NotBlinking),
+            _ => Super,
+        }
     }
 
-    fn playing(&mut self, led: &mut bool) -> Response<State> {
-        Handled
+    fn not_blinking(event: &Event) -> Response<State> {
+        match event {
+            Event::ButtonPressed => Transition(State::LedOn),
+            _ => Super,
+        }
     }
 }
 
 fn main() {
     let mut state_machine = Blinky::default().state_machine().init();
 
-    for _ in 0..10 {
-        state_machine.handle(&Event {});
-    }
+    state_machine.handle(&Event::TimerElapsed);
+    state_machine.handle(&Event::ButtonPressed);
+    state_machine.handle(&Event::TimerElapsed);
+    state_machine.handle(&Event::ButtonPressed);
 }

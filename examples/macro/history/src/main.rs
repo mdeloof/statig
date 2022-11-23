@@ -15,7 +15,7 @@ pub struct Dishwasher {
     previous_state: State,
 }
 
-#[state_machine(init = "State::idle()", state(derive(Debug, Clone)))]
+#[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
 impl Dishwasher {
     #[state]
     fn idle(event: &Event) -> Response<State> {
@@ -72,7 +72,7 @@ impl Dishwasher {
 
 fn main() {
     let mut state_machine = Dishwasher {
-        previous_state: Dishwasher::INIT_STATE,
+        previous_state: Dishwasher::INITIAL,
     }
     .state_machine()
     .init();

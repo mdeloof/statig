@@ -30,7 +30,7 @@ pub struct Ir {
 /// General information regarding the state machine.
 pub struct StateMachine {
     /// Initial state.
-    pub init_state: ExprCall,
+    pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub context_ty: Type,
     /// The type of the event.
@@ -110,7 +110,7 @@ pub struct Action {
 pub fn lower(model: &Model) -> Ir {
     let item_impl = model.item_impl.clone();
 
-    let init_state = model.state_machine.init_state.clone();
+    let initial_state = model.state_machine.initial_state.clone();
 
     let state_name = &model.state_machine.state_name;
     let state_ty = parse_quote!(#state_name);
@@ -294,7 +294,7 @@ pub fn lower(model: &Model) -> Ir {
     let external_input_pattern = model.state_machine.external_input_pattern.clone();
 
     let state_machine = StateMachine {
-        init_state,
+        initial_state,
         context_ty,
         event_ty,
         state_ty,
@@ -578,7 +578,7 @@ fn pat_to_type(pat: &Pat, idents: &HashMap<Ident, Type>) -> Type {
 #[cfg(test)]
 fn create_analyze_state_machine() -> analyze::StateMachine {
     analyze::StateMachine {
-        init_state: parse_quote!(State::on()),
+        initial_state: parse_quote!(State::on()),
         context_ty: parse_quote!(Blinky),
         state_name: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
@@ -595,7 +595,7 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
 #[cfg(test)]
 fn create_lower_state_machine() -> StateMachine {
     StateMachine {
-        init_state: parse_quote!(State::on()),
+        initial_state: parse_quote!(State::on()),
         context_ty: parse_quote!(Blinky),
         event_ty: parse_quote!(()),
         state_ty: parse_quote!(State),

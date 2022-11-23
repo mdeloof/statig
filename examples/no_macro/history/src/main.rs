@@ -35,7 +35,7 @@ impl StateMachine for Dishwasher {
 
     type Event = Event;
 
-    const INIT_STATE: State = State::Idle;
+    const INITIAL: State = State::Idle;
 
     // On every transition we update the previous state, so we can
     // transition back to it.
@@ -124,7 +124,7 @@ impl Dishwasher {
 
 fn main() {
     let mut state_machine = Dishwasher {
-        previous_state: Dishwasher::INIT_STATE,
+        previous_state: Dishwasher::INITIAL,
     }
     .state_machine()
     .init();

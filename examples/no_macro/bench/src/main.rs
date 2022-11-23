@@ -47,7 +47,7 @@ impl StateMachine for CdPlayer {
     type Event = Event;
 
     /// The initial state of the state machine.
-    const INIT_STATE: State = State::Empty;
+    const INITIAL: State = State::Empty;
 }
 
 impl statig::State<CdPlayer> for State {

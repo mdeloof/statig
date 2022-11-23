@@ -64,7 +64,7 @@ impl StateMachine for Calculator {
 
     type Event = Event;
 
-    const INIT_STATE: State = State::Begin;
+    const INITIAL: State = State::Begin;
 }
 
 impl statig::State<Calculator> for State {

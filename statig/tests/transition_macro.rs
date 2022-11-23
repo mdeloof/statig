@@ -32,7 +32,7 @@ mod tests {
     }
 
     #[state_machine(
-        init = "State::s11()",
+        initial = "State::s11()",
         event = "event",
         state(derive(Eq, PartialEq, Debug)),
         superstate(derive(Eq, PartialEq, Debug))

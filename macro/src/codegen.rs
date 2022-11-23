@@ -39,7 +39,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let state_ty = &ir.state_machine.state_ty;
     let superstate_ty = &ir.state_machine.superstate_ty;
 
-    let init_state = &ir.state_machine.init_state;
+    let initial_state = &ir.state_machine.initial_state;
 
     let on_transition = match &ir.state_machine.on_transition {
         None => quote!(),
@@ -64,7 +64,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             type Event = #event_ty;
             type State = #state_ty;
             type Superstate<'a> = #superstate_ty;
-            const INIT_STATE: #state_ty = #init_state;
+            const INITIAL: #state_ty = #initial_state;
 
             #on_transition
 

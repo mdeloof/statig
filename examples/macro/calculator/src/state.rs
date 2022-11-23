@@ -34,7 +34,7 @@ pub struct Calculator {
 }
 
 /// Calculator is a state machine.
-#[state_machine(init = "State::begin()")]
+#[state_machine(initial = "State::begin()")]
 impl Calculator {
     #[action]
     fn enter_begin(&mut self) {

@@ -20,7 +20,7 @@
 //!
 //! pub struct Event;
 //!
-//! #[state_machine(init = "State::on()")]
+//! #[state_machine(initial = "State::on()")]
 //! impl Blinky {
 //!     #[state]
 //!     fn on(&mut self, event: &Event) -> Response<State> {
@@ -61,7 +61,7 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # #[state_machine(init = "State::off()")]
+//! # #[state_machine(initial = "State::off()")]
 //! # impl Blinky {
 //! #
 //! #[state]
@@ -99,7 +99,7 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # #[state_machine(init = "State::off()")]
+//! # #[state_machine(initial = "State::off()")]
 //! # impl Blinky {
 //! #
 //! #[state(superstate = "playing")]
@@ -153,7 +153,7 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # #[state_machine(init = "State::off()")]
+//! # #[state_machine(initial = "State::off()")]
 //! # impl Blinky {
 //! #     #[state]
 //! #     fn off(&mut self, event: &Event) -> Response<State> {
@@ -192,7 +192,7 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # #[state_machine(init = "State::off()")]
+//! # #[state_machine(initial = "State::off()")]
 //! # impl Blinky {
 //! #
 //! #[state]
@@ -219,7 +219,7 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # #[state_machine(init = "State::off()")]
+//! # #[state_machine(initial = "State::off()")]
 //! # impl Blinky {
 //! #     #[state]
 //! #     fn on(&mut self, event: &Event) -> Response<State> {
@@ -256,7 +256,7 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # #[state_machine(init = "State::on(10)")]
+//! # #[state_machine(initial = "State::on(10)")]
 //! # impl Blinky {
 //! #
 //! #[state]
