@@ -7,17 +7,23 @@ use std::io::Write;
 #[derive(Default)]
 pub struct Blinky;
 
+// The event that will be handled by the state machine.
 pub enum Event {
     TimerElapsed,
     ButtonPressed,
 }
 
+// The enum representing all states of the state machine. These are
+// the states you can actually transition to.
 pub enum State {
     LedOn,
     LedOff,
     NotBlinking,
 }
 
+// The enum representing the superstates of the system. You can not transition
+// to a superstate, but instead they define shared behavior of underlying states or
+// superstates.
 pub enum Superstate {
     Blinking,
 }
@@ -37,6 +43,7 @@ impl StateMachine for Blinky {
     const INITIAL: State = State::LedOn;
 }
 
+// Implement the `statig::State` trait for the state enum.
 impl statig::State<Blinky> for State {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
         match self {
@@ -55,6 +62,7 @@ impl statig::State<Blinky> for State {
     }
 }
 
+// Implement the `statig::Superstate` trait for the superstate enum.
 impl statig::Superstate<Blinky> for Superstate {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<State> {
         match self {

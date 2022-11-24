@@ -38,35 +38,58 @@ A simple blinky state machine:
 
 ```rust
 #[derive(Default)]
-pub struct Blinky {
-    led: bool,
+pub struct Blinky;
+
+pub enum Event {
+    TimerElapsed,
+    ButtonPressed
 }
 
-pub struct Event;
-
-#[state_machine(init = "State::on()")]
+#[state_machine(initial = "State::led_on()")]
 impl Blinky {
-    #[state]
-    fn on(&mut self, event: &Event) -> Response<State> {
-        self.led = false;
-        Transition(State::off())
+    #[state(superstate = "blinking")]
+    fn led_on(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::led_off()),
+            _ => Super
+        }
+    }
+
+    #[state(superstate = "blinking")]
+    fn led_off(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::led_on()),
+            _ => Super
+        }
+    }
+
+    #[superstate]
+    fn blinking(event: &Event) -> Response<State> {
+        match event {
+            Event::ButtonPressed => Transition(State::not_blinking()),
+            _ => Super
+        }
     }
 
     #[state]
-    fn off(&mut self, event: &Event) -> Response<State> {
-        self.led = true;
-        Transition(State::on())
+    fn not_blinking(event: &Event) -> Response<State> {
+        match event {
+            Event::ButtonPressed => Transition(State::led_on()),
+            _ => Super
+        }
     }
 }
 
 fn main() {
     let mut state_machine = Blinky::default().state_machine().init();
 
-    state_machine.handle(&Event);
+    state_machine.handle(&Event::TimerElapsed);
+
+    state_machine.handle(&Event::ButtonPressed);
 }
 ```
 
-(See the [`macro/basic`](examples/macro/basic/src/main.rs) example for the full code with comments. Or see [`no_macro/basic`](examples/no_macro/basic/src/main.rs) for a version without using macro's).
+(See the [`macro/blinky`](examples/macro/blinky/src/main.rs) example for the full code with comments. Or see [`no_macro/blinky`](examples/no_macro/blinky/src/main.rs) for a version without using macro's).
 
 
 ---

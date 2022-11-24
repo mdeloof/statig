@@ -1,13 +1,13 @@
 #![allow(unused)]
 
 use statig::prelude::*;
-use statig::StateMachine;
 use statig::StateOrSuperstate;
 use std::io::Write;
 
 #[derive(Default)]
 pub struct Blinky;
 
+// The event that will be handled by the state machine.
 #[derive(Debug)]
 pub enum Event {
     TimerElapsed,
@@ -52,6 +52,7 @@ impl Blinky {
         }
     }
 
+    /// The `#[superstate]` attribute marks this as a superstate handler.
     #[superstate]
     fn blinking(event: &Event) -> Response<State> {
         match event {
@@ -65,18 +66,20 @@ impl Blinky {
         match event {
             Event::ButtonPressed => Transition(State::led_on()),
             // Altough this state has no superstate, we can still defer the event which
-            // will cause the event to be handled by an implicit `top` state handled all
-            // events.
+            // will cause the event to be handled by an implicit `top` superstate.
             _ => Super,
         }
     }
 }
 
 impl Blinky {
+    // The `on_transition` callback that will be called after every transition.
     fn on_transition(&mut self, source: &State, target: &State) {
         println!("transitioned from `{:?}` to `{:?}`", source, target);
     }
 
+    // The `on_dispatch` callback that will be called before an event is dispatched
+    // to a state or superstate.
     fn on_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
         println!("dipatching `{:?}` to `{:?}`", event, state);
     }
