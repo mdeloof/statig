@@ -141,30 +141,27 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     same_state_arms.push(parse_quote!(_ => false));
 
     parse_quote!(
+        #[allow(unused)]
         impl statig::State<#object_ty> for #state_ty {
             fn call_handler(&mut self, context: &mut #object_ty, #external_input_pattern: &<#object_ty as StateMachine>::Event) -> statig::Response<Self> where Self: Sized {
-                #[allow(unused)]
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
             fn call_entry_action(&mut self, context: &mut #object_ty) {
-                #[allow(unused)]
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
             fn call_exit_action(&mut self, context: &mut #object_ty) {
-                #[allow(unused)]
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
             fn superstate(&mut self) -> Option<<#object_ty as statig::StateMachine>::Superstate<'_>> {
-                #[allow(unused)]
                 match self {
                     #(#superstate_arms),*
                 }
@@ -222,6 +219,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
     same_state_arms.push(parse_quote!(_ => false));
 
     parse_quote!(
+        #[allow(unused)]
         impl<'a> statig::Superstate<#object_ty> for #superstate_ty
         where
             Self: 'a,
@@ -231,7 +229,6 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 context: &mut #object_ty,
                 #external_input_pattern: &<#object_ty as statig::StateMachine>::Event
             ) -> statig::Response<<#object_ty as statig::StateMachine>::State> where Self: Sized {
-                #[allow(unused)]
                 match self {
                     #(#call_handler_arms),*
                 }
@@ -241,7 +238,6 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 &mut self,
                 context: &mut #object_ty
             ) {
-                #[allow(unused)]
                 match self {
                     #(#call_entry_action_arms),*
                 }
@@ -251,14 +247,12 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 &mut self,
                 context: &mut #object_ty
             ) {
-                #[allow(unused)]
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
             fn superstate(&mut self) -> Option<<#object_ty as statig::StateMachine>::Superstate<'_>> {
-                #[allow(unused)]
                 match self {
                     #(#superstate_arms),*
                 }
