@@ -230,8 +230,6 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 
     let external_inputs = get_idents_from_pat(&external_input_pattern);
 
-    //let meta = get_meta(&item_impl.attrs, "state");
-
     for meta in state_meta
         .nested
         .iter()
@@ -267,8 +265,6 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
             _ => abort!(meta, "unknown attribute"),
         }
     }
-
-    //let meta = get_meta(&item_impl.attrs, "superstate");
 
     for meta in superstate_meta
         .nested
