@@ -14,43 +14,69 @@
 //! ```rust
 //! # use statig::prelude::*;
 //! #[derive(Default)]
-//! pub struct Blinky {
-//!     led: bool,
+//! pub struct Blinky;
+//!
+//! pub enum Event {
+//!     TimerElapsed,
+//!     ButtonPressed
 //! }
 //!
-//! pub struct Event;
-//!
-//! #[state_machine(initial = "State::on()")]
+//! #[state_machine(initial = "State::led_on()")]
 //! impl Blinky {
-//!     #[state]
-//!     fn on(&mut self, event: &Event) -> Response<State> {
-//!         self.led = false;
-//!         Transition(State::off())
+//!     #[state(superstate = "blinking")]
+//!     fn led_on(event: &Event) -> Response<State> {
+//!         match event {
+//!             Event::TimerElapsed => Transition(State::led_off()),
+//!             _ => Super
+//!         }
+//!     }
+//!
+//!     #[state(superstate = "blinking")]
+//!     fn led_off(event: &Event) -> Response<State> {
+//!         match event {
+//!             Event::TimerElapsed => Transition(State::led_on()),
+//!             _ => Super
+//!         }
+//!     }
+//!
+//!     #[superstate]
+//!     fn blinking(event: &Event) -> Response<State> {
+//!         match event {
+//!             Event::ButtonPressed => Transition(State::not_blinking()),
+//!             _ => Super
+//!         }
 //!     }
 //!
 //!     #[state]
-//!     fn off(&mut self, event: &Event) -> Response<State> {
-//!         self.led = true;
-//!         Transition(State::on())
+//!     fn not_blinking(event: &Event) -> Response<State> {
+//!         match event {
+//!             Event::ButtonPressed => Transition(State::led_on()),
+//!             _ => Super
+//!         }
 //!     }
 //! }
 //!
 //! let mut state_machine = Blinky::default().state_machine().init();
 //!
-//! state_machine.handle(&Event);
+//! state_machine.handle(&Event::TimerElapsed);
+//!
+//! state_machine.handle(&Event::ButtonPressed);
 //! ```
 //!
-//! (See the [`macro/basic`](examples/macro/basic/src/main.rs) example for the full
-//! code with comments. Or see [`no_macro/basic`](examples/no_macro/basic/src/main.rs)
+//! (See the [`macro/blinky`](examples/macro/blinky/src/main.rs) example for
+//! the full code with comments. Or see [`no_macro/blinky`](examples/no_macro/blinky/src/main.rs)
 //! for a version without using macro's).
+//!
+//!
+//! ---
 //!
 //! ## Concepts
 //!
 //! ### States
 //!
-//! States are defined by writing methods inside the `impl` block and adding the
-//! `#[state]` attribute to them. By default the `event` argument will map to the
-//! event handled by the state machine.
+//! States are defined by writing methods inside the `impl` block and adding
+//! the `#[state]` attribute to them. By default the `event` argument will map
+//!  to the event handled by the state machine.
 //!
 //! ```rust
 //! # use statig::prelude::*;
@@ -61,17 +87,17 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # #[state_machine(initial = "State::off()")]
+//! # #[state_machine(initial = "State::led_off()")]
 //! # impl Blinky {
 //! #
 //! #[state]
-//! fn on(event: &Event) -> Response<State> {
-//!     Transition(State::off())
+//! fn led_on(event: &Event) -> Response<State> {
+//!     Transition(State::led_off())
 //! }
 //! #
 //! #     #[state]
-//! #     fn off(event: &Event) -> Response<State> {
-//! #         Transition(State::on())
+//! #     fn led_off(event: &Event) -> Response<State> {
+//! #         Transition(State::led_on())
 //! #     }
 //! # }
 //! ```
@@ -99,36 +125,36 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # #[state_machine(initial = "State::off()")]
+//! # #[state_machine(initial = "State::led_off()")]
 //! # impl Blinky {
 //! #
-//! #[state(superstate = "playing")]
-//! fn on(event: &Event) -> Response<State> {
+//! #[state(superstate = "blinking")]
+//! fn led_on(event: &Event) -> Response<State> {
 //!     match event {
-//!         Event::TimerElapsed => Transition(State::off()),
+//!         Event::TimerElapsed => Transition(State::led_off()),
 //!         Event::ButtonPressed => Super
 //!     }
 //! }
 //! #
 //! #     #[state]
-//! #     fn off(&mut self, event: &Event) -> Response<State> {
+//! #     fn led_off(&mut self, event: &Event) -> Response<State> {
 //! #         self.led = true;
-//! #         Transition(State::on())
+//! #         Transition(State::led_on())
 //! #     }
 //! #
 //!
 //! #[superstate]
-//! fn playing(event: &Event) -> Response<State> {
+//! fn blinking(event: &Event) -> Response<State> {
 //!     match event {
-//!         Event::ButtonPressed => Transition(State::paused()),
+//!         Event::ButtonPressed => Transition(State::not_blinking()),
 //!         _ => Handled
 //!     }
 //! }
 //! #
 //! #     #[state]
-//! #     fn paused(event: &Event) -> Response<State> {
+//! #     fn not_blinking(event: &Event) -> Response<State> {
 //! #         match event {
-//! #             Event::ButtonPressed => Transition(State::on()),
+//! #             Event::ButtonPressed => Transition(State::led_on()),
 //! #             _ => Super
 //! #         }
 //! #     }
@@ -153,27 +179,27 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # #[state_machine(initial = "State::off()")]
+//! # #[state_machine(initial = "State::led_off()")]
 //! # impl Blinky {
 //! #     #[state]
-//! #     fn off(&mut self, event: &Event) -> Response<State> {
+//! #     fn led_off(&mut self, event: &Event) -> Response<State> {
 //! #         self.led = true;
-//! #         Transition(State::on())
+//! #         Transition(State::led_on())
 //! #     }
 //! #
-//! #[state(entry_action = "enter_on", exit_action = "exit_on")]
-//! fn on(event: &Event) -> Response<State> {
-//!     Transition(State::off())
+//! #[state(entry_action = "enter_led_on", exit_action = "exit_led_on")]
+//! fn led_on(event: &Event) -> Response<State> {
+//!     Transition(State::led_off())
 //! }
 //!
 //! #[action]
-//! fn enter_on() {
-//!     println!("Entered on");
+//! fn enter_led_on() {
+//!     println!("Entered LedOn");
 //! }
 //!
 //! #[action]
-//! fn exit_on() {
-//!     println!("Exited on");
+//! fn exit_led_on() {
+//!     println!("Exited LedOn");
 //! }
 //! # }
 //! ```
@@ -190,20 +216,27 @@
 //! #     led: bool,
 //! # }
 //! #
-//! # pub struct Event;
+//! # pub enum Event {
+//! #     TimerElapsed
+//! # }
 //! #
-//! # #[state_machine(initial = "State::off()")]
+//! # #[state_machine(initial = "State::led_off()")]
 //! # impl Blinky {
 //! #
 //! #[state]
-//! fn on(&mut self, event: &Event) -> Response<State> {
-//!     self.led = false;
-//!     Transition(State::off())
+//! fn led_on(&mut self, event: &Event) -> Response<State> {
+//!     match event {
+//!         Event::TimerElapsed => {
+//!             self.led = false;
+//!             Transition(State::led_off())
+//!         }
+//!         _ => Super
+//!     }
 //! }
 //! #
 //! #     #[state]
-//! #     fn off(event: &Event) -> Response<State> {
-//! #         Transition(State::on())
+//! #     fn led_off(event: &Event) -> Response<State> {
+//! #         Transition(State::led_on())
 //! #     }
 //! # }
 //! ```
@@ -219,20 +252,20 @@
 //! #
 //! # pub struct Event;
 //! #
-//! # #[state_machine(initial = "State::off()")]
+//! # #[state_machine(initial = "State::led_off()")]
 //! # impl Blinky {
 //! #     #[state]
-//! #     fn on(&mut self, event: &Event) -> Response<State> {
-//! #         Transition(State::off())
+//! #     fn led_on(&mut self, event: &Event) -> Response<State> {
+//! #         Transition(State::led_off())
 //! #     }
 //! #
 //! #     #[state]
-//! #     fn off(event: &Event) -> Response<State> {
-//! #         Transition(State::on())
+//! #     fn led_off(event: &Event) -> Response<State> {
+//! #         Transition(State::led_on())
 //! #     }
 //! #
 //! #[action]
-//! fn enter_off(&mut self) {
+//! fn enter_led_off(&mut self) {
 //!     self.led = false;
 //! }
 //! # }
@@ -256,32 +289,32 @@
 //! #     ButtonPressed
 //! # }
 //! #
-//! # #[state_machine(initial = "State::on(10)")]
+//! # #[state_machine(initial = "State::led_on(10)")]
 //! # impl Blinky {
 //! #
 //! #[state]
-//! fn on(counter: &mut u32, event: &Event) -> Response<State> {
+//! fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
 //!     match event {
 //!         Event::TimerElapsed => {
 //!             *counter -= 1;
 //!             if *counter == 0 {
-//!                 Transition(State::off())
+//!                 Transition(State::led_off())
 //!             } else {
 //!                 Handled
 //!             }
 //!         }
-//!         Event::ButtonPressed => Transition(State::on(10))
+//!         Event::ButtonPressed => Transition(State::led_on(10))
 //!     }
 //! }
 //! #
 //! #     #[state]
-//! #     fn off(event: &Event) -> Response<State> {
-//! #         Transition(State::on(10))
+//! #     fn led_off(event: &Event) -> Response<State> {
+//! #         Transition(State::led_on(10))
 //! #     }
 //! # }
 //! ```
 //!
-//! `counter` is only available in the `on` state but can also be accessed in
+//! `counter` is only available in the `led_on` state but can also be accessed in
 //! its superstates and actions.
 //!
 //! ## FAQ

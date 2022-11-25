@@ -36,6 +36,18 @@ Hierarchical state machines for designing event-driven systems.
 
 A simple blinky state machine:
 
+```
+┌─────────────────────────┐                   
+│         Blinking        │◀─────────┐        
+│    ┌───────────────┐    │          │        
+│ ┌─▶│     LedOn     │──┐ │  ┌───────────────┐
+│ │  └───────────────┘  │ │  │  NotBlinking  │
+│ │  ┌───────────────┐  │ │  └───────────────┘
+│ └──│     LedOff    │◀─┘ │          ▲        
+│    └───────────────┘    │──────────┘        
+└─────────────────────────┘                                   
+```
+
 ```rust
 #[derive(Default)]
 pub struct Blinky;
@@ -102,8 +114,8 @@ States are defined by writing methods inside the `impl` block and adding the `#[
 
 ```rust
 #[state]
-fn on(event: &Event) -> Response<State> {
-    Transition(State::off())
+fn led_on(event: &Event) -> Response<State> {
+    Transition(State::led_off())
 }
 ```
 
@@ -118,19 +130,19 @@ Every state must return a `Response`. A `Response` can be one of three things:
 Superstates allow you to create a hierarchy of states. States can defer an event to their superstate by returning the `Super` response.
 
 ```rust
-#[state(superstate = "playing")]
-fn on(event: &Event) -> Response<State> {
+#[state(superstate = "blinking")]
+fn led_on(event: &Event) -> Response<State> {
     match event {
-        Event::TimerElapsed => Transition(State::off()),
+        Event::TimerElapsed => Transition(State::led_off()),
         Event::ButtonPressed => Super
     }
 }
 
 #[superstate]
-fn playing(event: &Event) -> Response<State> {
+fn blinking(event: &Event) -> Response<State> {
     match event {
-        Event::ButtonPressed => Transition(State::paused()),
-        _ => Handled
+        Event::ButtonPressed => Transition(State::not_blinking()),
+        _ => Super
     }
 }
 ```
@@ -142,18 +154,18 @@ Superstates can themselves also have superstates.
 Actions run when entering or leaving states during a transition.
 
 ```rust
-#[state(entry_action = "enter_on", exit_action = "exit_on")]
-fn on(event: &Event) -> Response<State> {
+#[state(entry_action = "enter_led_on", exit_action = "exit_led_on")]
+fn led_on(event: &Event) -> Response<State> {
     Transition(State::off())
 }
 
 #[action]
-fn enter_on() {
+fn enter_led_on() {
     println!("Entered on");
 }
 
 #[action]
-fn exit_on() {
+fn exit_led_on() {
     println!("Exited on");
 }
 ```
@@ -164,9 +176,14 @@ If the type on which your state machine is implemented has any fields, you can a
 
 ```rust
 #[state]
-fn on(&mut self, event: &Event) -> Response<State> {
-    self.led = false;
-    Transition(State::off())
+fn led_on(&mut self, event: &Event) -> Response<State> {
+    match event {
+        Event::TimerElapsed => {
+            self.led = false;
+            Transition(State::led_off())
+        }
+        _ => Super
+    }
 }
 ```
 
@@ -174,7 +191,7 @@ Or alternatively, set `led` inside the entry action.
 
 ```rust
 #[action]
-fn enter_off(&mut self) {
+fn enter_led_off(&mut self) {
     self.led = false;
 }
 ```
@@ -185,22 +202,22 @@ Sometimes you have data that only exists in a certain state. Instead of adding t
 
 ```rust
 #[state]
-fn on(counter: &mut u32, event: &Event) -> Response<State> {
+fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
     match event {
         Event::TimerElapsed => {
             *counter -= 1;
             if *counter == 0 {
-                Transition(State::off())
+                Transition(State::led_off())
             } else {
                 Handled
             }
         }
-        Event::ButtonPressed => Transition(State::on(10))
+        Event::ButtonPressed => Transition(State::led_on(10))
     }
 }
 ```
 
-`counter` is only available in the `on` state but can also be accessed in its superstates and actions.
+`counter` is only available in the `led_on` state but can also be accessed in its superstates and actions.
 
 ---
 
@@ -218,7 +235,7 @@ The goal of `statig` is to represent a hierarchical state machine. Conceptually 
                         ┌────────────┴────────────┐           
                         │                         │           
              ┌─────────────────────┐   ╔═════════════════════╗
-             │       Playing       │   ║       Paused        ║
+             │      Blinking       │   ║      NotBlinking    ║
              │─────────────────────│   ╚═════════════════════╝
              │ counter: &'a usize  │                          
              └─────────────────────┘                          
@@ -226,13 +243,13 @@ The goal of `statig` is to represent a hierarchical state machine. Conceptually 
            ┌────────────┴────────────┐                        
            │                         │                        
 ╔═════════════════════╗   ╔═════════════════════╗             
-║         On          ║   ║         Off         ║             
+║        LedOn        ║   ║        LedOff       ║             
 ║─────────────────────║   ║─────────────────────║             
 ║ counter: usize      ║   ║ counter: usize      ║             
 ╚═════════════════════╝   ╚═════════════════════╝                                 
 ```
 
-Nodes at the edge of the graph are called leaf-states and are represented by an `enum` in `statig`. If data only exists in a particular state we can give that state ownership of the data. This is referred to as 'state-local storage'. For example `counter` only exists in the `On` and `Off` state.
+Nodes at the edge of the graph are called leaf-states and are represented by an `enum` in `statig`. If data only exists in a particular state we can give that state ownership of the data. This is referred to as 'state-local storage'. For example `counter` only exists in the `LedOn` and `LedOff` state.
 
 ```rust
 enum State {
@@ -242,7 +259,7 @@ enum State {
 }
 ```
 
-States such as `playing` are called superstates. They define shared behavior of their child states. Superstates are also represented by an enum, but instead of owning their data, they borrow it from the underlying state.
+States such as `blinking` are called superstates. They define shared behavior of their child states. Superstates are also represented by an enum, but instead of owning their data, they borrow it from the underlying state.
 
 ```rust
 enum Superstate<'a> {
@@ -282,22 +299,22 @@ When an event arrives, `statig` will first dispatch it to the current leaf state
 
 In case the returned response is a `Transition`, `statig` will perform a transition sequence by traversing the graph from the current source state to the target state by taking the shortest possible path. When this path is going upwards from the source state, every state that is passed will have its **exit action** executed. And then similarly when going downward, every state that is passed will have its **entry action** executed.
 
-For example when transitioning from the `On` state to the `Paused` state the transition sequence looks like this:
+For example when transitioning from the `LedOn` state to the `NotBlinking` state the transition sequence looks like this:
 
-1. Exit the `On` state
-2. Exit the `Playing` state
-3. Enter the `Paused` state
+1. Exit the `LedOn` state
+2. Exit the `Blinking` state
+3. Enter the `NotBlinking` state
 
-For comparison, the transition from the `On` state to the `Off` state looks like this:
+For comparison, the transition from the `LedOn` state to the `LedOff` state looks like this:
 
-1. Exit the `On` state
-2. Enter the `Off` state
+1. Exit the `LedOn` state
+2. Enter the `LedOff` state
 
-We don't execute the exit or entry action of `Playing` as this superstate is shared between the `On` and `Off` state.
+We don't execute the exit or entry action of `Blinking` as this superstate is shared between the `LedOn` and `LedOff` state.
 
 Entry and exit actions also have access to state-local storage, but note that exit actions operate on state-local storage of the source state and that entry actions operate on the state-local storage of the target state.
 
-For example chaning the value of `counter` in the exit action of `On` will have no effect on the value of `counter` in the `Off` state.
+For example chaning the value of `counter` in the exit action of `LedOn` will have no effect on the value of `counter` in the `LedOff` state.
 
 ---
 
