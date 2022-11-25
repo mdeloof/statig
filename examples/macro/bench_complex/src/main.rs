@@ -1,3 +1,4 @@
+use rand::{Rng, SeedableRng};
 use statig::prelude::*;
 use std::time::Instant;
 
@@ -473,210 +474,212 @@ fn main() {
 
     let loops: u32 = 1_000_000;
 
+    let mut rng = rand::rngs::SmallRng::from_entropy();
+
     let instant = Instant::now();
 
     for _ in 0..loops {
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E1);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E2);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E3);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E4);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E5);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E6);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E7);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E8);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E9);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E10);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E11);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E12);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E13);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E14);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E15);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E16);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E17);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E18);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E19);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E20);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E21);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E22);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E23);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E24);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E25);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E26);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E27);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E28);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E29);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E30);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E31);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E32);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E33);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E34);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E35);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E36);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E37);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E38);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E39);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E40);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E41);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E42);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E43);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E44);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E45);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E46);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E47);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E48);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E49);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E50);
         }
 
-        if rand::random::<usize>() % 2 == 0 {
+        if rng.gen::<usize>() % 2 == 0 {
             state_machine.handle(&Event::E51);
         }
     }
