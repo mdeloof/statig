@@ -108,17 +108,20 @@ pub struct Action {
 
 /// Analyze the impl block and create a model.
 pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
+    let state_machine = analyze_state_machine(&attribute_args, &item_impl);
+
     let mut states = HashMap::new();
     let mut superstates = HashMap::new();
     let mut actions = HashMap::new();
 
-    let state_machine = analyze_state_machine(&attribute_args, &item_impl);
-
-    // Iterate over the methods that are part of the impl block.
-    for method in item_impl.items.iter().filter_map(|item| match item {
+    // Create an iterator over only the method items.
+    let methods = item_impl.items.iter().filter_map(|item| match item {
         ImplItem::Method(method) => Some(method),
         _ => None,
-    }) {
+    });
+
+    // Iterator over the methods in the impl block.
+    for method in methods {
         for attr in method.attrs.iter() {
             match &attr.path {
                 path if path.is_ident("state") => {
