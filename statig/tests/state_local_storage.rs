@@ -19,7 +19,7 @@ mod tests {
         type Superstate<'a> = Superstate<'a>;
 
         /// The event type that will be submitted to the state machine.
-        type Event = Event;
+        type Event<'a> = Event;
 
         /// The initial state of the state machine.
         const INITIAL: StateEnum = StateEnum::On {
@@ -43,7 +43,6 @@ mod tests {
             counter: &mut isize,
             event: &Event,
         ) -> Response<StateEnum> {
-            println!("On");
             Transition(StateEnum::off(false))
         }
 
@@ -53,7 +52,6 @@ mod tests {
         }
 
         fn off(&mut self, led: &mut bool, event: &Event) -> Response<StateEnum> {
-            println!("Off");
             Transition(StateEnum::on(true, 34))
         }
 
@@ -148,7 +146,7 @@ mod tests {
         let mut state_machine = Blinky::default().state_machine().init();
 
         for _ in 0..10 {
-            state_machine.handle(&Event {});
+            state_machine.handle(&Event);
         }
     }
 }

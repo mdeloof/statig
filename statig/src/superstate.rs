@@ -13,7 +13,7 @@ where
     fn call_handler(
         &mut self,
         context: &mut M,
-        event: &<M as StateMachine>::Event,
+        event: &<M as StateMachine>::Event<'_>,
     ) -> Response<<M as StateMachine>::State>;
 
     /// Call the entry action for the current superstate.
@@ -91,7 +91,7 @@ where
     fn handle(
         &mut self,
         context: &mut M,
-        event: &<M as StateMachine>::Event,
+        event: &<M as StateMachine>::Event<'_>,
     ) -> Response<<M as StateMachine>::State>
     where
         Self: Sized,
@@ -153,7 +153,7 @@ where
     fn call_handler(
         &mut self,
         _context: &mut M,
-        _event: &<M as StateMachine>::Event,
+        _event: &<M as StateMachine>::Event<'_>,
     ) -> Response<<M as StateMachine>::State> {
         Response::Handled
     }

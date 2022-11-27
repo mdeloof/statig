@@ -51,7 +51,7 @@ mod tests {
 
         type Superstate<'a> = Superstate;
 
-        type Event = Event;
+        type Event<'a> = Event;
 
         const INITIAL: State = State::S11;
     }

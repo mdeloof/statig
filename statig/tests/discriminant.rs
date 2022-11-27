@@ -54,7 +54,7 @@ mod test {
     }
 
     impl StateMachine for Foo {
-        type Event = Event;
+        type Event<'a> = Event;
 
         type State = State;
 

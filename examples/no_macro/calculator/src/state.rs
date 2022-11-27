@@ -62,7 +62,7 @@ impl StateMachine for Calculator {
 
     type Superstate<'a> = Superstate<'a>;
 
-    type Event = Event;
+    type Event<'a> = Event;
 
     const INITIAL: State = State::Begin;
 }

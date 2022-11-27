@@ -25,7 +25,7 @@ impl StateMachine for Blinky {
     type Superstate<'a> = ();
 
     /// The event type that will be submitted to the state machine.
-    type Event = Event;
+    type Event<'a> = Event;
 
     /// The initial state of the state machine.
     const INITIAL: State = State::Off;

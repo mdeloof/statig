@@ -53,7 +53,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let on_dispatch = match &ir.state_machine.on_dispatch {
         None => quote!(),
         Some(on_dispatch) => quote!(
-            fn on_dispatch(&mut self, state: statig::StateOrSuperstate<'_, '_, Self>, event: &Self::Event) {
+            fn on_dispatch(&mut self, state: statig::StateOrSuperstate<'_, '_, Self>, event: &Self::Event<'_>) {
                 #on_dispatch(self, state, event);
             }
         ),
@@ -61,7 +61,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         impl statig::StateMachine for #object_ty {
-            type Event = #event_ty;
+            type Event<'a> = #event_ty;
             type State = #state_ty;
             type Superstate<'a> = #superstate_ty;
             const INITIAL: #state_ty = #initial_state;
@@ -143,7 +143,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     parse_quote!(
         #[allow(unused)]
         impl statig::State<#object_ty> for #state_ty {
-            fn call_handler(&mut self, context: &mut #object_ty, #external_input_pattern: &<#object_ty as StateMachine>::Event) -> statig::Response<Self> where Self: Sized {
+            fn call_handler(&mut self, context: &mut #object_ty, #external_input_pattern: &<#object_ty as StateMachine>::Event<'_>) -> statig::Response<Self> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
@@ -227,7 +227,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
             fn call_handler(
                 &mut self,
                 context: &mut #object_ty,
-                #external_input_pattern: &<#object_ty as statig::StateMachine>::Event
+                #external_input_pattern: &<#object_ty as statig::StateMachine>::Event<'_>
             ) -> statig::Response<<#object_ty as statig::StateMachine>::State> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*

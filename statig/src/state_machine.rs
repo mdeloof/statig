@@ -11,7 +11,7 @@ where
     Self: Sized,
 {
     /// Event that is processed by the state machine.
-    type Event;
+    type Event<'a>;
 
     /// Enumeration of the various states.
     type State: State<Self>;
@@ -26,7 +26,7 @@ where
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.
-    fn on_dispatch(&mut self, _state: StateOrSuperstate<'_, '_, Self>, _event: &Self::Event) {}
+    fn on_dispatch(&mut self, _state: StateOrSuperstate<'_, '_, Self>, _event: &Self::Event<'_>) {}
 
     /// Method that is called *after* every transition.
     fn on_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
@@ -128,7 +128,7 @@ where
     }
 
     /// Handle the given event.
-    pub fn handle(&mut self, event: &M::Event) {
+    pub fn handle(&mut self, event: &M::Event<'_>) {
         let response = self.state.handle(&mut self.context, event);
 
         match response {
@@ -162,9 +162,9 @@ where
     }
 }
 
-impl<M> InitializedStatemachine<M>
+impl<'a, M> InitializedStatemachine<M>
 where
-    M: StateMachine<Event = ()>,
+    M: StateMachine<Event<'a> = ()>,
 {
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
     pub fn step(&mut self) {

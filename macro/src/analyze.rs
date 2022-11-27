@@ -31,6 +31,8 @@ pub struct StateMachine {
     pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub context_ty: Type,
+    /// The type of the event that is passed to the state machine.
+    pub event_ty: Option<Type>,
     /// The name for the state type.
     pub state_name: Ident,
     /// Derives that will be applied on the state type.
@@ -156,6 +158,7 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 /// Retrieve the top level settings of the state machine.
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let context_ty = item_impl.self_ty.as_ref().clone();
+    let mut event_ty = None;
 
     let mut initial_state: Option<ExprCall> = None;
 
@@ -186,6 +189,14 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                 }
             }
             NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("event") => {
+                event_ty = match &name_value.lit {
+                    Lit::Str(input_pat) => input_pat.parse().ok(),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("event_pattern") =>
+            {
                 external_input_pattern = match &name_value.lit {
                     Lit::Str(input_pat) => input_pat.parse().unwrap(),
                     _ => abort!(name_value, "must be a string literal"),
@@ -308,6 +319,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     StateMachine {
         initial_state,
         context_ty,
+        event_ty,
         state_name,
         state_derives,
         superstate_name,
@@ -545,7 +557,7 @@ fn valid_state_analyze() {
     use syn::parse_quote;
 
     let init_arg: NestedMeta = parse_quote!(initial = "State::on()");
-    let input_arg: NestedMeta = parse_quote!(event = "event");
+    let input_arg: NestedMeta = parse_quote!(event_pattern = "event");
     let state_arg: NestedMeta = parse_quote!(state(derive(Copy, Clone)));
     let superstate_arg: NestedMeta = parse_quote!(superstate(derive(Copy, Clone)));
     let attribute_args = vec![init_arg, input_arg, state_arg, superstate_arg];
@@ -579,6 +591,7 @@ fn valid_state_analyze() {
     let initial_state = parse_quote!(State::on());
 
     let context_ty = parse_quote!(Blinky);
+    let event_ty = None;
 
     let state_name = parse_quote!(State);
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
@@ -593,6 +606,7 @@ fn valid_state_analyze() {
     let state_machine = StateMachine {
         initial_state,
         context_ty,
+        event_ty,
         state_name,
         state_derives,
         superstate_name,

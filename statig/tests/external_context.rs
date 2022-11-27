@@ -7,6 +7,7 @@ mod tests {
     #[derive(Default)]
     struct Counter;
 
+    #[derive(Clone)]
     struct ExternalContext(usize);
 
     enum Event {
@@ -14,10 +15,14 @@ mod tests {
         TimerElapsed,
     }
 
-    #[state_machine(initial = "State::up()", event = "(external_context, event)")]
+    #[state_machine(
+        initial = "State::up()",
+        event = "(&'a RefCell<&'a mut ExternalContext>, &'a Event)",
+        event_pattern = "(external_context, event)"
+    )]
     impl Counter {
         #[state]
-        fn up(external_context: &RefCell<ExternalContext>, event: &Event) -> Response<State> {
+        fn up(external_context: &RefCell<&mut ExternalContext>, event: &Event) -> Response<State> {
             match event {
                 Event::ButtonPressed => {
                     let mut temp = external_context.borrow_mut();
@@ -29,7 +34,10 @@ mod tests {
         }
 
         #[state]
-        fn down(external_context: &RefCell<ExternalContext>, event: &Event) -> Response<State> {
+        fn down(
+            external_context: &RefCell<&mut ExternalContext>,
+            event: &Event,
+        ) -> Response<State> {
             match event {
                 Event::ButtonPressed => {
                     let mut temp = external_context.borrow_mut();
@@ -51,15 +59,15 @@ mod tests {
             Event::ButtonPressed,
         ];
 
-        let mut external_context = RefCell::new(ExternalContext(0));
+        let mut external_context = ExternalContext(0);
+        let refcell_external_context = RefCell::new(&mut external_context);
 
-        for event in events {
-            let composed_event = (external_context, event);
+        for event in &events {
+            let composed_event = (&refcell_external_context, event);
             blinky.handle(&composed_event);
-            external_context = composed_event.0;
         }
 
-        assert_eq!(external_context.borrow().0, 3);
+        assert_eq!(refcell_external_context.borrow().0, 3);
 
         let events = [
             Event::TimerElapsed,
@@ -68,12 +76,11 @@ mod tests {
             Event::ButtonPressed,
         ];
 
-        for event in events {
-            let composed_event = (external_context, event);
+        for event in &events {
+            let composed_event = (&refcell_external_context, event);
             blinky.handle(&composed_event);
-            external_context = composed_event.0;
         }
 
-        assert_eq!(external_context.borrow().0, 0);
+        assert_eq!(refcell_external_context.borrow().0, 0);
     }
 }

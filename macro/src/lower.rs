@@ -275,12 +275,15 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
-    let event_ty = match event_idents_types.is_empty() {
-        true => parse_quote!(()),
-        false => pat_to_type(
-            &model.state_machine.external_input_pattern,
-            &event_idents_types,
-        ),
+    let event_ty = match &model.state_machine.event_ty {
+        Some(event_ty) => event_ty.clone(),
+        None => match event_idents_types.is_empty() {
+            true => parse_quote!(()),
+            false => pat_to_type(
+                &model.state_machine.external_input_pattern,
+                &event_idents_types,
+            ),
+        },
     };
 
     let context_ty = model.state_machine.context_ty.clone();
@@ -580,6 +583,7 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
     analyze::StateMachine {
         initial_state: parse_quote!(State::on()),
         context_ty: parse_quote!(Blinky),
+        event_ty: None,
         state_name: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_name: parse_quote!(Superstate),

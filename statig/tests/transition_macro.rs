@@ -33,7 +33,7 @@ mod tests {
 
     #[state_machine(
         initial = "State::s11()",
-        event = "event",
+        event_pattern = "event",
         state(derive(Eq, PartialEq, Debug)),
         superstate(derive(Eq, PartialEq, Debug))
     )]

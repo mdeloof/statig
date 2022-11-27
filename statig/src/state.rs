@@ -13,7 +13,7 @@ where
     fn call_handler(
         &mut self,
         context: &mut M,
-        event: &<M as StateMachine>::Event,
+        event: &<M as StateMachine>::Event<'_>,
     ) -> Response<Self>;
 
     /// Call the entry action for the current state.
@@ -86,7 +86,7 @@ where
     }
 
     /// Handle the given event in the current state.
-    fn handle(&mut self, context: &mut M, event: &<M as StateMachine>::Event) -> Response<Self>
+    fn handle(&mut self, context: &mut M, event: &<M as StateMachine>::Event<'_>) -> Response<Self>
     where
         Self: Sized,
     {
