@@ -181,10 +181,8 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
             NestedMeta::Meta(Meta::NameValue(name_value))
                 if name_value.path.is_ident("initial") =>
             {
-                match &name_value.lit {
-                    Lit::Str(input_pat) => {
-                        initial_state = input_pat.parse().ok();
-                    }
+                initial_state = match &name_value.lit {
+                    Lit::Str(input_pat) => input_pat.parse().ok(),
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
