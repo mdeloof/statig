@@ -3,10 +3,9 @@ use std::collections::HashMap;
 use proc_macro_error::abort;
 use quote::format_ident;
 use syn::parse::Parser;
-use syn::{parse_quote, ExprCall, Field, MetaList, Visibility};
 use syn::{
-    Attribute, AttributeArgs, FnArg, Ident, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta,
-    NestedMeta, Pat, Path, Type,
+    parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, Ident, ImplItem, ImplItemMethod,
+    ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, Path, Type, Visibility,
 };
 
 /// Model of the state machine.
