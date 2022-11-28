@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use proc_macro_error::abort;
-use quote::format_ident;
 use syn::parse::Parser;
 use syn::{
     parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, Ident, ImplItem, ImplItemMethod,
@@ -29,15 +28,15 @@ pub struct StateMachine {
     /// The inital state of the state machine.
     pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
-    pub context_ty: Type,
+    pub context_type: Type,
     /// The type of the event that is passed to the state machine.
-    pub event_ty: Option<Type>,
+    pub event_type: Option<Type>,
     /// The name for the state type.
-    pub state_name: Ident,
+    pub state_type: Type,
     /// Derives that will be applied on the state type.
     pub state_derives: Vec<Path>,
     /// The name of the superstate type.
-    pub superstate_name: Ident,
+    pub superstate_type: Type,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
     /// The input that will be handled by the state machine.
@@ -48,7 +47,7 @@ pub struct StateMachine {
     pub visibility: Visibility,
     /// Optional `on_transition` callback.
     pub on_transition: Option<Path>,
-    ///Optional `on_dispatch` callback.
+    /// Optional `on_dispatch` callback.
     pub on_dispatch: Option<Path>,
 }
 
@@ -156,14 +155,14 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 
 /// Retrieve the top level settings of the state machine.
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
-    let context_ty = item_impl.self_ty.as_ref().clone();
-    let mut event_ty = None;
+    let context_type = item_impl.self_ty.as_ref().clone();
+    let mut event_type = None;
 
     let mut initial_state: Option<ExprCall> = None;
 
-    let mut state_name = parse_quote!(State);
+    let mut state_type = parse_quote!(State);
     let mut state_derives = Vec::new();
-    let mut superstate_name = parse_quote!(Superstate);
+    let mut superstate_type = parse_quote!(Superstate);
     let mut superstate_derives = Vec::new();
 
     let mut on_transition = None;
@@ -186,7 +185,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                 }
             }
             NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("event") => {
-                event_ty = match &name_value.lit {
+                event_type = match &name_value.lit {
                     Lit::Str(input_pat) => input_pat.parse().ok(),
                     _ => abort!(name_value, "must be a string literal"),
                 }
@@ -252,10 +251,8 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         match meta {
             // Get the custom name for the state enum.
             Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
-                match &name_value.lit {
-                    Lit::Str(str_lit) => {
-                        state_name = format_ident!("{}", str_lit.value());
-                    }
+                state_type = match &name_value.lit {
+                    Lit::Str(str_lit) => str_lit.parse().unwrap(),
                     _ => abort!(name_value, "expected string literal"),
                 }
             }
@@ -288,10 +285,8 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         match meta {
             // Get the custom name for the superstate enum.
             Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
-                match &name_value.lit {
-                    Lit::Str(str_lit) => {
-                        superstate_name = format_ident!("{}", str_lit.value());
-                    }
+                superstate_type = match &name_value.lit {
+                    Lit::Str(str_lit) => str_lit.parse().unwrap(),
                     _ => abort!(name_value, "expected string literal"),
                 }
             }
@@ -315,11 +310,11 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 
     StateMachine {
         initial_state,
-        context_ty,
-        event_ty,
-        state_name,
+        context_type,
+        event_type,
+        state_type,
         state_derives,
-        superstate_name,
+        superstate_type,
         superstate_derives,
         on_dispatch,
         on_transition,
@@ -602,11 +597,11 @@ fn valid_state_analyze() {
 
     let state_machine = StateMachine {
         initial_state,
-        context_ty,
-        event_ty,
-        state_name,
+        context_type: context_ty,
+        event_type: event_ty,
+        state_type: state_name,
         state_derives,
-        superstate_name,
+        superstate_type: superstate_name,
         superstate_derives,
         on_transition,
         on_dispatch,

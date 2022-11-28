@@ -32,23 +32,24 @@ pub struct StateMachine {
     /// Initial state.
     pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
-    pub context_ty: Type,
+    pub context_type: Type,
     /// The type of the event.
-    pub event_ty: Type,
+    pub event_type: Type,
     /// The type of the state enum.
-    pub state_ty: Type,
+    pub state_type: Type,
     /// Derives that will be applied on the state type.
     pub state_derives: Vec<Path>,
-    /// The name of the superstate type (ex. `Superstate`)
-    pub superstate_ident: Ident,
     /// The type of the superstate enum (ex. `Superstate<'a>`)
-    pub superstate_ty: Type,
+    pub superstate_type: Type,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
+    /// The path of the `on_transition` callback.
     pub on_transition: Option<Path>,
+    /// The path of the `on_dipsatch` callback.
     pub on_dispatch: Option<Path>,
     /// The visibility for the derived types,
     pub visibility: Visibility,
+    /// The external input pattern.
     pub external_input_pattern: Pat,
 }
 
@@ -112,11 +113,11 @@ pub fn lower(model: &Model) -> Ir {
 
     let initial_state = model.state_machine.initial_state.clone();
 
-    let state_name = &model.state_machine.state_name;
-    let state_ty = parse_quote!(#state_name);
+    let state_name = &model.state_machine.state_type;
+    let state_type = parse_quote!(#state_name);
 
-    let superstate_ident = &model.state_machine.superstate_name;
-    let mut superstate_ty = parse_quote!(#superstate_ident);
+    let superstate_ident = &model.state_machine.superstate_type;
+    let mut superstate_type = parse_quote!(#superstate_ident);
 
     let on_transition = model.state_machine.on_transition.clone();
     let on_dispatch = model.state_machine.on_dispatch.clone();
@@ -132,7 +133,7 @@ pub fn lower(model: &Model) -> Ir {
         .iter()
         .inspect(|(_, value)| {
             if !value.state_inputs.is_empty() {
-                superstate_ty = parse_quote!(#superstate_ident <'a>);
+                superstate_type = parse_quote!(#superstate_ident <'a>);
             }
         })
         .map(|(key, value)| (key.clone(), lower_superstate(value, &model.state_machine)))
@@ -275,7 +276,7 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
-    let event_ty = match &model.state_machine.event_ty {
+    let event_type = match &model.state_machine.event_type {
         Some(event_ty) => event_ty.clone(),
         None => match event_idents_types.is_empty() {
             true => parse_quote!(()),
@@ -286,10 +287,9 @@ pub fn lower(model: &Model) -> Ir {
         },
     };
 
-    let context_ty = model.state_machine.context_ty.clone();
+    let context_type = model.state_machine.context_type.clone();
     let state_derives = model.state_machine.state_derives.clone();
 
-    let superstate_ident = model.state_machine.superstate_name.clone();
     let superstate_derives = model.state_machine.superstate_derives.clone();
 
     let visibility = model.state_machine.visibility.clone();
@@ -298,12 +298,11 @@ pub fn lower(model: &Model) -> Ir {
 
     let state_machine = StateMachine {
         initial_state,
-        context_ty,
-        event_ty,
-        state_ty,
+        context_type,
+        event_type,
+        state_type,
         state_derives,
-        superstate_ident,
-        superstate_ty,
+        superstate_type,
         superstate_derives,
         on_transition,
         on_dispatch,
@@ -322,8 +321,8 @@ pub fn lower(model: &Model) -> Ir {
 pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine) -> State {
     let variant_name = snake_case_to_pascal_case(&state.handler_name);
     let state_handler_name = &state.handler_name;
-    let context_ty = &state_machine.context_ty;
-    let state_name = &state_machine.state_name;
+    let context_ty = &state_machine.context_type;
+    let state_name = &state_machine.state_type;
 
     let mut variant_fields: Vec<_> = state
         .state_inputs
@@ -371,8 +370,8 @@ pub fn lower_superstate(
 ) -> Superstate {
     let superstate_name = snake_case_to_pascal_case(&superstate.handler_name);
     let superstate_handler_name = &superstate.handler_name;
-    let context_ty = &state_machine.context_ty;
-    let superstate_ty = &state_machine.superstate_name;
+    let context_ty = &state_machine.context_type;
+    let superstate_ty = &state_machine.superstate_type;
 
     let mut variant_fields: Vec<_> = superstate
         .state_inputs
@@ -414,7 +413,7 @@ pub fn lower_superstate(
 
 pub fn lower_action(action: &analyze::Action, state_machine: &analyze::StateMachine) -> Action {
     let action_handler_name = &action.handler_name;
-    let context_ty = &state_machine.context_ty;
+    let context_ty = &state_machine.context_type;
 
     let mut call_inputs: Vec<Ident> = Vec::new();
 
@@ -582,11 +581,11 @@ fn pat_to_type(pat: &Pat, idents: &HashMap<Ident, Type>) -> Type {
 fn create_analyze_state_machine() -> analyze::StateMachine {
     analyze::StateMachine {
         initial_state: parse_quote!(State::on()),
-        context_ty: parse_quote!(Blinky),
-        event_ty: None,
-        state_name: parse_quote!(State),
+        context_type: parse_quote!(Blinky),
+        event_type: None,
+        state_type: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
-        superstate_name: parse_quote!(Superstate),
+        superstate_type: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         on_transition: None,
         on_dispatch: None,
@@ -600,12 +599,11 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
 fn create_lower_state_machine() -> StateMachine {
     StateMachine {
         initial_state: parse_quote!(State::on()),
-        context_ty: parse_quote!(Blinky),
-        event_ty: parse_quote!(()),
-        state_ty: parse_quote!(State),
+        context_type: parse_quote!(Blinky),
+        event_type: parse_quote!(()),
+        state_type: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
-        superstate_ident: parse_quote!(Superstate),
-        superstate_ty: parse_quote!(Superstate<'a>),
+        superstate_type: parse_quote!(Superstate<'a>),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         on_transition: None,
         on_dispatch: None,

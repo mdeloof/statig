@@ -34,10 +34,10 @@ pub fn codegen(ir: Ir) -> TokenStream {
 }
 
 fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
-    let object_ty = &ir.state_machine.context_ty;
-    let event_ty = &ir.state_machine.event_ty;
-    let state_ty = &ir.state_machine.state_ty;
-    let superstate_ty = &ir.state_machine.superstate_ty;
+    let object_type = &ir.state_machine.context_type;
+    let event_type = &ir.state_machine.event_type;
+    let state_type = &ir.state_machine.state_type;
+    let superstate_type = &ir.state_machine.superstate_type;
 
     let initial_state = &ir.state_machine.initial_state;
 
@@ -60,11 +60,11 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     };
 
     parse_quote!(
-        impl statig::StateMachine for #object_ty {
-            type Event<'a> = #event_ty;
-            type State = #state_ty;
-            type Superstate<'a> = #superstate_ty;
-            const INITIAL: #state_ty = #initial_state;
+        impl statig::StateMachine for #object_type {
+            type Event<'a> = #event_type;
+            type State = #state_type;
+            type Superstate<'a> = #superstate_type;
+            const INITIAL: #state_type = #initial_state;
 
             #on_transition
 
@@ -74,7 +74,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
 }
 
 fn codegen_state(ir: &Ir) -> ItemEnum {
-    let state_ty = &ir.state_machine.state_ty;
+    let state_type = &ir.state_machine.state_type;
     let state_derives = &ir.state_machine.state_derives;
     let variants: Vec<Variant> = ir
         .states
@@ -85,14 +85,14 @@ fn codegen_state(ir: &Ir) -> ItemEnum {
 
     parse_quote!(
         #[derive(#(#state_derives),*)]
-        # visibility enum #state_ty {
+        # visibility enum #state_type {
             #(#variants),*
         }
     )
 }
 
 fn codegen_state_impl(ir: &Ir) -> ItemImpl {
-    let state_ty = &ir.state_machine.state_ty;
+    let state_type = &ir.state_machine.state_type;
 
     let constructors: Vec<ItemFn> = ir
         .states
@@ -102,15 +102,15 @@ fn codegen_state_impl(ir: &Ir) -> ItemImpl {
         .collect();
 
     parse_quote!(
-        impl #state_ty {
+        impl #state_type {
             #(#constructors)*
         }
     )
 }
 
 fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
-    let object_ty = &ir.state_machine.context_ty;
-    let state_ty = &ir.state_machine.state_ty;
+    let object_type = &ir.state_machine.context_type;
+    let state_type = &ir.state_machine.state_type;
     let external_input_pattern = &ir.state_machine.external_input_pattern;
 
     let mut constructors: Vec<ItemFn> = Vec::new();
@@ -142,26 +142,26 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl statig::State<#object_ty> for #state_ty {
-            fn call_handler(&mut self, context: &mut #object_ty, #external_input_pattern: &<#object_ty as StateMachine>::Event<'_>) -> statig::Response<Self> where Self: Sized {
+        impl statig::State<#object_type> for #state_type {
+            fn call_handler(&mut self, context: &mut #object_type, #external_input_pattern: &<#object_type as StateMachine>::Event<'_>) -> statig::Response<Self> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
-            fn call_entry_action(&mut self, context: &mut #object_ty) {
+            fn call_entry_action(&mut self, context: &mut #object_type) {
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
-            fn call_exit_action(&mut self, context: &mut #object_ty) {
+            fn call_exit_action(&mut self, context: &mut #object_type) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#object_ty as statig::StateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#object_type as statig::StateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }
@@ -171,7 +171,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 }
 
 fn codegen_superstate(ir: &Ir) -> ItemEnum {
-    let superstate_ty = &ir.state_machine.superstate_ty;
+    let superstate_type = &ir.state_machine.superstate_type;
     let superstate_derives = &ir.state_machine.superstate_derives;
     let variants: Vec<Variant> = ir
         .superstates
@@ -182,15 +182,15 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
 
     parse_quote!(
         #[derive(#(#superstate_derives),*)]
-        #visibility enum #superstate_ty {
+        #visibility enum #superstate_type {
             #(#variants),*
         }
     )
 }
 
 fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
-    let object_ty = &ir.state_machine.context_ty;
-    let superstate_ty = &ir.state_machine.superstate_ty;
+    let context_type = &ir.state_machine.context_type;
+    let superstate_type = &ir.state_machine.superstate_type;
     let external_input_pattern = &ir.state_machine.external_input_pattern;
 
     let mut call_handler_arms: Vec<Arm> = Vec::new();
@@ -220,15 +220,15 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl<'a> statig::Superstate<#object_ty> for #superstate_ty
+        impl<'a> statig::Superstate<#context_type> for #superstate_type
         where
             Self: 'a,
         {
             fn call_handler(
                 &mut self,
-                context: &mut #object_ty,
-                #external_input_pattern: &<#object_ty as statig::StateMachine>::Event<'_>
-            ) -> statig::Response<<#object_ty as statig::StateMachine>::State> where Self: Sized {
+                context: &mut #context_type,
+                #external_input_pattern: &<#context_type as statig::StateMachine>::Event<'_>
+            ) -> statig::Response<<#context_type as statig::StateMachine>::State> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
@@ -236,7 +236,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
             fn call_entry_action(
                 &mut self,
-                context: &mut #object_ty
+                context: &mut #context_type
             ) {
                 match self {
                     #(#call_entry_action_arms),*
@@ -245,14 +245,14 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
             fn call_exit_action(
                 &mut self,
-                context: &mut #object_ty
+                context: &mut #context_type
             ) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#object_ty as statig::StateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#context_type as statig::StateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }
