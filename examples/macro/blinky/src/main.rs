@@ -2,9 +2,10 @@
 
 use statig::prelude::*;
 use statig::StateOrSuperstate;
+use std::fmt::Debug;
 use std::io::Write;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Blinky;
 
 // The event that will be handled by the state machine.
@@ -28,7 +29,7 @@ pub enum Event {
     // Set the `on_transition` callback.
     on_transition = "Self::on_transition",
     // Set the `on_dispatch` callback.
-    on_dispatch = "Self::on_dispatch"
+    on_dispatch = "on_dispatch"
 )]
 impl Blinky {
     /// The `#[state]` attibute marks this as a state handler.  By default the
@@ -77,12 +78,20 @@ impl Blinky {
     fn on_transition(&mut self, source: &State, target: &State) {
         println!("transitioned from `{:?}` to `{:?}`", source, target);
     }
+}
 
-    // The `on_dispatch` callback that will be called before an event is dispatched
-    // to a state or superstate.
-    fn on_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
-        println!("dipatching `{:?}` to `{:?}`", event, state);
-    }
+// The `on_dispatch` callback that will be called before an event is dispatched
+// to a state or superstate.
+fn on_dispatch<M, S, E>(state_machine: M, state: S, event: E)
+where
+    M: Debug,
+    S: Debug,
+    E: Debug,
+{
+    println!(
+        "{:?}: dispatching `{:?}` to `{:?}`",
+        state_machine, event, state
+    );
 }
 
 fn main() {
