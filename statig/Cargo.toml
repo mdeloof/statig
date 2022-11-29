@@ -14,7 +14,7 @@ keywords = ["fsm", "hsm", "statechart", "embedded"]
 statig_macro = { path = "../macro", version = "0.1.0-beta", optional = true }
 
 [dev-dependencies]
-heapless = "0.7"
+heapless = "0.7.16"
 unit-enum = { git = "https://github.com/mdeloof/unit-enum.git" }
 
 [features]

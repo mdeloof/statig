@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 statig = { path = "../../../statig", features = [] }
-rand = "*"
+rand = "0.8.5"

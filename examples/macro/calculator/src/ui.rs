@@ -1,5 +1,6 @@
 use eframe::egui::{self, Button, Label, Response, RichText, Style, Visuals, WidgetText};
 use eframe::egui::{Layout, Ui};
+use eframe::emath::Align;
 use eframe::epaint::{FontFamily, FontId};
 use statig::InitializedStatemachine;
 
@@ -27,7 +28,7 @@ impl App {
         let text = &self.display;
 
         ui.add_sized((ui.available_width(), 40.0), |ui: &mut Ui| {
-            ui.with_layout(Layout::right_to_left(), |ui: &mut Ui| {
+            ui.with_layout(Layout::right_to_left(Align::LEFT), |ui: &mut Ui| {
                 ui.add(Label::new(rich_text(text)))
             })
             .response
