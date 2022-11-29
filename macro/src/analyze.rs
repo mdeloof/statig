@@ -235,7 +235,11 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     }
 
     let Some(initial_state) = initial_state else {
-        abort!(initial_state, "no init state defined");
+        abort!(
+            initial_state,
+            "no initial state defined";
+            help = "add an initial state `#[state_machine(initial = \"State::initial_state()\"]"
+        );
     };
 
     let external_inputs = get_idents_from_pat(&external_input_pattern);
