@@ -7,7 +7,7 @@ pub fn parse_args(args: TokenStream) -> AttributeArgs {
         Punctuated::<syn::NestedMeta, syn::Token![,]>::parse_terminated.parse2(args);
     match result {
         Ok(args) => args.into_iter().collect(),
-        Err(_) => unreachable!(),
+        Err(error) => abort!(error),
     }
 }
 
@@ -20,7 +20,7 @@ pub fn parse_input(item: TokenStream) -> ItemImpl {
             "expected impl block";
             help = "`state_machine` can only be used on a impl block"
         ),
-        Err(_) => unreachable!(),
+        Err(error) => abort!(error),
     }
 }
 
