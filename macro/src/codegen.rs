@@ -44,18 +44,14 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let on_transition = match &ir.state_machine.on_transition {
         None => quote!(),
         Some(on_transition) => quote!(
-            fn on_transition(&mut self, source: &Self::State, target: &Self::State) {
-                #on_transition(self, source, target);
-            }
+            const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #on_transition;
         ),
     };
 
     let on_dispatch = match &ir.state_machine.on_dispatch {
         None => quote!(),
         Some(on_dispatch) => quote!(
-            fn on_dispatch(&mut self, state: statig::StateOrSuperstate<'_, '_, Self>, event: &Self::Event<'_>) {
-                #on_dispatch(self, state, event);
-            }
+            const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #on_dispatch;
         ),
     };
 

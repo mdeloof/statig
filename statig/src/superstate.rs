@@ -102,7 +102,7 @@ where
             Response::Handled => Response::Handled,
             Response::Super => match self.superstate() {
                 Some(mut superstate) => {
-                    M::on_dispatch(context, StateOrSuperstate::Superstate(&superstate), event);
+                    M::ON_DISPATCH(context, StateOrSuperstate::Superstate(&superstate), event);
 
                     superstate.handle(context, event)
                 }

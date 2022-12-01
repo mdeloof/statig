@@ -26,10 +26,11 @@ where
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.
-    fn on_dispatch(&mut self, _state: StateOrSuperstate<'_, '_, Self>, _event: &Self::Event<'_>) {}
+    const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
+        |_, _, _| {};
 
     /// Method that is called *after* every transition.
-    fn on_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
+    const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 }
 
 /// A state machine where the context is of type `Self`.
@@ -158,7 +159,7 @@ where
         // Perform the entry actions from the common ancestor state into the new state.
         self.state.enter(&mut self.context, enter_levels);
 
-        <M as StateMachine>::on_transition(&mut self.context, &target, &self.state);
+        <M as StateMachine>::ON_TRANSITION(&mut self.context, &target, &self.state);
     }
 }
 

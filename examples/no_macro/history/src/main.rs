@@ -39,9 +39,9 @@ impl StateMachine for Dishwasher {
 
     // On every transition we update the previous state, so we can
     // transition back to it.
-    fn on_transition(&mut self, source: &Self::State, _: &Self::State) {
-        self.previous_state = source.clone();
-    }
+    const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |shared, source, target| {
+        shared.previous_state = source.clone();
+    };
 }
 
 impl statig::State<Dishwasher> for State {

@@ -31,9 +31,9 @@ impl StateMachine for Blinky {
     const INITIAL: State = State::Off;
 
     /// This method is called on every transition of the state machine.
-    fn on_transition(&mut self, _: &State, target: &State) {
-        println!("Transitioned to `{target:?}`");
-    }
+    const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, source, target| {
+        println!("transitioned from {:?} to {:?}", source, target);
+    };
 }
 
 impl statig::State<Blinky> for State {
