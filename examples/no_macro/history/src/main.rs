@@ -45,9 +45,9 @@ impl StateMachine for Dishwasher {
 }
 
 impl statig::State<Dishwasher> for State {
-    fn call_handler(&mut self, context: &mut Dishwasher, event: &Event) -> Response<Self> {
+    fn call_handler(&mut self, shared: &mut Dishwasher, event: &Event) -> Response<Self> {
         match self {
-            State::DoorOpened => Dishwasher::door_opened(context, event),
+            State::DoorOpened => Dishwasher::door_opened(shared, event),
             State::Dry => Dishwasher::dry(event),
             State::Idle => Dishwasher::idle(event),
             State::Soap => Dishwasher::soap(event),
@@ -67,7 +67,7 @@ impl statig::State<Dishwasher> for State {
 }
 
 impl statig::Superstate<Dishwasher> for Superstate {
-    fn call_handler(&mut self, context: &mut Dishwasher, event: &Event) -> Response<State> {
+    fn call_handler(&mut self, shared: &mut Dishwasher, event: &Event) -> Response<State> {
         match self {
             Superstate::DoorClosed => Dishwasher::door_closed(event),
         }

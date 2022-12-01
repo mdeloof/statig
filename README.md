@@ -24,7 +24,7 @@ Hierarchical state machines for designing event-driven systems.
     - [States](#states)
     - [Superstates](#superstates)
     - [Actions](#actions)
-    - [Context](#context)
+    - [Shared storage](#shared-storage)
     - [State-local storage](#state-local-storage)
 - [Implementation](#implementation)
 - [FAQ](#faq)
@@ -170,7 +170,7 @@ fn exit_led_on() {
 }
 ```
 
-### Context
+### Shared storage
 
 If the type on which your state machine is implemented has any fields, you can access them inside all states, superstates or actions.
 
@@ -198,7 +198,7 @@ fn enter_led_off(&mut self) {
 
 ### State-local storage
 
-Sometimes you have data that only exists in a certain state. Instead of adding this data to the context and potentially having to unwrap an `Option<T>`, you can add it as an input to your state handler.
+Sometimes you have data that only exists in a certain state. Instead of adding this data to shared storage and potentially having to unwrap an `Option<T>`, you can add it as an input to your state handler.
 
 ```rust
 #[state]

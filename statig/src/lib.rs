@@ -204,7 +204,7 @@
 //! # }
 //! ```
 //!
-//! ### Context
+//! ### Shared storage
 //!
 //! If the type on which your state machine is implemented has any fields, you
 //! can access them inside all states, superstates or actions.
@@ -274,7 +274,7 @@
 //! ### State-local storage
 //!
 //! Sometimes you have data that only exists in a certain state. Instead of
-//! adding this data to the context and potentially having to unwrap an
+//! adding this data to the shared storage and potentially having to unwrap an
 //! `Option<T>`, you can add it as an input to your state handler.
 //!
 //! ```
@@ -500,7 +500,7 @@ pub use statig_macro::action;
 pub mod prelude {
     pub use crate::Response::{self, *};
     pub use crate::{
-        State, StateExt, StateMachine, StateMachineContext, Superstate, SuperstateExt,
+        State, StateExt, StateMachine, StateMachineSharedStorage, Superstate, SuperstateExt,
     };
 
     #[cfg(feature = "macro")]

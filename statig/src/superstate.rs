@@ -12,7 +12,7 @@ where
     /// Call the handler for the current superstate.
     fn call_handler(
         &mut self,
-        context: &mut M,
+        shared_storage: &mut M,
         event: &<M as StateMachine>::Event<'_>,
     ) -> Response<<M as StateMachine>::State>;
 
@@ -90,21 +90,25 @@ where
     /// Handle the given event in the current superstate.
     fn handle(
         &mut self,
-        context: &mut M,
+        shared_storage: &mut M,
         event: &<M as StateMachine>::Event<'_>,
     ) -> Response<<M as StateMachine>::State>
     where
         Self: Sized,
     {
-        let response = self.call_handler(context, event);
+        let response = self.call_handler(shared_storage, event);
 
         match response {
             Response::Handled => Response::Handled,
             Response::Super => match self.superstate() {
                 Some(mut superstate) => {
-                    M::ON_DISPATCH(context, StateOrSuperstate::Superstate(&superstate), event);
+                    M::ON_DISPATCH(
+                        shared_storage,
+                        StateOrSuperstate::Superstate(&superstate),
+                        event,
+                    );
 
-                    superstate.handle(context, event)
+                    superstate.handle(shared_storage, event)
                 }
                 None => Response::Super,
             },
@@ -114,31 +118,31 @@ where
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current superstate.
-    fn enter(&mut self, context: &mut M, mut levels: usize) {
+    fn enter(&mut self, shared_storage: &mut M, mut levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_entry_action(context),
+            1 => self.call_entry_action(shared_storage),
             _ => {
                 if let Some(mut superstate) = self.superstate() {
                     levels -= 1;
-                    superstate.enter(context, levels);
+                    superstate.enter(shared_storage, levels);
                 }
-                self.call_entry_action(context);
+                self.call_entry_action(shared_storage);
             }
         }
     }
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(&mut self, context: &mut M, mut levels: usize) {
+    fn exit(&mut self, shared_storage: &mut M, mut levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_exit_action(context),
+            1 => self.call_exit_action(shared_storage),
             _ => {
-                self.call_exit_action(context);
+                self.call_exit_action(shared_storage);
                 if let Some(mut superstate) = self.superstate() {
                     levels -= 1;
-                    superstate.exit(context, levels);
+                    superstate.exit(shared_storage, levels);
                 }
             }
         }
@@ -152,7 +156,7 @@ where
 {
     fn call_handler(
         &mut self,
-        _context: &mut M,
+        _shared_storage: &mut M,
         _event: &<M as StateMachine>::Event<'_>,
     ) -> Response<<M as StateMachine>::State> {
         Response::Handled

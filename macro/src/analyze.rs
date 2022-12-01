@@ -28,7 +28,7 @@ pub struct StateMachine {
     /// The inital state of the state machine.
     pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
-    pub context_type: Type,
+    pub shared_storage_type: Type,
     /// The type of the event that is passed to the state machine.
     pub event_type: Option<Type>,
     /// The name for the state type.
@@ -67,7 +67,7 @@ pub struct State {
     /// Inputs required by the state handler.
     pub inputs: Vec<FnArg>,
     /// Optional receiver input for the state handler (e.g. `&mut self`).
-    pub context_input: Option<FnArg>,
+    pub shared_storage_input: Option<FnArg>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<FnArg>,
     /// Inputs that are submitted to the state machine.
@@ -90,7 +90,7 @@ pub struct Superstate {
     /// Inputs required by the superstate handler.
     pub inputs: Vec<FnArg>,
     /// Optional receiver input for the state handler (e.g. `&mut self`).
-    pub context_input: Option<FnArg>,
+    pub shared_storage_input: Option<FnArg>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<FnArg>,
     /// Inputs that are submitted to the state machine.
@@ -155,7 +155,7 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 
 /// Retrieve the top level settings of the state machine.
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
-    let context_type = item_impl.self_ty.as_ref().clone();
+    let shared_storage_type = item_impl.self_ty.as_ref().clone();
     let mut event_type = None;
 
     let mut initial_state: Option<ExprCall> = None;
@@ -314,7 +314,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 
     StateMachine {
         initial_state,
-        context_type,
+        shared_storage_type,
         event_type,
         state_type,
         state_derives,
@@ -337,13 +337,13 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let mut entry_action = None;
     let mut exit_action = None;
     let mut local_storage = Vec::new();
-    let mut context_input = None;
+    let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
     let mut external_inputs = Vec::new();
 
     for input in &method.sig.inputs {
         match input {
-            FnArg::Receiver(_) => context_input = Some(input.clone()),
+            FnArg::Receiver(_) => shared_storage_input = Some(input.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
                 Pat::Ident(pat) if state_machine.external_inputs.contains(&pat.ident) => {
                     external_inputs.push(input.clone());
@@ -405,7 +405,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         exit_action,
         local_storage,
         inputs,
-        context_input,
+        shared_storage_input,
         state_inputs,
         external_inputs,
     }
@@ -420,13 +420,13 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     let mut entry_action = None;
     let mut exit_action = None;
     let mut local_storage = Vec::new();
-    let mut context_input = None;
+    let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
     let mut external_inputs = Vec::new();
 
     for input in &method.sig.inputs {
         match input {
-            FnArg::Receiver(_) => context_input = Some(input.clone()),
+            FnArg::Receiver(_) => shared_storage_input = Some(input.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
                 Pat::Ident(pat) if state_machine.external_inputs.contains(&pat.ident) => {
                     external_inputs.push(input.clone());
@@ -488,7 +488,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         exit_action,
         local_storage,
         inputs,
-        context_input,
+        shared_storage_input,
         state_inputs,
         external_inputs,
     }
@@ -586,12 +586,12 @@ fn valid_state_analyze() {
 
     let initial_state = parse_quote!(State::on());
 
-    let context_ty = parse_quote!(Blinky);
-    let event_ty = None;
+    let shared_storage_type = parse_quote!(Blinky);
+    let event_type = None;
 
-    let state_name = parse_quote!(State);
+    let state_type = parse_quote!(State);
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
-    let superstate_name = parse_quote!(Superstate);
+    let superstate_type = parse_quote!(Superstate);
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let on_transition = None;
     let on_dispatch = None;
@@ -601,11 +601,11 @@ fn valid_state_analyze() {
 
     let state_machine = StateMachine {
         initial_state,
-        context_type: context_ty,
-        event_type: event_ty,
-        state_type: state_name,
+        shared_storage_type,
+        event_type,
+        state_type,
         state_derives,
-        superstate_type: superstate_name,
+        superstate_type,
         superstate_derives,
         on_transition,
         on_dispatch,
@@ -621,7 +621,7 @@ fn valid_state_analyze() {
         exit_action: parse_quote!(enter_off),
         local_storage: vec![],
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
-        context_input: Some(parse_quote!(&mut self)),
+        shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
         external_inputs: vec![parse_quote!(event: &Event)],
     };
@@ -633,7 +633,7 @@ fn valid_state_analyze() {
         exit_action: None,
         local_storage: vec![],
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
-        context_input: Some(parse_quote!(&mut self)),
+        shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
         external_inputs: vec![parse_quote!(event: &Event)],
     };

@@ -34,7 +34,7 @@ pub fn codegen(ir: Ir) -> TokenStream {
 }
 
 fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
-    let object_type = &ir.state_machine.context_type;
+    let object_type = &ir.state_machine.shared_storage_type;
     let event_type = &ir.state_machine.event_type;
     let state_type = &ir.state_machine.state_type;
     let superstate_type = &ir.state_machine.superstate_type;
@@ -105,7 +105,7 @@ fn codegen_state_impl(ir: &Ir) -> ItemImpl {
 }
 
 fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
-    let object_type = &ir.state_machine.context_type;
+    let object_type = &ir.state_machine.shared_storage_type;
     let state_type = &ir.state_machine.state_type;
     let external_input_pattern = &ir.state_machine.external_input_pattern;
 
@@ -139,19 +139,19 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     parse_quote!(
         #[allow(unused)]
         impl statig::State<#object_type> for #state_type {
-            fn call_handler(&mut self, context: &mut #object_type, #external_input_pattern: &<#object_type as StateMachine>::Event<'_>) -> statig::Response<Self> where Self: Sized {
+            fn call_handler(&mut self, shared_storage: &mut #object_type, #external_input_pattern: &<#object_type as StateMachine>::Event<'_>) -> statig::Response<Self> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
-            fn call_entry_action(&mut self, context: &mut #object_type) {
+            fn call_entry_action(&mut self, shared_storage: &mut #object_type) {
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
-            fn call_exit_action(&mut self, context: &mut #object_type) {
+            fn call_exit_action(&mut self, shared_storage: &mut #object_type) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
@@ -185,7 +185,7 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
 }
 
 fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
-    let context_type = &ir.state_machine.context_type;
+    let shared_storage_type = &ir.state_machine.shared_storage_type;
     let superstate_type = &ir.state_machine.superstate_type;
     let external_input_pattern = &ir.state_machine.external_input_pattern;
 
@@ -216,15 +216,15 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl<'a> statig::Superstate<#context_type> for #superstate_type
+        impl<'a> statig::Superstate<#shared_storage_type> for #superstate_type
         where
             Self: 'a,
         {
             fn call_handler(
                 &mut self,
-                context: &mut #context_type,
-                #external_input_pattern: &<#context_type as statig::StateMachine>::Event<'_>
-            ) -> statig::Response<<#context_type as statig::StateMachine>::State> where Self: Sized {
+                shared_storage: &mut #shared_storage_type,
+                #external_input_pattern: &<#shared_storage_type as statig::StateMachine>::Event<'_>
+            ) -> statig::Response<<#shared_storage_type as statig::StateMachine>::State> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
@@ -232,7 +232,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
             fn call_entry_action(
                 &mut self,
-                context: &mut #context_type
+                shared_storage: &mut #shared_storage_type
             ) {
                 match self {
                     #(#call_entry_action_arms),*
@@ -241,14 +241,14 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
             fn call_exit_action(
                 &mut self,
-                context: &mut #context_type
+                shared_storage: &mut #shared_storage_type
             ) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#context_type as statig::StateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::StateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }

@@ -33,21 +33,21 @@ where
     const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 }
 
-/// A state machine where the context is of type `Self`.
-pub trait StateMachineContext: StateMachine {
+/// A state machine where the shared storage is of type `Self`.
+pub trait StateMachineSharedStorage: StateMachine {
     /// Create an uninitialized state machine. Use [UninitializedStateMachine::init] to initialize it.
     fn state_machine(self) -> UninitializedStateMachine<Self>
     where
         Self: Sized,
     {
         UninitializedStateMachine {
-            context: self,
+            shared_storage: self,
             state: Self::INITIAL,
         }
     }
 }
 
-impl<T> StateMachineContext for T where T: StateMachine {}
+impl<T> StateMachineSharedStorage for T where T: StateMachine {}
 
 /// A state machine that has not yet been initialized.
 ///
@@ -58,7 +58,7 @@ pub struct UninitializedStateMachine<O>
 where
     O: StateMachine,
 {
-    context: O,
+    shared_storage: O,
     state: <O as StateMachine>::State,
 }
 
@@ -92,7 +92,7 @@ where
     /// ```
     pub fn init(self) -> InitializedStatemachine<O> {
         let mut state_machine: InitializedStatemachine<O> = InitializedStatemachine {
-            context: self.context,
+            shared_storage: self.shared_storage,
             state: self.state,
         };
         state_machine.init();
@@ -105,7 +105,7 @@ pub struct InitializedStatemachine<M>
 where
     M: StateMachine,
 {
-    context: M,
+    shared_storage: M,
     state: <M as StateMachine>::State,
 }
 
@@ -130,7 +130,7 @@ where
 
     /// Handle the given event.
     pub fn handle(&mut self, event: &M::Event<'_>) {
-        let response = self.state.handle(&mut self.context, event);
+        let response = self.state.handle(&mut self.shared_storage, event);
 
         match response {
             Response::Super => {}
@@ -142,7 +142,7 @@ where
     /// Initialize the state machine by excecuting all entry actions towards the initial state.
     fn init(&mut self) {
         let enter_levels = self.state.depth();
-        self.state.enter(&mut self.context, enter_levels);
+        self.state.enter(&mut self.shared_storage, enter_levels);
     }
 
     /// Transition from the current state to the given target state.
@@ -151,15 +151,15 @@ where
         let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
 
         // Perform the exit from the previous state towards the common ancestor state.
-        self.state.exit(&mut self.context, exit_levels);
+        self.state.exit(&mut self.shared_storage, exit_levels);
 
         // Update the state.
         core::mem::swap(&mut self.state, &mut target);
 
         // Perform the entry actions from the common ancestor state into the new state.
-        self.state.enter(&mut self.context, enter_levels);
+        self.state.enter(&mut self.shared_storage, enter_levels);
 
-        <M as StateMachine>::ON_TRANSITION(&mut self.context, &target, &self.state);
+        <M as StateMachine>::ON_TRANSITION(&mut self.shared_storage, &target, &self.state);
     }
 }
 
@@ -179,7 +179,7 @@ where
 {
     fn default() -> Self {
         Self {
-            context: <M as Default>::default(),
+            shared_storage: <M as Default>::default(),
             state: <M as StateMachine>::INITIAL,
         }
     }
@@ -192,7 +192,7 @@ where
     type Target = M;
 
     fn deref(&self) -> &Self::Target {
-        &self.context
+        &self.shared_storage
     }
 }
 
@@ -201,7 +201,7 @@ where
     M: StateMachine,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.context
+        &mut self.shared_storage
     }
 }
 

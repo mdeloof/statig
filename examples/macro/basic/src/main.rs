@@ -36,9 +36,7 @@ impl Blinky {
 }
 
 fn main() {
-    /// Because we're using `Blinky` as the context of the state machine
-    /// we can use the `state_machine` method to turn it into a state
-    /// machine.
+    /// We use the `state_machine` method to create a state machine.
     let state_machine = Blinky::default().state_machine();
 
     /// Before we submit events to the state machine we need to call the

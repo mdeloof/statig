@@ -64,13 +64,13 @@ mod test {
     }
 
     impl statig::State<Foo> for State {
-        fn call_handler(&mut self, _context: &mut Foo, _event: &Event) -> Response<Self> {
+        fn call_handler(&mut self, _shared_storage: &mut Foo, _event: &Event) -> Response<Self> {
             Handled
         }
     }
 
     impl statig::Superstate<Foo> for Superstate {
-        fn call_handler(&mut self, _context: &mut Foo, _event: &Event) -> Response<State> {
+        fn call_handler(&mut self, _shared_storage: &mut Foo, _event: &Event) -> Response<State> {
             Handled
         }
     }

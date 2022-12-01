@@ -16,7 +16,7 @@ pub enum State {
 pub struct Event;
 
 /// The `StateMachine` trait needs to be implemented on the type that will be
-/// the context for the state machine.
+/// the shared storage for the state machine.
 impl StateMachine for Blinky {
     /// The enum that represents the state.
     type State = State;
