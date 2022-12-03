@@ -54,17 +54,17 @@ impl<T> StateMachineSharedStorage for T where T: StateMachine {}
 /// A state machine needs to be initialized before it can handle events. This
 /// can be done by calling the [`init`](Self::init) method on it. This will
 /// execute all the entry actions into the initial state.
-pub struct UninitializedStateMachine<O>
+pub struct UninitializedStateMachine<M>
 where
-    O: StateMachine,
+    M: StateMachine,
 {
-    shared_storage: O,
-    state: <O as StateMachine>::State,
+    shared_storage: M,
+    state: <M as StateMachine>::State,
 }
 
-impl<O> UninitializedStateMachine<O>
+impl<M> UninitializedStateMachine<M>
 where
-    O: StateMachine,
+    M: StateMachine,
 {
     /// Initialize the state machine by excecuting all entry actions towards
     /// the initial state.
@@ -90,8 +90,8 @@ where
     /// // state machine.
     /// let initialized_state_machine = uninitialized_state_machine.init();
     /// ```
-    pub fn init(self) -> InitializedStatemachine<O> {
-        let mut state_machine: InitializedStatemachine<O> = InitializedStatemachine {
+    pub fn init(self) -> InitializedStatemachine<M> {
+        let mut state_machine: InitializedStatemachine<M> = InitializedStatemachine {
             shared_storage: self.shared_storage,
             state: self.state,
         };
