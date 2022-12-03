@@ -96,7 +96,6 @@ fn main() {
     let mut state_machine = Blinky::default().state_machine().init();
 
     state_machine.handle(&Event::TimerElapsed);
-
     state_machine.handle(&Event::ButtonPressed);
 }
 ```
@@ -110,7 +109,7 @@ fn main() {
 
 ### States
 
-States are defined by writing methods inside the `impl` block and adding the `#[state]` attribute to them. By default the `event` argument will map to the event handled by the state machine.
+States are defined by writing methods inside the `impl` block and adding the `#[state]` attribute to them. When an event is submitted to the state machine, the method associated with the current state will be called to process it. By default this event is mapped to the `event` argument of the method.
 
 ```rust
 #[state]
@@ -123,7 +122,7 @@ Every state must return a `Response`. A `Response` can be one of three things:
 
 - `Handled`: The event has been handled.
 - `Transition`: Transition to another state.
-- `Super`: Defer the event to the next superstate.
+- `Super`: Defer the event to the parent superstate.
 
 ### Superstates
 
@@ -156,7 +155,7 @@ Actions run when entering or leaving states during a transition.
 ```rust
 #[state(entry_action = "enter_led_on", exit_action = "exit_led_on")]
 fn led_on(event: &Event) -> Response<State> {
-    Transition(State::off())
+    Transition(State::led_off())
 }
 
 #[action]
@@ -225,7 +224,7 @@ fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
 
 A lot of the implemenation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes.
 
-The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be tought of as graph.
+The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be tought of as tree.
 
 ```
                           ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐             
@@ -235,7 +234,7 @@ The goal of `statig` is to represent a hierarchical state machine. Conceptually 
                         ┌────────────┴────────────┐           
                         │                         │           
              ┌─────────────────────┐   ╔═════════════════════╗
-             │      Blinking       │   ║      NotBlinking    ║
+             │      Blinking       │   ║     NotBlinking     ║
              │─────────────────────│   ╚═════════════════════╝
              │ counter: &'a usize  │                          
              └─────────────────────┘                          
@@ -246,50 +245,114 @@ The goal of `statig` is to represent a hierarchical state machine. Conceptually 
 ║        LedOn        ║   ║        LedOff       ║             
 ║─────────────────────║   ║─────────────────────║             
 ║ counter: usize      ║   ║ counter: usize      ║             
-╚═════════════════════╝   ╚═════════════════════╝                                 
+╚═════════════════════╝   ╚═════════════════════╝
 ```
 
-Nodes at the edge of the graph are called leaf-states and are represented by an `enum` in `statig`. If data only exists in a particular state we can give that state ownership of the data. This is referred to as 'state-local storage'. For example `counter` only exists in the `LedOn` and `LedOff` state.
+Nodes at the edge of the tree are called leaf-states and are represented by an `enum` in `statig`. If data only exists in a particular state we can give that state ownership of the data. This is referred to as 'state-local storage'. For example `counter` only exists in the `LedOn` and `LedOff` state.
 
 ```rust
 enum State {
-    On { counter: usize },
-    Off { counter: usize },
-    Paused
+    LedOn { counter: usize },
+    LedOff { counter: usize },
+    NotBlinking
 }
 ```
 
-States such as `blinking` are called superstates. They define shared behavior of their child states. Superstates are also represented by an enum, but instead of owning their data, they borrow it from the underlying state.
+States such as `Blinking` are called superstates. They define shared behavior of their child states. Superstates are also represented by an enum, but instead of owning their data, they borrow it from the underlying state.
 
 ```rust
 enum Superstate<'a> {
-    Playing { counter: &'a usize }
+    Blinking { counter: &'a usize }
 }
 ```
 
-The graph structure is then expressed in the `superstate` method of the `State` and `Superstate` trait.
+The association between states and their handlers is then expressed in the `State` and `Superstate` traits with the `call_handler()` method.
+
+```rust
+impl statig::State<Blinky> for State {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+        match self {
+            State::LedOn { counter } => blinky.led_on(counter, event),
+            State::LedOff { counter } => blinky.led_off(counter, event),
+            State::NotBlinking => blinky.not_blinking(event)
+        }
+    }
+}
+
+impl statig::Superstate<Blinky> for Superstate {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+        match self {
+            Superstate::Blinking { counter } => blinky.blinking(counter, event),
+        }
+    }
+}
+```
+
+The association between states and their actions is expressed in a similar fashion.
+
+```rust
+impl statig::State<Blinky> for State {
+    
+    ...
+
+    fn call_entry_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+        match self {
+            State::LedOn { counter } => blinky.enter_led_on(counter),
+            State::LedOff { counter } => blinky.enter_led_off(counter),
+            State::NotBlinking => blinky.enter_not_blinking()
+        }
+    }
+
+    fn call_exit_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+        match self {
+            State::LedOn { counter } => blinky.exit_led_on(counter),
+            State::LedOff { counter } => blinky.exit_led_off(counter),
+            State::NotBlinking => blinky.exit_not_blinking()
+        }
+    }
+}
+
+impl statig::Superstate<Blinky> for Superstate {
+
+    ...
+
+    fn call_entry_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+        match self {
+            Superstate::Blinking { counter } => blinky.enter_blinking(counter),
+        }
+    }
+
+    fn call_exit_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+        match self {
+            Superstate::Blinking { counter } => blinky.exit_blinking(counter),
+        }
+    }
+}
+```
+
+The tree structure of states and their superstates is expressed in the `superstate` method of the `State` and `Superstate` trait.
 
 ```rust
 impl statig::State<Blinky> for State {
 
-    // Other methods omitted.
+    ...
 
     fn superstate(&mut self) -> Option<Superstate<'_>> {
         match self {
-            State::On { counter } => Some(Superstate::Playing { counter }),
-            State::Off { counter } => Some(Superstate::Playing { counter }),
-            State::Paused => None
+            State::LedOn { counter } => Some(Superstate::Blinking { counter }),
+            State::LedOff { counter } => Some(Superstate::Blinking { counter }),
+            State::NotBlinking => None
         }
     }
 }
 
 impl<'a> statig::Superstate<Blinky> for Superstate<'a> {
 
-    // Other methods omitted.
+    ...
 
     fn superstate(&mut self) -> Option<Superstate<'_>> {
         match self {
-            Superstate::Playing { .. } => None
+            Superstate::Blinking { .. } => None
         }
     }
 }
@@ -315,6 +378,20 @@ We don't execute the exit or entry action of `Blinking` as this superstate is sh
 Entry and exit actions also have access to state-local storage, but note that exit actions operate on state-local storage of the source state and that entry actions operate on the state-local storage of the target state.
 
 For example chaning the value of `counter` in the exit action of `LedOn` will have no effect on the value of `counter` in the `LedOff` state.
+
+Finally, the `StateMachine` trait is implemented on the type that will be used for the shared storage.
+
+```rust
+impl StateMachine for Blinky {
+    type State = State;
+
+    type Superstate<'a> = Superstate<'a>;
+
+    type Event<'a> = Event;
+
+    const INITIAL: State = State::Off;
+}
+```
 
 ---
 
