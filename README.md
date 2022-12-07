@@ -222,7 +222,7 @@ fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
 
 ## Implementation
 
-A lot of the implemenation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes. Furthermore, you'll see that the generated code is actually pretty straight-forward and could easily be written by hand, so if you like to avoid using macro's this is totally feasible.
+A lot of the implemenation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes. Furthermore, you'll see that the generated code is actually pretty straight-forward and could easily be written by hand, so if you prefer to avoid using macro's this is totally feasible.
 
 The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be tought of as tree.
 
@@ -295,7 +295,7 @@ impl statig::State<Blinky> for State {
     
     ...
 
-    fn call_entry_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+    fn call_entry_action(&mut self, blinky: &mut Blinky) {
         match self {
             State::LedOn { counter } => blinky.enter_led_on(counter),
             State::LedOff { counter } => blinky.enter_led_off(counter),
@@ -303,7 +303,7 @@ impl statig::State<Blinky> for State {
         }
     }
 
-    fn call_exit_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+    fn call_exit_action(&mut self, blinky: &mut Blinky) {
         match self {
             State::LedOn { counter } => blinky.exit_led_on(counter),
             State::LedOff { counter } => blinky.exit_led_off(counter),
@@ -316,13 +316,13 @@ impl statig::Superstate<Blinky> for Superstate {
 
     ...
 
-    fn call_entry_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+    fn call_entry_action(&mut self, blinky: &mut Blinky) {
         match self {
             Superstate::Blinking { counter } => blinky.enter_blinking(counter),
         }
     }
 
-    fn call_exit_action(&mut self, blinky: &mut Blinky) -> Response<Self> {
+    fn call_exit_action(&mut self, blinky: &mut Blinky) {
         match self {
             Superstate::Blinking { counter } => blinky.exit_blinking(counter),
         }
