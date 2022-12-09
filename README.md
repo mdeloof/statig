@@ -26,6 +26,7 @@ Hierarchical state machines for designing event-driven systems.
     - [Actions](#actions)
     - [Shared storage](#shared-storage)
     - [State-local storage](#state-local-storage)
+    - [Introspection](#introspection)
 - [Implementation](#implementation)
 - [FAQ](#faq)
 - [Credits](#credits)
@@ -217,6 +218,34 @@ fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
 ```
 
 `counter` is only available in the `led_on` state but can also be accessed in its superstates and actions.
+
+### Introspection
+
+For logging purposes you can define two callbacks that will be called at specific points during state machine execution.
+
+- `on_dispatch` is called before an event is dispatched to a specific state or superstate.
+- `on_transition` is called after a transition has occured.
+
+```rust
+#[state_machine(
+    initial = "State::on()",
+    on_dispatch = "State::on_dispatch",
+    on_transition = "Self::on_transition",
+)]
+impl Blinky {
+    ...
+}
+
+impl Blinky {
+    fn on_transition(&mut self, source: &State, target: &State) {
+        println!("transitioned from `{:?}` to `{:?}`", source, target);
+    }
+
+    fn on_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
+        println!("dispatched `{:?}` to `{:?}`", event, state);
+    }
+}
+```
 
 ---
 
