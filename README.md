@@ -12,7 +12,7 @@ Hierarchical state machines for designing event-driven systems.
 
 - Hierachical state machines
 - State-local storage
-- Compatible with `#![no_std]`, no heap memory allocation
+- Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 - (Optional) macro's for reducing boilerplate.
 
 ---
