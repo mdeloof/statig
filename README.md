@@ -229,7 +229,7 @@ For logging purposes you can define two callbacks that will be called at specifi
 ```rust
 #[state_machine(
     initial = "State::on()",
-    on_dispatch = "State::on_dispatch",
+    on_dispatch = "Self::on_dispatch",
     on_transition = "Self::on_transition",
 )]
 impl Blinky {
