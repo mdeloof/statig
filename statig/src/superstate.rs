@@ -41,16 +41,16 @@ where
         lhs: &<M as StateMachine>::Superstate<'_>,
         rhs: &<M as StateMachine>::Superstate<'_>,
     ) -> bool {
-        use core::mem::{discriminant, transmute_copy, Discriminant};
+        use core::mem::{discriminant, transmute, Discriminant};
 
         // Generic associated types are invariant over any lifetime arguments, so the
         // compiler won't allow us to compare them directly. Instead we need to coerce them
         // to have the same lifetime by transmuting them to the same type.
 
         let lhs: Discriminant<<M as StateMachine>::Superstate<'_>> =
-            unsafe { transmute_copy(&discriminant(lhs)) };
+            unsafe { transmute(discriminant(lhs)) };
         let rhs: Discriminant<<M as StateMachine>::Superstate<'_>> =
-            unsafe { transmute_copy(&discriminant(rhs)) };
+            unsafe { transmute(discriminant(rhs)) };
 
         lhs == rhs
     }
