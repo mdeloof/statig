@@ -4,12 +4,24 @@
 //!
 //! **Features**
 //!
-//! - [Hierachically nested states](https://en.wikipedia.org/wiki/UML_state_machine#Hierarchically_nested_states)
+//! - Hierachical state machines
 //! - State-local storage
-//! - Compatible with `#![no_std]`, no dynamic memory allocation
+//! - Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 //! - (Optional) macro's for reducing boilerplate.
 //!
-//! ## statig in action
+//! ## Statig in action
+//!
+//! ```text
+//! ┌─────────────────────────┐                   
+//! │         Blinking        │◀─────────┐        
+//! │    ┌───────────────┐    │          │        
+//! │ ┌─▶│     LedOn     │──┐ │  ┌───────────────┐
+//! │ │  └───────────────┘  │ │  │  NotBlinking  │
+//! │ │  ┌───────────────┐  │ │  └───────────────┘
+//! │ └──│     LedOff    │◀─┘ │          ▲        
+//! │    └───────────────┘    │──────────┘        
+//! └─────────────────────────┘                   
+//! ```
 //!
 //! ```rust
 //! # use statig::prelude::*;
@@ -57,9 +69,7 @@
 //! }
 //!
 //! let mut state_machine = Blinky::default().state_machine().init();
-//!
 //! state_machine.handle(&Event::TimerElapsed);
-//!
 //! state_machine.handle(&Event::ButtonPressed);
 //! ```
 //!
@@ -75,8 +85,10 @@
 //! ### States
 //!
 //! States are defined by writing methods inside the `impl` block and adding
-//! the `#[state]` attribute to them. By default the `event` argument will map
-//!  to the event handled by the state machine.
+//! the `#[state]` attribute to them. When an event is submitted to the state
+//! machine, the method associated with the current state will be called to
+//! process it. By default this event is mapped to the `event` argument of
+//! the method.
 //!
 //! ```rust
 //! # use statig::prelude::*;
@@ -317,6 +329,221 @@
 //! `counter` is only available in the `led_on` state but can also be accessed in
 //! its superstates and actions.
 //!
+//! ### Introspection
+//!
+//! For logging purposes you can define two callbacks that will be called at specific
+//! points during state machine execution.
+//!
+//! - `on_dispatch` is called before an event is dispatched to a specific state or superstate.
+//! - `on_transition` is called after a transition has occured.
+//!
+//! ```
+//! # use statig::prelude::*;
+//! # use statig::StateOrSuperstate;
+//! #
+//! # struct Blinky;
+//! #
+//! # #[derive(Debug)]
+//! # struct Event;
+//! #
+//! #[state_machine(
+//!     initial = "State::on()",
+//!     on_dispatch = "Self::on_dispatch",
+//!     on_transition = "Self::on_transition",
+//!     state(derive(Debug)),
+//!     superstate(derive(Debug))
+//! )]
+//! impl Blinky {
+//!     # #[state]
+//!     # fn on(event: &Event) -> Response<State> { Handled }
+//! }
+//!
+//! impl Blinky {
+//!     fn on_transition(&mut self, source: &State, target: &State) {
+//!         println!("transitioned from `{:?}` to `{:?}`", source, target);
+//!     }
+//!
+//!     fn on_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
+//!         println!("dispatched `{:?}` to `{:?}`", event, state);
+//!     }
+//! }
+//! ```
+//!
+//! ---
+//!
+//! ## Implementation
+//!
+//! A lot of the implemenation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes. Furthermore, you'll see that the generated code is actually pretty straight-forward and could easily be written by hand, so if you prefer to avoid using macro's this is totally feasible.
+//!
+//! The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be tought of as tree.
+//!
+//! ```text
+//!                           ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐             
+//!                                     Top                       
+//!                           └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘             
+//!                                      │                        
+//!                         ┌────────────┴────────────┐           
+//!                         │                         │           
+//!              ┌─────────────────────┐   ╔═════════════════════╗
+//!              │      Blinking       │   ║     NotBlinking     ║
+//!              │─────────────────────│   ╚═════════════════════╝
+//!              │ counter: &'a usize  │                          
+//!              └─────────────────────┘                          
+//!                         │                                     
+//!            ┌────────────┴────────────┐                        
+//!            │                         │                        
+//! ╔═════════════════════╗   ╔═════════════════════╗             
+//! ║        LedOn        ║   ║        LedOff       ║             
+//! ║─────────────────────║   ║─────────────────────║             
+//! ║ counter: usize      ║   ║ counter: usize      ║             
+//! ╚═════════════════════╝   ╚═════════════════════╝
+//! ```
+//!
+//! Nodes at the edge of the tree are called leaf-states and are represented by an `enum` in `statig`. If data only exists in a particular state we can give that state ownership of the data. This is referred to as 'state-local storage'. For example `counter` only exists in the `LedOn` and `LedOff` state.
+//!
+//! ```rust
+//! enum State {
+//!     LedOn { counter: usize },
+//!     LedOff { counter: usize },
+//!     NotBlinking
+//! }
+//! ```
+//!
+//! States such as `Blinking` are called superstates. They define shared behavior of their child states. Superstates are also represented by an enum, but instead of owning their data, they borrow it from the underlying state.
+//!
+//! ```rust
+//! enum Superstate<'a> {
+//!     Blinking { counter: &'a usize }
+//! }
+//! ```
+//!
+//! The association between states and their handlers is then expressed in the `State` and `Superstate` traits with the `call_handler()` method.
+//!
+//! ```ignore
+//! impl statig::State<Blinky> for State {
+//!     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+//!         match self {
+//!             State::LedOn { counter } => blinky.led_on(counter, event),
+//!             State::LedOff { counter } => blinky.led_off(counter, event),
+//!             State::NotBlinking => blinky.not_blinking(event)
+//!         }
+//!     }
+//! }
+//!
+//! impl statig::Superstate<Blinky> for Superstate {
+//!     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+//!         match self {
+//!             Superstate::Blinking { counter } => blinky.blinking(counter, event),
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! The association between states and their actions is expressed in a similar fashion.
+//!
+//! ```ignore
+//! impl statig::State<Blinky> for State {
+//!     
+//!     ...
+//!
+//!     fn call_entry_action(&mut self, blinky: &mut Blinky) {
+//!         match self {
+//!             State::LedOn { counter } => blinky.enter_led_on(counter),
+//!             State::LedOff { counter } => blinky.enter_led_off(counter),
+//!             State::NotBlinking => blinky.enter_not_blinking()
+//!         }
+//!     }
+//!
+//!     fn call_exit_action(&mut self, blinky: &mut Blinky) {
+//!         match self {
+//!             State::LedOn { counter } => blinky.exit_led_on(counter),
+//!             State::LedOff { counter } => blinky.exit_led_off(counter),
+//!             State::NotBlinking => blinky.exit_not_blinking()
+//!         }
+//!     }
+//! }
+//!
+//! impl statig::Superstate<Blinky> for Superstate {
+//!
+//!     ...
+//!
+//!     fn call_entry_action(&mut self, blinky: &mut Blinky) {
+//!         match self {
+//!             Superstate::Blinking { counter } => blinky.enter_blinking(counter),
+//!         }
+//!     }
+//!
+//!     fn call_exit_action(&mut self, blinky: &mut Blinky) {
+//!         match self {
+//!             Superstate::Blinking { counter } => blinky.exit_blinking(counter),
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! The tree structure of states and their superstates is expressed in the `superstate` method of the `State` and `Superstate` trait.
+//!
+//! ```ignore
+//! impl statig::State<Blinky> for State {
+//!
+//!     ...
+//!
+//!     fn superstate(&mut self) -> Option<Superstate<'_>> {
+//!         match self {
+//!             State::LedOn { counter } => Some(Superstate::Blinking { counter }),
+//!             State::LedOff { counter } => Some(Superstate::Blinking { counter }),
+//!             State::NotBlinking => None
+//!         }
+//!     }
+//! }
+//!
+//! impl<'a> statig::Superstate<Blinky> for Superstate<'a> {
+//!
+//!     ...
+//!
+//!     fn superstate(&mut self) -> Option<Superstate<'_>> {
+//!         match self {
+//!             Superstate::Blinking { .. } => None
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! When an event arrives, `statig` will first dispatch it to the current leaf state. If this state returns a `Super` response, it will then be dispatched to that state's superstate, which in turn returns its own response. Every time an event is defered to a superstate, `statig` will traverse upwards in the graph until it reaches the `Top` state. This is an implicit superstate that will consider every event as handled.
+//!
+//! In case the returned response is a `Transition`, `statig` will perform a transition sequence by traversing the graph from the current source state to the target state by taking the shortest possible path. When this path is going upwards from the source state, every state that is passed will have its **exit action** executed. And then similarly when going downward, every state that is passed will have its **entry action** executed.
+//!
+//! For example when transitioning from the `LedOn` state to the `NotBlinking` state the transition sequence looks like this:
+//!
+//! 1. Exit the `LedOn` state
+//! 2. Exit the `Blinking` state
+//! 3. Enter the `NotBlinking` state
+//!
+//! For comparison, the transition from the `LedOn` state to the `LedOff` state looks like this:
+//!
+//! 1. Exit the `LedOn` state
+//! 2. Enter the `LedOff` state
+//!
+//! We don't execute the exit or entry action of `Blinking` as this superstate is shared between the `LedOn` and `LedOff` state.
+//!
+//! Entry and exit actions also have access to state-local storage, but note that exit actions operate on state-local storage of the source state and that entry actions operate on the state-local storage of the target state.
+//!
+//! For example chaning the value of `counter` in the exit action of `LedOn` will have no effect on the value of `counter` in the `LedOff` state.
+//!
+//! Finally, the `StateMachine` trait is implemented on the type that will be used for the shared storage.
+//!
+//! ```ignore
+//! impl StateMachine for Blinky {
+//!     type State = State;
+//!
+//!     type Superstate<'a> = Superstate<'a>;
+//!
+//!     type Event<'a> = Event;
+//!
+//!     const INITIAL: State = State::off(10);
+//! }
+//! ```
+//!
 //! ## FAQ
 //!
 //! ### **What is this `#[state_machine]` proc-macro doing to my code? 🤨**
@@ -380,7 +607,7 @@ pub use superstate::*;
 ///
 ///   _Default_: `State`
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[state_machine(superstate(name = "CustomSuperstateName"))]`
 ///
@@ -388,7 +615,7 @@ pub use superstate::*;
 ///
 ///   _Default_: `Superstate`
 ///   
-///   </br>
+///   <br/>
 ///
 /// - `#[state_machine(state(derive(SomeTrait, AnotherTrait)))]`
 ///
@@ -396,7 +623,7 @@ pub use superstate::*;
 ///
 ///   _Default_: `()`
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[state_machine(superstate(derive(SomeTrait, AnotherTrait)))]`
 ///
@@ -404,7 +631,7 @@ pub use superstate::*;
 ///
 ///   _Default_: `()`
 ///
-///   </br>
+///   <br/>
 #[cfg(feature = "macro")]
 pub use statig_macro::state_machine;
 
@@ -419,31 +646,31 @@ pub use statig_macro::state_machine;
 ///
 ///   Set the name of the variant that will be part of the state enum.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[state(superstate = "superstate_name")]`
 ///
 ///   Set the superstate of the state.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[state(entry_action = "entry_action_name")]`
 ///
 ///   Set the entry action of the state.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[state(exit_action = "exit_action_name")]`
 ///
 ///   Set the exit action of the state.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[state(local_storage("field_name_a: FieldTypeA", "field_name_b: FieldTypeB"))]`
 ///
 ///   Add local storage to this state. These will be added as fields to the enum variant.
 ///
-///   </br>
+///   <br/>
 #[cfg(feature = "macro")]
 pub use statig_macro::state;
 
@@ -458,25 +685,25 @@ pub use statig_macro::state;
 ///
 ///   Set the name of the variant that will be part of the state enum.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[superstate(superstate = "superstate_name")]`
 ///
 ///   Set the superstate of the superstate.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[superstate(entry_action = "entry_action_name")]`
 ///
 ///   Set the entry action of the superstate.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[superstate(exit_action = "exit_action_name")]`
 ///
 ///   Set the exit action of the superstate.
 ///
-///   </br>
+///   <br/>
 ///
 /// - `#[superstate(local_storage("field_name_a: &'a mut FieldTypeA"))]`
 ///
@@ -486,7 +713,7 @@ pub use statig_macro::state;
 ///   superstate. This means the fields should be references with an
 ///   assoaciated lifetime `'a`.
 ///
-///   </br>
+///   <br/>
 #[cfg(feature = "macro")]
 pub use statig_macro::superstate;
 
