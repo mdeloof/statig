@@ -66,7 +66,7 @@ impl<M> UninitializedStateMachine<M>
 where
     M: StateMachine,
 {
-    /// Initialize the state machine by excecuting all entry actions towards
+    /// Initialize the state machine by executing all entry actions towards
     /// the initial state.
     ///
     /// ```
@@ -139,7 +139,7 @@ where
         }
     }
 
-    /// Initialize the state machine by excecuting all entry actions towards the initial state.
+    /// Initialize the state machine by executing all entry actions towards the initial state.
     fn init(&mut self) {
         let enter_levels = self.state.depth();
         self.state.enter(&mut self.shared_storage, enter_levels);

@@ -4,7 +4,7 @@
 //!
 //! **Features**
 //!
-//! - Hierachical state machines
+//! - Hierarchical state machines
 //! - State-local storage
 //! - Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 //! - (Optional) macro's for reducing boilerplate.
@@ -335,7 +335,7 @@
 //! points during state machine execution.
 //!
 //! - `on_dispatch` is called before an event is dispatched to a specific state or superstate.
-//! - `on_transition` is called after a transition has occured.
+//! - `on_transition` is called after a transition has occurred.
 //!
 //! ```
 //! # use statig::prelude::*;
@@ -373,9 +373,9 @@
 //!
 //! ## Implementation
 //!
-//! A lot of the implemenation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes. Furthermore, you'll see that the generated code is actually pretty straight-forward and could easily be written by hand, so if you prefer to avoid using macro's this is totally feasible.
+//! A lot of the implementation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes. Furthermore, you'll see that the generated code is actually pretty straight-forward and could easily be written by hand, so if you prefer to avoid using macro's this is totally feasible.
 //!
-//! The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be tought of as tree.
+//! The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be thought of as tree.
 //!
 //! ```text
 //!                           ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐             
@@ -509,7 +509,7 @@
 //! }
 //! ```
 //!
-//! When an event arrives, `statig` will first dispatch it to the current leaf state. If this state returns a `Super` response, it will then be dispatched to that state's superstate, which in turn returns its own response. Every time an event is defered to a superstate, `statig` will traverse upwards in the graph until it reaches the `Top` state. This is an implicit superstate that will consider every event as handled.
+//! When an event arrives, `statig` will first dispatch it to the current leaf state. If this state returns a `Super` response, it will then be dispatched to that state's superstate, which in turn returns its own response. Every time an event is deferred to a superstate, `statig` will traverse upwards in the graph until it reaches the `Top` state. This is an implicit superstate that will consider every event as handled.
 //!
 //! In case the returned response is a `Transition`, `statig` will perform a transition sequence by traversing the graph from the current source state to the target state by taking the shortest possible path. When this path is going upwards from the source state, every state that is passed will have its **exit action** executed. And then similarly when going downward, every state that is passed will have its **entry action** executed.
 //!
@@ -528,7 +528,7 @@
 //!
 //! Entry and exit actions also have access to state-local storage, but note that exit actions operate on state-local storage of the source state and that entry actions operate on the state-local storage of the target state.
 //!
-//! For example chaning the value of `counter` in the exit action of `LedOn` will have no effect on the value of `counter` in the `LedOff` state.
+//! For example chaining the value of `counter` in the exit action of `LedOn` will have no effect on the value of `counter` in the `LedOff` state.
 //!
 //! Finally, the `StateMachine` trait is implemented on the type that will be used for the shared storage.
 //!
@@ -711,7 +711,7 @@ pub use statig_macro::state;
 ///   the enum variant. It is crucial to understand that superstates never own
 ///   their data. Instead it is always borrowed from the underlying state or
 ///   superstate. This means the fields should be references with an
-///   assoaciated lifetime `'a`.
+///   associated lifetime `'a`.
 ///
 ///   <br/>
 #[cfg(feature = "macro")]
