@@ -35,12 +35,12 @@ where
 
 /// A state machine where the shared storage is of type `Self`.
 pub trait StateMachineSharedStorage: StateMachine {
-    /// Create an uninitialized state machine. Use [UninitializedStateMachine::init] to initialize it.
-    fn state_machine(self) -> UninitializedStateMachine<Self>
+    /// Create an uninitialized state machine. Use [UnInitializedStateMachine::init] to initialize it.
+    fn state_machine(self) -> UnInitializedStateMachine<Self>
     where
         Self: Sized,
     {
-        UninitializedStateMachine {
+        UnInitializedStateMachine {
             shared_storage: self,
             state: Self::INITIAL,
         }
@@ -54,7 +54,7 @@ impl<T> StateMachineSharedStorage for T where T: StateMachine {}
 /// A state machine needs to be initialized before it can handle events. This
 /// can be done by calling the [`init`](Self::init) method on it. This will
 /// execute all the entry actions into the initial state.
-pub struct UninitializedStateMachine<M>
+pub struct UnInitializedStateMachine<M>
 where
     M: StateMachine,
 {
@@ -62,7 +62,7 @@ where
     state: <M as StateMachine>::State,
 }
 
-impl<M> UninitializedStateMachine<M>
+impl<M> UnInitializedStateMachine<M>
 where
     M: StateMachine,
 {
@@ -90,8 +90,8 @@ where
     /// // state machine.
     /// let initialized_state_machine = uninitialized_state_machine.init();
     /// ```
-    pub fn init(self) -> InitializedStatemachine<M> {
-        let mut state_machine: InitializedStatemachine<M> = InitializedStatemachine {
+    pub fn init(self) -> InitializedStateMachine<M> {
+        let mut state_machine: InitializedStateMachine<M> = InitializedStateMachine {
             shared_storage: self.shared_storage,
             state: self.state,
         };
@@ -101,7 +101,7 @@ where
 }
 
 /// A state machine that has been initialized.
-pub struct InitializedStatemachine<M>
+pub struct InitializedStateMachine<M>
 where
     M: StateMachine,
 {
@@ -109,7 +109,7 @@ where
     state: <M as StateMachine>::State,
 }
 
-impl<M> InitializedStatemachine<M>
+impl<M> InitializedStateMachine<M>
 where
     M: StateMachine,
 {
@@ -163,7 +163,7 @@ where
     }
 }
 
-impl<'a, M> InitializedStatemachine<M>
+impl<'a, M> InitializedStateMachine<M>
 where
     M: StateMachine<Event<'a> = ()>,
 {
@@ -173,7 +173,7 @@ where
     }
 }
 
-impl<M> Default for InitializedStatemachine<M>
+impl<M> Default for InitializedStateMachine<M>
 where
     M: StateMachine + Default,
 {
@@ -185,7 +185,7 @@ where
     }
 }
 
-impl<M> core::ops::Deref for InitializedStatemachine<M>
+impl<M> core::ops::Deref for InitializedStateMachine<M>
 where
     M: StateMachine,
 {
@@ -196,7 +196,7 @@ where
     }
 }
 
-impl<M> core::ops::DerefMut for InitializedStatemachine<M>
+impl<M> core::ops::DerefMut for InitializedStateMachine<M>
 where
     M: StateMachine,
 {
