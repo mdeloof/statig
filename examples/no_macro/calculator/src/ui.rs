@@ -2,14 +2,14 @@ use eframe::egui::{self, Button, Label, Response, RichText, Style, Visuals, Widg
 use eframe::egui::{Layout, Ui};
 use eframe::emath::Align;
 use eframe::epaint::{FontFamily, FontId};
-use statig::InitializedStatemachine;
+use statig::InitializedStateMachine;
 
 use crate::state::{Calculator, Event, Operator};
 
-pub struct App(pub InitializedStatemachine<Calculator>);
+pub struct App(pub InitializedStateMachine<Calculator>);
 
 impl std::ops::Deref for App {
-    type Target = InitializedStatemachine<Calculator>;
+    type Target = InitializedStateMachine<Calculator>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
