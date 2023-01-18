@@ -11,6 +11,8 @@
 //!
 //! ## Statig in action
 //!
+//! A simple blinky state machine:
+//!
 //! ```text
 //! ┌─────────────────────────┐                   
 //! │         Blinking        │◀─────────┐        
