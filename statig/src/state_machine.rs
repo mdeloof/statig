@@ -1,4 +1,5 @@
 use core::fmt::Debug;
+use core::marker::PhantomData;
 
 use crate::Response;
 use crate::State;
@@ -100,6 +101,183 @@ where
     }
 }
 
+impl<M> Clone for UnInitializedStateMachine<M>
+where
+    M: StateMachine + Clone,
+    <M as StateMachine>::State: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            shared_storage: self.shared_storage.clone(),
+            state: self.state.clone(),
+        }
+    }
+}
+
+impl<M> Debug for UnInitializedStateMachine<M>
+where
+    M: StateMachine + Debug,
+    M::State: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("UnInitializedStateMachine")
+            .field("shared_storage", &self.shared_storage as &dyn Debug)
+            .field("state", &self.state as &dyn Debug)
+            .finish()
+    }
+}
+
+impl<M> PartialEq for UnInitializedStateMachine<M>
+where
+    M: StateMachine + PartialEq,
+    M::State: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.shared_storage == other.shared_storage && self.state == other.state
+    }
+}
+
+impl<M> Eq for UnInitializedStateMachine<M>
+where
+    M: StateMachine + PartialEq + Eq,
+    M::State: PartialEq + Eq,
+{
+}
+
+#[cfg(feature = "serde")]
+impl<M> serde::Serialize for UnInitializedStateMachine<M>
+where
+    M: StateMachine + serde::Serialize,
+    M::State: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut serializer = serializer.serialize_struct("StateMachine", 2)?;
+        serializer.serialize_field("shared_storage", &self.shared_storage)?;
+        serializer.serialize_field("state", &self.state)?;
+        serializer.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, M> serde::Deserialize<'de> for UnInitializedStateMachine<M>
+where
+    M: StateMachine + serde::Deserialize<'de>,
+    M::State: serde::Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        enum Field {
+            SharedStorage,
+            State,
+        }
+
+        impl<'de> serde::Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct FieldVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                        formatter.write_str("`shared_storage` or `state`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "shared_storage" => Ok(Field::SharedStorage),
+                            "state" => Ok(Field::State),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct UnInitializedStateMachineVisitor<M>(PhantomData<M>);
+
+        impl<'de, M> serde::de::Visitor<'de> for UnInitializedStateMachineVisitor<M>
+        where
+            M: StateMachine + serde::Deserialize<'de>,
+            M::State: serde::Deserialize<'de>,
+        {
+            type Value = UnInitializedStateMachine<M>;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("StateMachine")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let shared_storage = seq
+                    .next_element()?
+                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                let state = seq
+                    .next_element()?
+                    .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
+                Ok(UnInitializedStateMachine {
+                    shared_storage,
+                    state,
+                })
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+            where
+                V: serde::de::MapAccess<'de>,
+            {
+                let mut shared_storage = None;
+                let mut state = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::SharedStorage => {
+                            if shared_storage.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shared_storage"));
+                            }
+                            shared_storage = Some(map.next_value()?);
+                        }
+                        Field::State => {
+                            if state.is_some() {
+                                return Err(serde::de::Error::duplicate_field("state"));
+                            }
+                            state = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let shared_storage = shared_storage
+                    .ok_or_else(|| serde::de::Error::missing_field("shared_storage"))?;
+                let state = state.ok_or_else(|| serde::de::Error::missing_field("state"))?;
+                Ok(UnInitializedStateMachine {
+                    shared_storage,
+                    state,
+                })
+            }
+        }
+
+        const FIELDS: &[&str] = &["shared_storage", "state"];
+        deserializer.deserialize_struct(
+            "StateMachine",
+            FIELDS,
+            UnInitializedStateMachineVisitor(PhantomData::default()),
+        )
+    }
+}
+
 /// A state machine that has been initialized.
 pub struct InitializedStateMachine<M>
 where
@@ -173,6 +351,32 @@ where
     }
 }
 
+impl<M> Clone for InitializedStateMachine<M>
+where
+    M: StateMachine + Clone,
+    <M as StateMachine>::State: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            shared_storage: self.shared_storage.clone(),
+            state: self.state.clone(),
+        }
+    }
+}
+
+impl<M> Debug for InitializedStateMachine<M>
+where
+    M: StateMachine + Debug,
+    M::State: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("InitializedStateMachine")
+            .field("shared_storage", &self.shared_storage as &dyn Debug)
+            .field("state", &self.state as &dyn Debug)
+            .finish()
+    }
+}
+
 impl<M> Default for InitializedStateMachine<M>
 where
     M: StateMachine + Default,
@@ -183,6 +387,23 @@ where
             state: <M as StateMachine>::INITIAL,
         }
     }
+}
+
+impl<M> PartialEq for InitializedStateMachine<M>
+where
+    M: StateMachine + PartialEq,
+    M::State: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.shared_storage == other.shared_storage && self.state == other.state
+    }
+}
+
+impl<M> Eq for InitializedStateMachine<M>
+where
+    M: StateMachine + PartialEq + Eq,
+    M::State: PartialEq + Eq,
+{
 }
 
 impl<M> core::ops::Deref for InitializedStateMachine<M>
@@ -202,6 +423,25 @@ where
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.shared_storage
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<M> serde::Serialize for InitializedStateMachine<M>
+where
+    M: StateMachine + serde::Serialize,
+    M::State: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut serializer = serializer.serialize_struct("StateMachine", 2)?;
+        serializer.serialize_field("shared_storage", &self.shared_storage)?;
+        serializer.serialize_field("state", &self.state)?;
+        serializer.end()
     }
 }
 
@@ -230,4 +470,27 @@ where
                 .finish(),
         }
     }
+}
+
+impl<'a, 'b, M> PartialEq for StateOrSuperstate<'a, 'b, M>
+where
+    M: StateMachine,
+    M::State: 'b + PartialEq,
+    M::Superstate<'b>: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::State(state), Self::State(other)) => state == other,
+            (Self::Superstate(superstate), Self::Superstate(other)) => superstate == other,
+            _ => false,
+        }
+    }
+}
+
+impl<'a, 'b, M> Eq for StateOrSuperstate<'a, 'b, M>
+where
+    M: StateMachine + PartialEq + Eq,
+    M::State: 'b + PartialEq + Eq,
+    M::Superstate<'b>: PartialEq + Eq,
+{
 }

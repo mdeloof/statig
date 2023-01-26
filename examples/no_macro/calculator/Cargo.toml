@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = "0.19.0"
+eframe = "0.20.1"
 statig = { path = "../../../statig", features = [] }
