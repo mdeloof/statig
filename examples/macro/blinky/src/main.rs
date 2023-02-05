@@ -76,7 +76,7 @@ impl Blinky {
 impl Blinky {
     // The `on_transition` callback that will be called after every transition.
     fn on_transition(&mut self, source: &State, target: &State) {
-        println!("transitioned from `{:?}` to `{:?}`", source, target);
+        println!("transitioned from `{source:?}` to `{target:?}`");
     }
 
     fn on_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
@@ -92,10 +92,7 @@ where
     S: Debug,
     E: Debug,
 {
-    println!(
-        "{:?}: dispatching `{:?}` to `{:?}`",
-        state_machine, event, state
-    );
+    println!("{state_machine:?}: dispatching `{event:?}` to `{state:?}`");
 }
 
 fn main() {
