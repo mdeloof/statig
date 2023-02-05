@@ -1,5 +1,4 @@
 use core::fmt::Debug;
-use core::marker::PhantomData;
 
 use crate::Response;
 use crate::State;
@@ -173,6 +172,8 @@ where
     where
         D: serde::Deserializer<'de>,
     {
+        use core::marker::PhantomData;
+
         enum Field {
             SharedStorage,
             State,
