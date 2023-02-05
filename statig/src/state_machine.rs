@@ -163,6 +163,8 @@ where
 }
 
 #[cfg(feature = "serde")]
+/// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
+/// then be initialized with [`init`](UnInitializedStateMachine::init).
 impl<'de, M> serde::Deserialize<'de> for UnInitializedStateMachine<M>
 where
     M: StateMachine + serde::Deserialize<'de>,
@@ -428,6 +430,9 @@ where
 }
 
 #[cfg(feature = "serde")]
+/// Once an [`InitializedStateMachine`] is serialized, it can only be deserialized into
+/// an [`UnInitializedStateMachine`] which can then be re-initialized with the
+/// [`init`](UnInitializedStateMachine::init) method.
 impl<M> serde::Serialize for InitializedStateMachine<M>
 where
     M: StateMachine + serde::Serialize,
