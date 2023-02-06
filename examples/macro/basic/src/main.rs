@@ -37,7 +37,7 @@ impl Blinky {
 
 fn main() {
     /// We use the `state_machine` method to create a state machine.
-    let state_machine = Blinky::default().state_machine();
+    let state_machine = Blinky::default().uninitialized_state_machine();
 
     /// Before we submit events to the state machine we need to call the
     /// `init` method on it. This will initialized the state machine

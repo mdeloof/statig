@@ -31,6 +31,8 @@ pub struct StateMachine {
     pub shared_storage_type: Type,
     /// The type of the event that is passed to the state machine.
     pub event_type: Option<Type>,
+    /// The type of the context that is passed to the state machine.
+    pub context_type: Option<Type>,
     /// The name for the state type.
     pub state_type: Type,
     /// Derives that will be applied on the state type.
@@ -39,10 +41,10 @@ pub struct StateMachine {
     pub superstate_type: Type,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
-    /// The input that will be handled by the state machine.
-    pub external_input_pattern: Pat,
-    /// The idents that will be binded by destructering the input pattern.
-    pub external_inputs: Vec<Ident>,
+    /// The identifier that is used for the event argument.
+    pub event_ident: Ident,
+    /// The identifier that is used for the context argument.
+    pub context_ident: Ident,
     /// The visibility of the derived types.
     pub visibility: Visibility,
     /// Optional `on_transition` callback.
@@ -70,8 +72,10 @@ pub struct State {
     pub shared_storage_input: Option<FnArg>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<FnArg>,
-    /// Inputs that are submitted to the state machine.
-    pub external_inputs: Vec<FnArg>,
+    /// Event that is submitted to the state machine.
+    pub event_arg: Option<FnArg>,
+    /// Context that is submitted to the state machine.
+    pub context_arg: Option<FnArg>,
 }
 
 /// Information regarding a superstate.
@@ -93,8 +97,10 @@ pub struct Superstate {
     pub shared_storage_input: Option<FnArg>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<FnArg>,
-    /// Inputs that are submitted to the state machine.
-    pub external_inputs: Vec<FnArg>,
+    /// Event that is submitted to the state machine.
+    pub event_arg: Option<FnArg>,
+    /// Context that is submitted to the state machine.
+    pub context_arg: Option<FnArg>,
 }
 
 /// Information regarding an action.
@@ -157,6 +163,7 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let shared_storage_type = item_impl.self_ty.as_ref().clone();
     let mut event_type = None;
+    let mut context_type = None;
 
     let mut initial_state: Option<ExprCall> = None;
 
@@ -169,7 +176,8 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let mut on_dispatch = None;
 
     let mut visibility = parse_quote!(pub);
-    let mut external_input_pattern = parse_quote!(event);
+    let mut event_ident = parse_quote!(event);
+    let mut context_ident = parse_quote!(context);
 
     let mut state_meta: MetaList = parse_quote!(state());
     let mut superstate_meta: MetaList = parse_quote!(superstate());
@@ -191,10 +199,26 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                 }
             }
             NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("event_pattern") =>
+                if name_value.path.is_ident("context") =>
             {
-                external_input_pattern = match &name_value.lit {
-                    Lit::Str(input_pat) => input_pat.parse().unwrap(),
+                context_type = match &name_value.lit {
+                    Lit::Str(input_pat) => input_pat.parse().ok(),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("event_identifier") =>
+            {
+                event_ident = match &name_value.lit {
+                    Lit::Str(event_ident) => event_ident.parse().unwrap(),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("context_identifier") =>
+            {
+                context_ident = match &name_value.lit {
+                    Lit::Str(context_ident) => context_ident.parse().unwrap(),
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
@@ -222,7 +246,6 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
-
             NestedMeta::Meta(Meta::List(list)) if list.path.is_ident("state") => {
                 state_meta = list.clone();
             }
@@ -241,8 +264,6 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
             help = "add an initial state `#[state_machine(initial = \"State::initial_state()\"]"
         );
     };
-
-    let external_inputs = get_idents_from_pat(&external_input_pattern);
 
     for meta in state_meta
         .nested
@@ -316,14 +337,15 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         initial_state,
         shared_storage_type,
         event_type,
+        context_type,
         state_type,
         state_derives,
         superstate_type,
         superstate_derives,
         on_dispatch,
         on_transition,
-        external_input_pattern,
-        external_inputs,
+        event_ident,
+        context_ident,
         visibility,
     }
 }
@@ -339,14 +361,18 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let mut local_storage = Vec::new();
     let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
-    let mut external_inputs = Vec::new();
+    let mut event_arg = None;
+    let mut context_arg = None;
 
     for input in &method.sig.inputs {
         match input {
             FnArg::Receiver(_) => shared_storage_input = Some(input.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
-                Pat::Ident(pat) if state_machine.external_inputs.contains(&pat.ident) => {
-                    external_inputs.push(input.clone());
+                Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
+                    event_arg = Some(input.clone());
+                }
+                Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
+                    context_arg = Some(input.clone());
                 }
                 Pat::Ident(_) => {
                     state_inputs.push(input.clone());
@@ -407,7 +433,8 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         inputs,
         shared_storage_input,
         state_inputs,
-        external_inputs,
+        event_arg,
+        context_arg,
     }
 }
 
@@ -422,14 +449,18 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     let mut local_storage = Vec::new();
     let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
-    let mut external_inputs = Vec::new();
+    let mut event_arg = None;
+    let mut context_arg = None;
 
     for input in &method.sig.inputs {
         match input {
             FnArg::Receiver(_) => shared_storage_input = Some(input.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
-                Pat::Ident(pat) if state_machine.external_inputs.contains(&pat.ident) => {
-                    external_inputs.push(input.clone());
+                Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
+                    event_arg = Some(input.clone());
+                }
+                Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
+                    context_arg = Some(input.clone());
                 }
                 Pat::Ident(_) => {
                     state_inputs.push(input.clone());
@@ -490,7 +521,8 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         inputs,
         shared_storage_input,
         state_inputs,
-        external_inputs,
+        event_arg,
+        context_arg,
     }
 }
 
@@ -553,7 +585,7 @@ fn valid_state_analyze() {
     use syn::parse_quote;
 
     let init_arg: NestedMeta = parse_quote!(initial = "State::on()");
-    let input_arg: NestedMeta = parse_quote!(event_pattern = "event");
+    let input_arg: NestedMeta = parse_quote!(event_identifier = "event");
     let state_arg: NestedMeta = parse_quote!(state(derive(Copy, Clone)));
     let superstate_arg: NestedMeta = parse_quote!(superstate(derive(Copy, Clone)));
     let attribute_args = vec![init_arg, input_arg, state_arg, superstate_arg];
@@ -588,6 +620,7 @@ fn valid_state_analyze() {
 
     let shared_storage_type = parse_quote!(Blinky);
     let event_type = None;
+    let context_type = None;
 
     let state_type = parse_quote!(State);
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
@@ -595,22 +628,23 @@ fn valid_state_analyze() {
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let on_transition = None;
     let on_dispatch = None;
-    let external_input_pattern = parse_quote!(event);
-    let external_inputs = vec![parse_quote!(event)];
+    let event_ident = parse_quote!(event);
+    let context_ident = parse_quote!(context);
     let visibility = parse_quote!(pub);
 
     let state_machine = StateMachine {
         initial_state,
         shared_storage_type,
         event_type,
+        context_type,
         state_type,
         state_derives,
         superstate_type,
         superstate_derives,
         on_transition,
         on_dispatch,
-        external_input_pattern,
-        external_inputs,
+        event_ident,
+        context_ident,
         visibility,
     };
 
@@ -623,7 +657,8 @@ fn valid_state_analyze() {
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
         shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
-        external_inputs: vec![parse_quote!(event: &Event)],
+        event_arg: Some(parse_quote!(event: &Event)),
+        context_arg: None,
     };
 
     let superstate = Superstate {
@@ -635,7 +670,8 @@ fn valid_state_analyze() {
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
         shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
-        external_inputs: vec![parse_quote!(event: &Event)],
+        event_arg: Some(parse_quote!(event: &Event)),
+        context_arg: None,
     };
 
     let entry_action = Action {

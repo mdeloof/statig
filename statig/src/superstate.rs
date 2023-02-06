@@ -1,29 +1,32 @@
 use core::cmp::Ordering;
 
+use crate::IntoStateMachine;
 use crate::Response;
-use crate::StateMachine;
 use crate::StateOrSuperstate;
 
 /// An enum that represents the superstates of the state machine.
 pub trait Superstate<M>
 where
-    M: StateMachine,
+    M: IntoStateMachine,
 {
     /// Call the handler for the current superstate.
     fn call_handler(
         &mut self,
         shared_storage: &mut M,
-        event: &<M as StateMachine>::Event<'_>,
-    ) -> Response<<M as StateMachine>::State>;
+        event: &M::Event<'_>,
+        context: &mut M::Context<'_>,
+    ) -> Response<M::State>;
 
+    #[allow(unused)]
     /// Call the entry action for the current superstate.
-    fn call_entry_action(&mut self, _object: &mut M) {}
+    fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
 
+    #[allow(unused)]
     /// Call the exit action for the current superstate.
-    fn call_exit_action(&mut self, _object: &mut M) {}
+    fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
 
     /// Return the superstate of the current superstate, if there is one.
-    fn superstate(&mut self) -> Option<<M as StateMachine>::Superstate<'_>>
+    fn superstate(&mut self) -> Option<M::Superstate<'_>>
     where
         Self: Sized,
     {
@@ -34,23 +37,18 @@ where
 /// Extensions for `Superstate` trait.
 pub trait SuperstateExt<M>: Superstate<M>
 where
-    M: StateMachine,
+    M: IntoStateMachine,
     Self: Sized,
 {
-    fn same_state(
-        lhs: &<M as StateMachine>::Superstate<'_>,
-        rhs: &<M as StateMachine>::Superstate<'_>,
-    ) -> bool {
+    fn same_state(lhs: &M::Superstate<'_>, rhs: &M::Superstate<'_>) -> bool {
         use core::mem::{discriminant, transmute, Discriminant};
 
         // Generic associated types are invariant over any lifetime arguments, so the
         // compiler won't allow us to compare them directly. Instead we need to coerce them
         // to have the same lifetime by transmuting them to the same type.
 
-        let lhs: Discriminant<<M as StateMachine>::Superstate<'_>> =
-            unsafe { transmute(discriminant(lhs)) };
-        let rhs: Discriminant<<M as StateMachine>::Superstate<'_>> =
-            unsafe { transmute(discriminant(rhs)) };
+        let lhs: Discriminant<M::Superstate<'_>> = unsafe { transmute(discriminant(lhs)) };
+        let rhs: Discriminant<M::Superstate<'_>> = unsafe { transmute(discriminant(rhs)) };
 
         lhs == rhs
     }
@@ -65,8 +63,8 @@ where
 
     /// Get the depth of the common ancestor of two states.
     fn common_ancestor_depth(
-        mut source: <M as StateMachine>::Superstate<'_>,
-        mut target: <M as StateMachine>::Superstate<'_>,
+        mut source: M::Superstate<'_>,
+        mut target: M::Superstate<'_>,
     ) -> usize {
         match source.depth().cmp(&target.depth()) {
             Ordering::Equal => match Self::same_state(&source, &target) {
@@ -91,12 +89,13 @@ where
     fn handle(
         &mut self,
         shared_storage: &mut M,
-        event: &<M as StateMachine>::Event<'_>,
-    ) -> Response<<M as StateMachine>::State>
+        event: &M::Event<'_>,
+        context: &mut M::Context<'_>,
+    ) -> Response<M::State>
     where
         Self: Sized,
     {
-        let response = self.call_handler(shared_storage, event);
+        let response = self.call_handler(shared_storage, event, context);
 
         match response {
             Response::Handled => Response::Handled,
@@ -108,7 +107,7 @@ where
                         event,
                     );
 
-                    superstate.handle(shared_storage, event)
+                    superstate.handle(shared_storage, event, context)
                 }
                 None => Response::Super,
             },
@@ -118,31 +117,31 @@ where
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current superstate.
-    fn enter(&mut self, shared_storage: &mut M, mut levels: usize) {
+    fn enter(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, mut levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_entry_action(shared_storage),
+            1 => self.call_entry_action(shared_storage, context),
             _ => {
                 if let Some(mut superstate) = self.superstate() {
                     levels -= 1;
-                    superstate.enter(shared_storage, levels);
+                    superstate.enter(shared_storage, context, levels);
                 }
-                self.call_entry_action(shared_storage);
+                self.call_entry_action(shared_storage, context);
             }
         }
     }
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(&mut self, shared_storage: &mut M, mut levels: usize) {
+    fn exit(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, mut levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_exit_action(shared_storage),
+            1 => self.call_exit_action(shared_storage, context),
             _ => {
-                self.call_exit_action(shared_storage);
+                self.call_exit_action(shared_storage, context);
                 if let Some(mut superstate) = self.superstate() {
                     levels -= 1;
-                    superstate.exit(shared_storage, levels);
+                    superstate.exit(shared_storage, context, levels);
                 }
             }
         }
@@ -152,21 +151,22 @@ where
 /// When no superstates are required, the user can pass the [`()`](unit) type.
 impl<M> Superstate<M> for ()
 where
-    M: StateMachine,
+    M: IntoStateMachine,
 {
     fn call_handler(
         &mut self,
-        _shared_storage: &mut M,
-        _event: &<M as StateMachine>::Event<'_>,
-    ) -> Response<<M as StateMachine>::State> {
+        _: &mut M,
+        _: &M::Event<'_>,
+        _: &mut M::Context<'_>,
+    ) -> Response<M::State> {
         Response::Handled
     }
 
-    fn call_entry_action(&mut self, _object: &mut M) {}
+    fn call_entry_action(&mut self, _: &mut M, _: &mut M::Context<'_>) {}
 
-    fn call_exit_action(&mut self, _object: &mut M) {}
+    fn call_exit_action(&mut self, _: &mut M, _: &mut M::Context<'_>) {}
 
-    fn superstate(&mut self) -> Option<<M as StateMachine>::Superstate<'_>>
+    fn superstate(&mut self) -> Option<M::Superstate<'_>>
     where
         Self: Sized,
     {
@@ -177,6 +177,6 @@ where
 impl<T, M> SuperstateExt<M> for T
 where
     T: Superstate<M>,
-    M: StateMachine,
+    M: IntoStateMachine,
 {
 }

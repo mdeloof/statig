@@ -57,18 +57,25 @@ pub enum Superstate<'a> {
     On,
 }
 
-impl StateMachine for Calculator {
+impl IntoStateMachine for Calculator {
     type State = State;
 
     type Superstate<'a> = Superstate<'a>;
 
     type Event<'a> = Event;
 
+    type Context<'a> = ();
+
     const INITIAL: State = State::Begin;
 }
 
 impl statig::State<Calculator> for State {
-    fn call_handler(&mut self, calculator: &mut Calculator, event: &Event) -> Response<Self> {
+    fn call_handler(
+        &mut self,
+        calculator: &mut Calculator,
+        event: &Event,
+        _: &mut (),
+    ) -> Response<Self> {
         match self {
             State::Begin => Calculator::begin(calculator, event),
             State::Response { result } => Calculator::result(result, event),
@@ -94,7 +101,7 @@ impl statig::State<Calculator> for State {
         }
     }
 
-    fn call_entry_action(&mut self, calculator: &mut Calculator) {
+    fn call_entry_action(&mut self, calculator: &mut Calculator, _: &mut ()) {
         match self {
             State::Begin => Calculator::enter_begin(calculator),
             State::Response { result } => Calculator::enter_result(calculator, result),
@@ -124,7 +131,12 @@ impl statig::State<Calculator> for State {
 }
 
 impl<'a> statig::Superstate<Calculator> for Superstate<'a> {
-    fn call_handler(&mut self, calculator: &mut Calculator, event: &Event) -> Response<State> {
+    fn call_handler(
+        &mut self,
+        calculator: &mut Calculator,
+        event: &Event,
+        _: &mut (),
+    ) -> Response<State> {
         match self {
             Superstate::Ready => Calculator::ready(calculator, event),
             Superstate::Operand1 => Calculator::operand1(calculator, event),

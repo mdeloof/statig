@@ -13,6 +13,7 @@ keywords = ["fsm", "hsm", "statechart", "embedded"]
 [dependencies]
 statig_macro = { path = "../macro", version = "0.2.0-beta", optional = true }
 serde = { version = "1.0.152", optional = true }
+bevy_ecs = { version = "0.9.1", optional = true }
 
 [dev-dependencies]
 bincode = "1.3.3"
@@ -25,4 +26,5 @@ unit-enum = { git = "https://github.com/mdeloof/unit-enum.git" }
 default = ["macro"]
 macro = ["statig_macro"]
 serde = ["dep:serde"]
+bevy = ["dep:bevy_ecs"]
 std = []

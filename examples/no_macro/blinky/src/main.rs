@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use statig::prelude::*;
-use statig::StateMachine;
+use statig::IntoStateMachine;
 use std::io::Write;
 
 #[derive(Default)]
@@ -30,7 +30,7 @@ pub enum Superstate {
 
 // The `statig` trait needs to be implemented on the type that will
 // imlement the state machine.
-impl StateMachine for Blinky {
+impl IntoStateMachine for Blinky {
     /// The enum that represents the state.
     type State = State;
 
@@ -39,13 +39,15 @@ impl StateMachine for Blinky {
     /// The event type that will be submitted to the state machine.
     type Event<'a> = Event;
 
+    type Context<'a> = ();
+
     /// The initial state of the state machine.
     const INITIAL: State = State::LedOn;
 }
 
 // Implement the `statig::State` trait for the state enum.
 impl statig::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<Self> {
         match self {
             State::LedOn => Blinky::led_on(event),
             State::LedOff => Blinky::led_off(event),
@@ -64,7 +66,7 @@ impl statig::State<Blinky> for State {
 
 // Implement the `statig::Superstate` trait for the superstate enum.
 impl statig::Superstate<Blinky> for Superstate {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<State> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<State> {
         match self {
             Superstate::Blinking => Blinky::blinking(event),
         }
@@ -102,7 +104,7 @@ impl Blinky {
 }
 
 fn main() {
-    let mut state_machine = Blinky::default().state_machine().init();
+    let mut state_machine = Blinky::default().uninitialized_state_machine().init();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);

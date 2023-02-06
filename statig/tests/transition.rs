@@ -46,18 +46,25 @@ mod tests {
         S21,
     }
 
-    impl StateMachine for Foo {
+    impl IntoStateMachine for Foo {
         type State = State;
 
         type Superstate<'a> = Superstate;
 
         type Event<'a> = Event;
 
+        type Context<'a> = ();
+
         const INITIAL: State = State::S11;
     }
 
     impl statig::State<Foo> for State {
-        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> statig::Response<Self> {
+        fn call_handler(
+            &mut self,
+            object: &mut Foo,
+            event: &Event,
+            _: &mut (),
+        ) -> statig::Response<Self> {
             match self {
                 State::S211 {} => Foo::s211(object, event),
                 State::S11 {} => Foo::s11(object, event),
@@ -65,7 +72,7 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Foo) {
+        fn call_entry_action(&mut self, object: &mut Foo, _: &mut ()) {
             match self {
                 State::S211 {} => Foo::enter_s211(object),
                 State::S11 {} => Foo::enter_s11(object),
@@ -73,7 +80,7 @@ mod tests {
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Foo) {
+        fn call_exit_action(&mut self, object: &mut Foo, _: &mut ()) {
             match self {
                 State::S211 {} => Foo::exit_s211(object),
                 State::S11 {} => Foo::exit_s11(object),
@@ -91,7 +98,12 @@ mod tests {
     }
 
     impl statig::Superstate<Foo> for Superstate {
-        fn call_handler(&mut self, object: &mut Foo, event: &Event) -> statig::Response<State>
+        fn call_handler(
+            &mut self,
+            object: &mut Foo,
+            event: &Event,
+            _: &mut (),
+        ) -> statig::Response<State>
         where
             Self: Sized,
         {
@@ -103,7 +115,7 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Foo) {
+        fn call_entry_action(&mut self, object: &mut Foo, _: &mut ()) {
             match self {
                 Superstate::S21 {} => Foo::enter_s21(object),
                 Superstate::S {} => Foo::enter_s(object),
@@ -112,7 +124,7 @@ mod tests {
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Foo) {
+        fn call_exit_action(&mut self, object: &mut Foo, _: &mut ()) {
             match self {
                 Superstate::S21 {} => Foo::exit_s21(object),
                 Superstate::S {} => Foo::exit_s(object),
@@ -260,7 +272,7 @@ mod tests {
 
     #[test]
     fn test_transition_path() {
-        let mut state_machine = Foo::default().state_machine().init();
+        let mut state_machine = Foo::default().uninitialized_state_machine().init();
 
         state_machine.handle(&Event::A);
         state_machine.handle(&Event::B);

@@ -17,7 +17,7 @@ pub struct Event;
 
 /// The `StateMachine` trait needs to be implemented on the type that will be
 /// the shared storage for the state machine.
-impl StateMachine for Blinky {
+impl IntoStateMachine for Blinky {
     /// The enum that represents the state.
     type State = State;
 
@@ -26,6 +26,8 @@ impl StateMachine for Blinky {
 
     /// The event type that will be submitted to the state machine.
     type Event<'a> = Event;
+
+    type Context<'a> = ();
 
     /// The initial state of the state machine.
     const INITIAL: State = State::Off;
@@ -37,7 +39,7 @@ impl StateMachine for Blinky {
 }
 
 impl statig::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<Self> {
         match self {
             State::On => blinky.on(event),
             State::Off => blinky.off(event),
@@ -60,7 +62,7 @@ impl Blinky {
 }
 
 fn main() {
-    let mut state_machine = Blinky::default().state_machine().init();
+    let mut state_machine = Blinky::default().uninitialized_state_machine().init();
 
     state_machine.handle(&Event);
 }

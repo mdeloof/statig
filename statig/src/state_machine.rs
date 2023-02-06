@@ -6,12 +6,15 @@ use crate::StateExt;
 use crate::Superstate;
 
 /// A data structure that declares the types associated with the state machine.
-pub trait StateMachine
+pub trait IntoStateMachine
 where
     Self: Sized,
 {
     /// Event that is processed by the state machine.
     type Event<'a>;
+
+    /// External context that can be passed in.
+    type Context<'a>;
 
     /// Enumeration of the various states.
     type State: State<Self>;
@@ -34,76 +37,90 @@ where
 }
 
 /// A state machine where the shared storage is of type `Self`.
-pub trait StateMachineSharedStorage: StateMachine {
-    /// Create an uninitialized state machine. Use [UnInitializedStateMachine::init] to initialize it.
-    fn state_machine(self) -> UnInitializedStateMachine<Self>
+pub trait IntoStateMachineExt: IntoStateMachine {
+    /// Create a state machine that will be lazily initialized.
+    fn state_machine(self) -> StateMachine<Self>
     where
         Self: Sized,
     {
-        UnInitializedStateMachine {
+        let inner = Inner {
             shared_storage: self,
             state: Self::INITIAL,
+        };
+        StateMachine {
+            inner,
+            initialized: false,
         }
     }
-}
 
-impl<T> StateMachineSharedStorage for T where T: StateMachine {}
-
-/// A state machine that has not yet been initialized.
-///
-/// A state machine needs to be initialized before it can handle events. This
-/// can be done by calling the [`init`](Self::init) method on it. This will
-/// execute all the entry actions into the initial state.
-pub struct UnInitializedStateMachine<M>
-where
-    M: StateMachine,
-{
-    shared_storage: M,
-    state: <M as StateMachine>::State,
-}
-
-impl<M> UnInitializedStateMachine<M>
-where
-    M: StateMachine,
-{
-    /// Initialize the state machine by executing all entry actions towards
-    /// the initial state.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(initial = "State::on()")]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
-    /// # }
-    /// #
-    /// let uninitialized_state_machine = Blinky::default().state_machine();
-    ///
-    /// // The uninitialized state machine is consumed to create the initialized
-    /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init();
-    /// ```
-    pub fn init(self) -> InitializedStateMachine<M> {
-        let mut state_machine: InitializedStateMachine<M> = InitializedStateMachine {
-            shared_storage: self.shared_storage,
-            state: self.state,
+    /// Create an uninitialized state machine that must be explicitly initialized with
+    /// [`init`](UninitializedStateMachine::init).
+    fn uninitialized_state_machine(self) -> UninitializedStateMachine<Self> {
+        let inner = Inner {
+            shared_storage: self,
+            state: Self::INITIAL,
         };
-        state_machine.init();
-        state_machine
+        UninitializedStateMachine { inner }
     }
 }
 
-impl<M> Clone for UnInitializedStateMachine<M>
+impl<T> IntoStateMachineExt for T where T: IntoStateMachine {}
+
+/// Private internal representation of a state machine that is used for the public types.
+struct Inner<M>
 where
-    M: StateMachine + Clone,
-    <M as StateMachine>::State: Clone,
+    M: IntoStateMachine,
+{
+    shared_storage: M,
+    state: M::State,
+}
+
+impl<M> Inner<M>
+where
+    M: IntoStateMachine,
+{
+    /// Initialize the state machine by executing all entry actions towards the initial state.
+    fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+        let enter_levels = self.state.depth();
+        self.state
+            .enter(&mut self.shared_storage, context, enter_levels);
+    }
+
+    /// Handle the given event.
+    fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) {
+        let response = self.state.handle(&mut self.shared_storage, event, context);
+
+        match response {
+            Response::Super => {}
+            Response::Handled => {}
+            Response::Transition(state) => self.transition(state, context),
+        }
+    }
+
+    /// Transition from the current state to the given target state.
+    fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
+        // Get the transition path we need to perform from one state to the next.
+        let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
+
+        // Perform the exit from the previous state towards the common ancestor state.
+        self.state
+            .exit(&mut self.shared_storage, context, exit_levels);
+
+        // Update the state.
+        core::mem::swap(&mut self.state, &mut target);
+
+        // Perform the entry actions from the common ancestor state into the new state.
+        self.state
+            .enter(&mut self.shared_storage, context, enter_levels);
+
+        M::ON_TRANSITION(&mut self.shared_storage, &target, &self.state);
+    }
+}
+
+impl<M> Clone for Inner<M>
+where
+    M: IntoStateMachine + Clone,
+    M::State: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -113,22 +130,9 @@ where
     }
 }
 
-impl<M> Debug for UnInitializedStateMachine<M>
+impl<M> PartialEq for Inner<M>
 where
-    M: StateMachine + Debug,
-    M::State: Debug,
-{
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("UnInitializedStateMachine")
-            .field("shared_storage", &self.shared_storage as &dyn Debug)
-            .field("state", &self.state as &dyn Debug)
-            .finish()
-    }
-}
-
-impl<M> PartialEq for UnInitializedStateMachine<M>
-where
-    M: StateMachine + PartialEq,
+    M: IntoStateMachine + PartialEq,
     M::State: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
@@ -136,17 +140,17 @@ where
     }
 }
 
-impl<M> Eq for UnInitializedStateMachine<M>
+impl<M> Eq for Inner<M>
 where
-    M: StateMachine + PartialEq + Eq,
-    M::State: PartialEq + Eq,
+    M: IntoStateMachine + Eq,
+    M::State: Eq,
 {
 }
 
 #[cfg(feature = "serde")]
-impl<M> serde::Serialize for UnInitializedStateMachine<M>
+impl<M> serde::Serialize for Inner<M>
 where
-    M: StateMachine + serde::Serialize,
+    M: IntoStateMachine + serde::Serialize,
     M::State: serde::Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -165,9 +169,9 @@ where
 #[cfg(feature = "serde")]
 /// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
 /// then be initialized with [`init`](UnInitializedStateMachine::init).
-impl<'de, M> serde::Deserialize<'de> for UnInitializedStateMachine<M>
+impl<'de, M> serde::Deserialize<'de> for Inner<M>
 where
-    M: StateMachine + serde::Deserialize<'de>,
+    M: IntoStateMachine + serde::Deserialize<'de>,
     M::State: serde::Deserialize<'de>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -211,14 +215,14 @@ where
             }
         }
 
-        struct UnInitializedStateMachineVisitor<M>(PhantomData<M>);
+        struct InnerVisitor<M>(PhantomData<M>);
 
-        impl<'de, M> serde::de::Visitor<'de> for UnInitializedStateMachineVisitor<M>
+        impl<'de, M> serde::de::Visitor<'de> for InnerVisitor<M>
         where
-            M: StateMachine + serde::Deserialize<'de>,
+            M: IntoStateMachine + serde::Deserialize<'de>,
             M::State: serde::Deserialize<'de>,
         {
-            type Value = UnInitializedStateMachine<M>;
+            type Value = Inner<M>;
 
             fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
                 formatter.write_str("StateMachine")
@@ -234,10 +238,11 @@ where
                 let state = seq
                     .next_element()?
                     .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
-                Ok(UnInitializedStateMachine {
+                let inner = Inner {
                     shared_storage,
                     state,
-                })
+                };
+                Ok(inner)
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
@@ -265,10 +270,11 @@ where
                 let shared_storage = shared_storage
                     .ok_or_else(|| serde::de::Error::missing_field("shared_storage"))?;
                 let state = state.ok_or_else(|| serde::de::Error::missing_field("state"))?;
-                Ok(UnInitializedStateMachine {
+                let inner = Inner {
                     shared_storage,
                     state,
-                })
+                };
+                Ok(inner)
             }
         }
 
@@ -276,156 +282,441 @@ where
         deserializer.deserialize_struct(
             "StateMachine",
             FIELDS,
-            UnInitializedStateMachineVisitor(PhantomData::default()),
+            InnerVisitor(PhantomData::default()),
         )
+    }
+}
+
+/// A state machine that will be lazily initialized.
+pub struct StateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    inner: Inner<M>,
+    initialized: bool,
+}
+
+impl<M> StateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    /// Explicitly initialize the state machine. If the state machine is already initialized
+    /// this is a no-op.
+    pub fn init<'a>(&mut self)
+    where
+        M: IntoStateMachine<Context<'a> = ()>,
+    {
+        self.init_with_context(&mut ());
+    }
+
+    /// Explicitly initialize the state machine. If the state machine is already initialized
+    /// this is a no-op.
+    pub fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+        if !self.initialized {
+            self.inner.init_with_context(context);
+            self.initialized = true;
+        }
+    }
+
+    /// Handle an event. If the state machine is still uninitialized, it will be initialized
+    /// before handling the event.
+    pub fn handle<'a>(&mut self, event: &M::Event<'_>)
+    where
+        M: IntoStateMachine<Context<'a> = ()>,
+    {
+        self.handle_with_context(event, &mut ());
+    }
+
+    /// Handle an event. If the state machine is still uninitialized, it will be initialized
+    /// before handling the event.
+    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) {
+        if !self.initialized {
+            self.inner.init_with_context(context);
+            self.initialized = true;
+        }
+        self.inner.handle_with_context(event, context);
+    }
+
+    pub fn step<'a>(&mut self)
+    where
+        M: IntoStateMachine<Event<'a> = (), Context<'a> = ()>,
+    {
+        self.handle_with_context(&(), &mut ());
+    }
+
+    pub fn step_with_context<'a>(&mut self, context: &mut M::Context<'a>)
+    where
+        M: IntoStateMachine<Event<'a> = ()>,
+    {
+        self.handle_with_context(&(), context);
+    }
+
+    /// Get the current state.
+    pub fn state(&self) -> &M::State {
+        &self.inner.state
+    }
+}
+
+impl<M> Clone for StateMachine<M>
+where
+    M: IntoStateMachine + Clone,
+    M::State: Clone,
+{
+    fn clone(&self) -> Self {
+        let inner = self.inner.clone();
+        let initialized = self.initialized;
+        Self { inner, initialized }
+    }
+}
+
+impl<M> PartialEq for StateMachine<M>
+where
+    M: IntoStateMachine + PartialEq,
+    M::State: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner && self.initialized == other.initialized
+    }
+}
+
+impl<M> Eq for StateMachine<M>
+where
+    M: IntoStateMachine + PartialEq,
+    M::State: PartialEq,
+{
+}
+
+impl<M> Default for StateMachine<M>
+where
+    M: IntoStateMachine + Default,
+{
+    fn default() -> Self {
+        let inner = Inner {
+            shared_storage: M::default(),
+            state: M::INITIAL,
+        };
+        Self {
+            inner,
+            initialized: false,
+        }
+    }
+}
+
+impl<M> core::ops::Deref for StateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    type Target = M;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner.shared_storage
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<M> serde::Serialize for StateMachine<M>
+where
+    M: IntoStateMachine + serde::Serialize,
+    M::State: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+/// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
+/// then be initialized with [`init`](UnInitializedStateMachine::init).
+impl<'de, M> serde::Deserialize<'de> for StateMachine<M>
+where
+    M: IntoStateMachine + serde::Deserialize<'de>,
+    M::State: serde::Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let inner: Inner<M> = Inner::deserialize(deserializer)?;
+        Ok(StateMachine {
+            inner,
+            initialized: false,
+        })
+    }
+}
+
+#[cfg(feature = "bevy")]
+impl<M> bevy_ecs::component::Component for StateMachine<M>
+where
+    Self: Send + Sync + 'static,
+    M: IntoStateMachine,
+{
+    type Storage = bevy_ecs::component::TableStorage;
+}
+
+/// A state machine that has not yet been initialized.
+///
+/// A state machine needs to be initialized before it can handle events. This
+/// can be done by calling the [`init`](Self::init) method on it. This will
+/// execute all the entry actions into the initial state.
+pub struct UninitializedStateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    inner: Inner<M>,
+}
+
+impl<'a, M> UninitializedStateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    /// Initialize the state machine by executing all entry actions towards
+    /// the initial state.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    ///
+    /// // The uninitialized state machine is consumed to create the initialized
+    /// // state machine.
+    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// ```
+    pub fn init(self) -> InitializedStateMachine<M>
+    where
+        M: IntoStateMachine<Context<'a> = ()>,
+    {
+        let mut state_machine = InitializedStateMachine { inner: self.inner };
+        state_machine.inner.init_with_context(&mut ());
+        state_machine
+    }
+
+    /// Initialize the state machine by executing all entry actions towards
+    /// the initial state.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    ///
+    /// // The uninitialized state machine is consumed to create the initialized
+    /// // state machine.
+    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// ```
+    pub fn init_with_context(self, context: &mut M::Context<'a>) -> InitializedStateMachine<M> {
+        let mut state_machine = InitializedStateMachine { inner: self.inner };
+        state_machine.inner.init_with_context(context);
+        state_machine
+    }
+}
+
+impl<M> Clone for UninitializedStateMachine<M>
+where
+    M: IntoStateMachine + Clone,
+    M::State: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<M> Debug for UninitializedStateMachine<M>
+where
+    M: IntoStateMachine + Debug,
+    M::State: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("UnInitializedStateMachine")
+            .field("shared_storage", &self.inner.shared_storage as &dyn Debug)
+            .field("state", &self.inner.state as &dyn Debug)
+            .finish()
+    }
+}
+
+impl<M> PartialEq for UninitializedStateMachine<M>
+where
+    M: IntoStateMachine + PartialEq,
+    M::State: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl<M> Eq for UninitializedStateMachine<M>
+where
+    M: IntoStateMachine + PartialEq + Eq,
+    M::State: PartialEq + Eq,
+{
+}
+
+impl<M> core::ops::Deref for UninitializedStateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    type Target = M;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner.shared_storage
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<M> serde::Serialize for UninitializedStateMachine<M>
+where
+    M: IntoStateMachine + serde::Serialize,
+    M::State: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+/// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
+/// then be initialized with [`init`](UnInitializedStateMachine::init).
+impl<'de, M> serde::Deserialize<'de> for UninitializedStateMachine<M>
+where
+    M: IntoStateMachine + serde::Deserialize<'de>,
+    M::State: serde::Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let inner: Inner<M> = Inner::deserialize(deserializer)?;
+        Ok(UninitializedStateMachine { inner })
     }
 }
 
 /// A state machine that has been initialized.
 pub struct InitializedStateMachine<M>
 where
-    M: StateMachine,
+    M: IntoStateMachine,
 {
-    shared_storage: M,
-    state: <M as StateMachine>::State,
+    inner: Inner<M>,
 }
 
 impl<M> InitializedStateMachine<M>
 where
-    M: StateMachine,
+    M: IntoStateMachine,
 {
-    /// Get an immutable reference to the current state of the state machine.
-    pub fn state(&self) -> &<M as StateMachine>::State {
-        &self.state
-    }
-
-    /// Get a mutable reference the current state of the state machine.
-    ///
-    /// # Safety
-    ///
-    /// Mutating the state externally could break the state machines internal
-    /// invariants.
-    pub unsafe fn state_mut(&mut self) -> &mut <M as StateMachine>::State {
-        &mut self.state
+    /// Handle the given event.
+    pub fn handle<'a>(&mut self, event: &M::Event<'_>)
+    where
+        M: IntoStateMachine<Context<'a> = ()>,
+    {
+        self.handle_with_context(event, &mut ());
     }
 
     /// Handle the given event.
-    pub fn handle(&mut self, event: &M::Event<'_>) {
-        let response = self.state.handle(&mut self.shared_storage, event);
-
-        match response {
-            Response::Super => {}
-            Response::Handled => {}
-            Response::Transition(state) => self.transition(state),
-        }
+    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) {
+        self.inner.handle_with_context(event, context);
     }
 
-    /// Initialize the state machine by executing all entry actions towards the initial state.
-    fn init(&mut self) {
-        let enter_levels = self.state.depth();
-        self.state.enter(&mut self.shared_storage, enter_levels);
-    }
-
-    /// Transition from the current state to the given target state.
-    fn transition(&mut self, mut target: <M as StateMachine>::State) {
-        // Get the transition path we need to perform from one state to the next.
-        let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
-
-        // Perform the exit from the previous state towards the common ancestor state.
-        self.state.exit(&mut self.shared_storage, exit_levels);
-
-        // Update the state.
-        core::mem::swap(&mut self.state, &mut target);
-
-        // Perform the entry actions from the common ancestor state into the new state.
-        self.state.enter(&mut self.shared_storage, enter_levels);
-
-        <M as StateMachine>::ON_TRANSITION(&mut self.shared_storage, &target, &self.state);
-    }
-}
-
-impl<'a, M> InitializedStateMachine<M>
-where
-    M: StateMachine<Event<'a> = ()>,
-{
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step(&mut self) {
+    pub fn step<'a>(&mut self)
+    where
+        M: IntoStateMachine<Event<'a> = (), Context<'a> = ()>,
+    {
         self.handle(&());
+    }
+
+    /// This is the same as `handle(())` in the case `Event` is of type `()`.
+    pub fn step_with_context<'a>(&mut self, context: &mut M::Context<'_>)
+    where
+        M: IntoStateMachine<Event<'a> = ()>,
+    {
+        self.handle_with_context(&(), context);
+    }
+
+    /// Get an immutable reference to the current state of the state machine.
+    pub fn state(&self) -> &M::State {
+        &self.inner.state
     }
 }
 
 impl<M> Clone for InitializedStateMachine<M>
 where
-    M: StateMachine + Clone,
-    <M as StateMachine>::State: Clone,
+    M: IntoStateMachine + Clone,
+    M::State: Clone,
 {
     fn clone(&self) -> Self {
         Self {
-            shared_storage: self.shared_storage.clone(),
-            state: self.state.clone(),
+            inner: self.inner.clone(),
         }
     }
 }
 
 impl<M> Debug for InitializedStateMachine<M>
 where
-    M: StateMachine + Debug,
+    M: IntoStateMachine + Debug,
     M::State: Debug,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("InitializedStateMachine")
-            .field("shared_storage", &self.shared_storage as &dyn Debug)
-            .field("state", &self.state as &dyn Debug)
+            .field("shared_storage", &self.inner.shared_storage as &dyn Debug)
+            .field("state", &self.inner.state as &dyn Debug)
             .finish()
-    }
-}
-
-impl<M> Default for InitializedStateMachine<M>
-where
-    M: StateMachine + Default,
-{
-    fn default() -> Self {
-        Self {
-            shared_storage: <M as Default>::default(),
-            state: <M as StateMachine>::INITIAL,
-        }
     }
 }
 
 impl<M> PartialEq for InitializedStateMachine<M>
 where
-    M: StateMachine + PartialEq,
+    M: IntoStateMachine + PartialEq,
     M::State: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.shared_storage == other.shared_storage && self.state == other.state
+        self.inner == other.inner
     }
 }
 
 impl<M> Eq for InitializedStateMachine<M>
 where
-    M: StateMachine + PartialEq + Eq,
+    M: IntoStateMachine + PartialEq + Eq,
     M::State: PartialEq + Eq,
 {
 }
 
 impl<M> core::ops::Deref for InitializedStateMachine<M>
 where
-    M: StateMachine,
+    M: IntoStateMachine,
 {
     type Target = M;
 
     fn deref(&self) -> &Self::Target {
-        &self.shared_storage
-    }
-}
-
-impl<M> core::ops::DerefMut for InitializedStateMachine<M>
-where
-    M: StateMachine,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.shared_storage
+        &self.inner.shared_storage
     }
 }
 
@@ -435,7 +726,7 @@ where
 /// [`init`](UnInitializedStateMachine::init) method.
 impl<M> serde::Serialize for InitializedStateMachine<M>
 where
-    M: StateMachine + serde::Serialize,
+    M: IntoStateMachine + serde::Serialize,
     M::State: serde::Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -445,14 +736,23 @@ where
         use serde::ser::SerializeStruct;
 
         let mut serializer = serializer.serialize_struct("StateMachine", 2)?;
-        serializer.serialize_field("shared_storage", &self.shared_storage)?;
-        serializer.serialize_field("state", &self.state)?;
+        serializer.serialize_field("shared_storage", &self.inner.shared_storage)?;
+        serializer.serialize_field("state", &self.inner.state)?;
         serializer.end()
     }
 }
 
+#[cfg(feature = "bevy")]
+impl<M> bevy_ecs::component::Component for InitializedStateMachine<M>
+where
+    Self: Send + Sync + 'static,
+    M: IntoStateMachine,
+{
+    type Storage = bevy_ecs::component::TableStorage;
+}
+
 /// Holds a reference to either a state or superstate.
-pub enum StateOrSuperstate<'a, 'b, M: StateMachine>
+pub enum StateOrSuperstate<'a, 'b, M: IntoStateMachine>
 where
     M::State: 'b,
 {
@@ -462,7 +762,7 @@ where
     Superstate(&'a M::Superstate<'b>),
 }
 
-impl<'a, 'b, M: StateMachine> core::fmt::Debug for StateOrSuperstate<'a, 'b, M>
+impl<'a, 'b, M: IntoStateMachine> core::fmt::Debug for StateOrSuperstate<'a, 'b, M>
 where
     M::State: Debug,
     M::Superstate<'b>: Debug,
@@ -480,7 +780,7 @@ where
 
 impl<'a, 'b, M> PartialEq for StateOrSuperstate<'a, 'b, M>
 where
-    M: StateMachine,
+    M: IntoStateMachine,
     M::State: 'b + PartialEq,
     M::Superstate<'b>: PartialEq,
 {
@@ -495,7 +795,7 @@ where
 
 impl<'a, 'b, M> Eq for StateOrSuperstate<'a, 'b, M>
 where
-    M: StateMachine + PartialEq + Eq,
+    M: IntoStateMachine + PartialEq + Eq,
     M::State: 'b + PartialEq + Eq,
     M::Superstate<'b>: PartialEq + Eq,
 {

@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use statig::prelude::*;
-use statig::StateMachine;
+use statig::IntoStateMachine;
 use std::io::Write;
 
 pub enum Event {
@@ -28,12 +28,14 @@ pub enum Superstate {
     DoorClosed,
 }
 
-impl StateMachine for Dishwasher {
+impl IntoStateMachine for Dishwasher {
     type State = State;
 
     type Superstate<'a> = Superstate;
 
     type Event<'a> = Event;
+
+    type Context<'a> = ();
 
     const INITIAL: State = State::Idle;
 
@@ -45,7 +47,12 @@ impl StateMachine for Dishwasher {
 }
 
 impl statig::State<Dishwasher> for State {
-    fn call_handler(&mut self, shared: &mut Dishwasher, event: &Event) -> Response<Self> {
+    fn call_handler(
+        &mut self,
+        shared: &mut Dishwasher,
+        event: &Event,
+        _: &mut (),
+    ) -> Response<Self> {
         match self {
             State::DoorOpened => Dishwasher::door_opened(shared, event),
             State::Dry => Dishwasher::dry(event),
@@ -67,7 +74,12 @@ impl statig::State<Dishwasher> for State {
 }
 
 impl statig::Superstate<Dishwasher> for Superstate {
-    fn call_handler(&mut self, shared: &mut Dishwasher, event: &Event) -> Response<State> {
+    fn call_handler(
+        &mut self,
+        shared: &mut Dishwasher,
+        event: &Event,
+        _: &mut (),
+    ) -> Response<State> {
         match self {
             Superstate::DoorClosed => Dishwasher::door_closed(event),
         }
@@ -126,7 +138,7 @@ fn main() {
     let mut state_machine = Dishwasher {
         previous_state: Dishwasher::INITIAL,
     }
-    .state_machine()
+    .uninitialized_state_machine()
     .init();
 
     state_machine.handle(&Event::StartProgram);

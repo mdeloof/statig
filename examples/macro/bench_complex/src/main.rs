@@ -470,7 +470,7 @@ impl BenchComplex {
 }
 
 fn main() {
-    let mut state_machine = BenchComplex.state_machine().init();
+    let mut state_machine = BenchComplex.uninitialized_state_machine().init();
 
     let loops: u32 = 1_000_000;
 

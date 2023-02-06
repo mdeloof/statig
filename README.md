@@ -26,6 +26,7 @@ Hierarchical state machines for designing event-driven systems.
     - [Actions](#actions)
     - [Shared storage](#shared-storage)
     - [State-local storage](#state-local-storage)
+    - [Context](#context)
     - [Introspection](#introspection)
 - [Implementation](#implementation)
 - [FAQ](#faq)
@@ -94,7 +95,7 @@ impl Blinky {
 }
 
 fn main() {
-    let mut state_machine = Blinky::default().state_machine().init();
+    let mut state_machine = Blinky::default().uninitialized_state_machine().init();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);
@@ -218,6 +219,20 @@ fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
 ```
 
 `counter` is only available in the `led_on` state but can also be accessed in its superstates and actions.
+
+### Context
+
+When state machines are used in a larger systems it can sometimes be necessary to pass in an external mutable context.
+
+```rust
+#[state]
+fn led_on(context: &mut Context, event: &Event) -> Response<State> {
+    match event {
+        Event::TimerElapsed => {
+            context.
+        }
+    }
+}
 
 ### Introspection
 

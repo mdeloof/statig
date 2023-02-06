@@ -37,7 +37,7 @@ pub enum State {
 
 // The `StateMachine` trait needs to be implemented on the type that will be
 // the shared storage for the state machine.
-impl StateMachine for CdPlayer {
+impl IntoStateMachine for CdPlayer {
     /// The enum that represents the state.
     type State = State;
 
@@ -46,12 +46,19 @@ impl StateMachine for CdPlayer {
     /// The event type that will be submitted to the state machine.
     type Event<'a> = Event;
 
+    type Context<'a> = ();
+
     /// The initial state of the state machine.
     const INITIAL: State = State::Empty;
 }
 
 impl statig::State<CdPlayer> for State {
-    fn call_handler(&mut self, cd_player: &mut CdPlayer, event: &Event) -> Response<Self> {
+    fn call_handler(
+        &mut self,
+        cd_player: &mut CdPlayer,
+        event: &Event,
+        _: &mut (),
+    ) -> Response<Self> {
         match self {
             State::Empty => CdPlayer::empty(event),
             State::Open => CdPlayer::open(event),
@@ -106,7 +113,7 @@ impl CdPlayer {
 }
 
 fn main() {
-    let mut state_machine = CdPlayer::default().state_machine().init();
+    let mut state_machine = CdPlayer::default().uninitialized_state_machine().init();
 
     let loops: u32 = rand::random();
 

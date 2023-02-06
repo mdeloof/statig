@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use statig::prelude::*;
-use statig::StateMachine;
+use statig::IntoStateMachine;
 use std::io::Write;
 
 pub enum Event {
@@ -74,7 +74,7 @@ fn main() {
     let mut state_machine = Dishwasher {
         previous_state: Dishwasher::INITIAL,
     }
-    .state_machine()
+    .uninitialized_state_machine()
     .init();
 
     state_machine.handle(&Event::StartProgram);

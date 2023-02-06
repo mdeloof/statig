@@ -33,7 +33,7 @@ mod tests {
 
     #[state_machine(
         initial = "State::s11()",
-        event_pattern = "event",
+        event_identifier = "event",
         state(derive(Eq, PartialEq, Debug)),
         superstate(derive(Eq, PartialEq, Debug))
     )]
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_transition_path() {
-        let mut state_machine = Foo::default().state_machine().init();
+        let mut state_machine = Foo::default().uninitialized_state_machine().init();
 
         state_machine.handle(&Event::A);
         state_machine.handle(&Event::B);

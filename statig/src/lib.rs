@@ -70,7 +70,7 @@
 //!     }
 //! }
 //!
-//! let mut state_machine = Blinky::default().state_machine().init();
+//! let mut state_machine = Blinky::default().uninitialized_state_machine().init();
 //! state_machine.handle(&Event::TimerElapsed);
 //! state_machine.handle(&Event::ButtonPressed);
 //! ```
@@ -729,7 +729,7 @@ pub use statig_macro::action;
 pub mod prelude {
     pub use crate::Response::{self, *};
     pub use crate::{
-        State, StateExt, StateMachine, StateMachineSharedStorage, Superstate, SuperstateExt,
+        IntoStateMachine, IntoStateMachineExt, State, StateExt, Superstate, SuperstateExt,
     };
 
     #[cfg(feature = "macro")]

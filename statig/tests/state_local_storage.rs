@@ -11,7 +11,7 @@ mod tests {
 
     // The `statig` trait needs to be implemented on the type that will
     // imlement the state machine.
-    impl StateMachine for Blinky {
+    impl IntoStateMachine for Blinky {
         /// The enum that represents the state, this type is derived by the
         /// `#[state_machine]` macro.
         type State = StateEnum;
@@ -20,6 +20,8 @@ mod tests {
 
         /// The event type that will be submitted to the state machine.
         type Event<'a> = Event;
+
+        type Context<'a> = ();
 
         /// The initial state of the state machine.
         const INITIAL: StateEnum = StateEnum::On {
@@ -76,7 +78,12 @@ mod tests {
     }
 
     impl statig::State<Blinky> for StateEnum {
-        fn call_handler(&mut self, object: &mut Blinky, event: &Event) -> Response<StateEnum>
+        fn call_handler(
+            &mut self,
+            object: &mut Blinky,
+            event: &Event,
+            _: &mut (),
+        ) -> Response<StateEnum>
         where
             Self: Sized,
         {
@@ -86,14 +93,14 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Blinky) {
+        fn call_entry_action(&mut self, object: &mut Blinky, _: &mut ()) {
             match self {
                 StateEnum::On { led, counter } => {}
                 StateEnum::Off { led } => Blinky::enter_off(object, led),
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Blinky) {
+        fn call_exit_action(&mut self, object: &mut Blinky, _: &mut ()) {
             match self {
                 StateEnum::On { led, counter } => {}
                 StateEnum::Off { led } => {}
@@ -113,19 +120,24 @@ mod tests {
     }
 
     impl<'sub> statig::Superstate<Blinky> for Superstate<'sub> {
-        fn call_handler(&mut self, object: &mut Blinky, event: &Event) -> Response<StateEnum> {
+        fn call_handler(
+            &mut self,
+            object: &mut Blinky,
+            event: &Event,
+            _: &mut (),
+        ) -> Response<StateEnum> {
             match self {
                 Superstate::Playing { led } => Blinky::playing(object, led),
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Blinky) {
+        fn call_entry_action(&mut self, object: &mut Blinky, _: &mut ()) {
             match self {
                 Superstate::Playing { led } => {}
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Blinky) {
+        fn call_exit_action(&mut self, object: &mut Blinky, _: &mut ()) {
             match self {
                 Superstate::Playing { led } => {}
             }
@@ -143,7 +155,7 @@ mod tests {
 
     #[test]
     fn main() {
-        let mut state_machine = Blinky::default().state_machine().init();
+        let mut state_machine = Blinky::default().uninitialized_state_machine().init();
 
         for _ in 0..10 {
             state_machine.handle(&Event);

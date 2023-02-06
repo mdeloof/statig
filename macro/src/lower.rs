@@ -1,7 +1,7 @@
 use proc_macro2::Span;
 use proc_macro_error::abort;
 use quote::format_ident;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Deref;
 use syn::parse::Parser;
 use syn::{parse_quote, Expr, Field, ItemImpl, Lifetime, Type};
@@ -35,6 +35,8 @@ pub struct StateMachine {
     pub shared_storage_type: Type,
     /// The type of the event.
     pub event_type: Type,
+    /// The type of the context.
+    pub context_type: Type,
     /// The type of the state enum.
     pub state_type: Type,
     /// Derives that will be applied on the state type.
@@ -50,7 +52,9 @@ pub struct StateMachine {
     /// The visibility for the derived types,
     pub visibility: Visibility,
     /// The external input pattern.
-    pub external_input_pattern: Pat,
+    pub event_ident: Ident,
+    /// The external input pattern.
+    pub context_ident: Ident,
 }
 
 /// Information regarding a state.
@@ -121,6 +125,9 @@ pub fn lower(model: &Model) -> Ir {
 
     let on_transition = model.state_machine.on_transition.clone();
     let on_dispatch = model.state_machine.on_dispatch.clone();
+
+    let event_ident = model.state_machine.event_ident.clone();
+    let context_ident = model.state_machine.context_ident.clone();
 
     let mut states: HashMap<Ident, State> = model
         .states
@@ -236,54 +243,89 @@ pub fn lower(model: &Model) -> Ir {
     }
 
     // Finding event types
-    let mut event_idents = model
-        .state_machine
-        .external_inputs
-        .iter()
-        .cloned()
-        .collect::<HashSet<_>>();
-    let mut event_idents_types: HashMap<Ident, Type> = HashMap::new();
+
+    let mut event_type = None;
+    let mut context_type = None;
 
     for state in model.states.values() {
-        for external_input in &state.external_inputs {
-            if let FnArg::Typed(pat_type) = external_input {
-                if let Pat::Ident(external_input_ident) = &*pat_type.pat {
-                    if event_idents.remove(&external_input_ident.ident) {
-                        let ty = match &*pat_type.ty {
-                            Type::Reference(reference) => reference.elem.deref().clone(),
-                            _ => todo!(),
-                        };
-                        event_idents_types.insert(external_input_ident.ident.clone(), ty);
-                    }
+        if let Some(FnArg::Typed(pat_type)) = &state.event_arg {
+            if let Pat::Ident(external_input_ident) = &*pat_type.pat {
+                if model
+                    .state_machine
+                    .event_ident
+                    .eq(&external_input_ident.ident)
+                {
+                    let ty = match &*pat_type.ty {
+                        Type::Reference(reference) => reference.elem.deref().clone(),
+                        _ => todo!(),
+                    };
+                    event_type = Some(ty);
+                }
+            }
+        }
+        if let Some(FnArg::Typed(pat_type)) = &state.context_arg {
+            if let Pat::Ident(external_input_ident) = &*pat_type.pat {
+                if model
+                    .state_machine
+                    .context_ident
+                    .eq(&external_input_ident.ident)
+                {
+                    let ty = match &*pat_type.ty {
+                        Type::Reference(reference) => reference.elem.deref().clone(),
+                        _ => todo!(),
+                    };
+                    context_type = Some(ty);
                 }
             }
         }
     }
 
-    for superstates in model.superstates.values() {
-        for external_input in &superstates.external_inputs {
-            if let FnArg::Typed(pat_type) = external_input {
-                if let Pat::Ident(external_input_ident) = &*pat_type.pat {
-                    if event_idents.remove(&external_input_ident.ident) {
-                        let ty = match &*pat_type.ty {
-                            Type::Reference(reference) => reference.elem.deref().clone(),
-                            _ => todo!(),
-                        };
-                        event_idents_types.insert(external_input_ident.ident.clone(), ty);
-                    }
+    for superstate in model.superstates.values() {
+        if let Some(FnArg::Typed(pat_type)) = &superstate.event_arg {
+            if let Pat::Ident(external_input_ident) = &*pat_type.pat {
+                if model
+                    .state_machine
+                    .event_ident
+                    .eq(&external_input_ident.ident)
+                {
+                    let ty = match &*pat_type.ty {
+                        Type::Reference(reference) => reference.elem.deref().clone(),
+                        _ => todo!(),
+                    };
+                    event_type = Some(ty);
+                }
+            }
+        }
+        if let Some(FnArg::Typed(pat_type)) = &superstate.context_arg {
+            if let Pat::Ident(external_input_ident) = &*pat_type.pat {
+                if model
+                    .state_machine
+                    .context_ident
+                    .eq(&external_input_ident.ident)
+                {
+                    let ty = match &*pat_type.ty {
+                        Type::Reference(reference) => reference.elem.deref().clone(),
+                        _ => todo!(),
+                    };
+                    context_type = Some(ty);
                 }
             }
         }
     }
 
     let event_type = match &model.state_machine.event_type {
-        Some(event_ty) => event_ty.clone(),
-        None => match event_idents_types.is_empty() {
-            true => parse_quote!(()),
-            false => pat_to_type(
-                &model.state_machine.external_input_pattern,
-                &event_idents_types,
-            ),
+        Some(event_type) => event_type.clone(),
+        None => match event_type {
+            Some(event_type) => event_type,
+            None => parse_quote!(()),
+        },
+    };
+
+    let context_type = match &model.state_machine.context_type {
+        Some(context_type) => context_type.clone(),
+        None => match context_type {
+            Some(context_type) => context_type,
+            None => parse_quote!(()),
         },
     };
 
@@ -294,12 +336,11 @@ pub fn lower(model: &Model) -> Ir {
 
     let visibility = model.state_machine.visibility.clone();
 
-    let external_input_pattern = model.state_machine.external_input_pattern.clone();
-
     let state_machine = StateMachine {
         initial_state,
         shared_storage_type,
         event_type,
+        context_type,
         state_type,
         state_derives,
         superstate_type,
@@ -307,7 +348,8 @@ pub fn lower(model: &Model) -> Ir {
         on_transition,
         on_dispatch,
         visibility,
-        external_input_pattern,
+        event_ident,
+        context_ident,
     };
 
     Ir {
@@ -585,15 +627,16 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         initial_state: parse_quote!(State::on()),
         shared_storage_type: parse_quote!(Blinky),
         event_type: None,
+        context_type: None,
         state_type: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_type: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         on_transition: None,
         on_dispatch: None,
-        external_input_pattern: parse_quote!(input),
-        external_inputs: vec![parse_quote!(input)],
         visibility: parse_quote!(pub),
+        event_ident: parse_quote!(input),
+        context_ident: parse_quote!(context),
     }
 }
 
@@ -603,6 +646,7 @@ fn create_lower_state_machine() -> StateMachine {
         initial_state: parse_quote!(State::on()),
         shared_storage_type: parse_quote!(Blinky),
         event_type: parse_quote!(()),
+        context_type: parse_quote!(()),
         state_type: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_type: parse_quote!(Superstate<'a>),
@@ -610,7 +654,8 @@ fn create_lower_state_machine() -> StateMachine {
         on_transition: None,
         on_dispatch: None,
         visibility: parse_quote!(pub),
-        external_input_pattern: parse_quote!(input),
+        event_ident: parse_quote!(input),
+        context_ident: parse_quote!(context),
     }
 }
 
@@ -629,7 +674,8 @@ fn create_analyze_state() -> analyze::State {
             parse_quote!(counter: &mut usize),
         ],
         shared_storage_input: Some(parse_quote!(&mut self)),
-        external_inputs: vec![parse_quote!(event: &Event)],
+        event_arg: Some(parse_quote!(event: &Event)),
+        context_arg: None,
         state_inputs: vec![
             parse_quote!(led: &mut bool),
             parse_quote!(counter: &mut usize),
@@ -680,7 +726,8 @@ fn create_analyze_superstate() -> analyze::Superstate {
             parse_quote!(counter: &mut usize),
         ],
         shared_storage_input: Some(parse_quote!(&mut self)),
-        external_inputs: vec![parse_quote!(event: &Event)],
+        event_arg: Some(parse_quote!(event: &Event)),
+        context_arg: None,
         state_inputs: vec![
             parse_quote!(led: &mut bool),
             parse_quote!(counter: &mut usize),

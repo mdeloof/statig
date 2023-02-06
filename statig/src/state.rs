@@ -1,5 +1,5 @@
+use crate::IntoStateMachine;
 use crate::Response;
-use crate::StateMachine;
 use crate::StateOrSuperstate;
 use crate::SuperstateExt;
 
@@ -7,23 +7,26 @@ use crate::SuperstateExt;
 pub trait State<M>
 where
     Self: Sized,
-    M: StateMachine,
+    M: IntoStateMachine,
 {
     /// Call the handler for the current state and let it handle the given event.
     fn call_handler(
         &mut self,
         shared_storage: &mut M,
-        event: &<M as StateMachine>::Event<'_>,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'_>,
     ) -> Response<Self>;
 
+    #[allow(unused)]
     /// Call the entry action for the current state.
-    fn call_entry_action(&mut self, #[allow(unused)] shared_storage: &mut M) {}
+    fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
 
+    #[allow(unused)]
     /// Call the exit action for the current state.
-    fn call_exit_action(&mut self, #[allow(unused)] shared_storage: &mut M) {}
+    fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
 
     /// Return the superstate of the current state, if there is one.
-    fn superstate(&mut self) -> Option<<M as StateMachine>::Superstate<'_>> {
+    fn superstate(&mut self) -> Option<M::Superstate<'_>> {
         None
     }
 }
@@ -31,7 +34,7 @@ where
 /// Extensions for `State` trait.
 pub trait StateExt<M>: State<M>
 where
-    M: StateMachine<State = Self>,
+    M: IntoStateMachine<State = Self>,
 {
     /// Check if two states are the same.
     fn same_state(lhs: &Self, rhs: &Self) -> bool {
@@ -53,11 +56,7 @@ where
         }
 
         match (source.superstate(), target.superstate()) {
-            (Some(source), Some(target)) => {
-                <<M as StateMachine>::Superstate<'_> as SuperstateExt<M>>::common_ancestor_depth(
-                    source, target,
-                )
-            }
+            (Some(source), Some(target)) => M::Superstate::common_ancestor_depth(source, target),
             _ => 0,
         }
     }
@@ -74,8 +73,7 @@ where
         let target_depth = target.depth();
 
         if let (Some(source), Some(target)) = (self.superstate(), target.superstate()) {
-            let common_state_depth =
-                <M as StateMachine>::Superstate::common_ancestor_depth(source, target);
+            let common_state_depth = M::Superstate::common_ancestor_depth(source, target);
             (
                 source_depth - common_state_depth,
                 target_depth - common_state_depth,
@@ -89,14 +87,15 @@ where
     fn handle(
         &mut self,
         shared_storage: &mut M,
-        event: &<M as StateMachine>::Event<'_>,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'_>,
     ) -> Response<Self>
     where
         Self: Sized,
     {
         M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
-        let response = self.call_handler(shared_storage, event);
+        let response = self.call_handler(shared_storage, event, context);
 
         match response {
             Response::Handled => Response::Handled,
@@ -108,7 +107,7 @@ where
                         event,
                     );
 
-                    superstate.handle(shared_storage, event)
+                    superstate.handle(shared_storage, event, context)
                 }
                 None => Response::Super,
             },
@@ -118,29 +117,29 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current state.
-    fn enter(&mut self, shared_storage: &mut M, levels: usize) {
+    fn enter(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_entry_action(shared_storage),
+            1 => self.call_entry_action(shared_storage, context),
             _ => {
                 if let Some(mut superstate) = self.superstate() {
-                    superstate.enter(shared_storage, levels - 1);
+                    superstate.enter(shared_storage, context, levels - 1);
                 }
-                self.call_entry_action(shared_storage);
+                self.call_entry_action(shared_storage, context);
             }
         }
     }
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(&mut self, shared_storage: &mut M, levels: usize) {
+    fn exit(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_exit_action(shared_storage),
+            1 => self.call_exit_action(shared_storage, context),
             _ => {
-                self.call_exit_action(shared_storage);
+                self.call_exit_action(shared_storage, context);
                 if let Some(mut superstate) = self.superstate() {
-                    superstate.exit(shared_storage, levels - 1);
+                    superstate.exit(shared_storage, context, levels - 1);
                 }
             }
         }
@@ -150,6 +149,6 @@ where
 impl<T, M> StateExt<M> for T
 where
     T: State<M>,
-    M: StateMachine<State = T>,
+    M: IntoStateMachine<State = T>,
 {
 }

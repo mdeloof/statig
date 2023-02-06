@@ -47,7 +47,7 @@ impl Foo {
 }
 
 fn main() {
-    let mut state_machine = Foo::default().state_machine().init();
+    let mut state_machine = Foo::default().uninitialized_state_machine().init();
 
     state_machine.handle(&Event::A);
     state_machine.handle(&Event::B);

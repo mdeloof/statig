@@ -59,33 +59,33 @@ fn serialize_deserialize() {
         }
     }
 
-    let state_machine = Blinky { led: true }.state_machine();
+    let state_machine = Blinky { led: true }.uninitialized_state_machine();
     let state_machine_init = state_machine.clone().init();
     let mut state_machine_not_blinking = state_machine_init.clone();
     state_machine_not_blinking.handle(&Event::ButtonPressed);
 
     let ser = serde_json::to_string(&state_machine).unwrap();
-    let de: statig::UnInitializedStateMachine<Blinky> = serde_json::from_str(&ser).unwrap();
+    let de: statig::UninitializedStateMachine<Blinky> = serde_json::from_str(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = serde_json::to_string(&state_machine_init).unwrap();
-    let de: statig::UnInitializedStateMachine<Blinky> = serde_json::from_str(&ser).unwrap();
+    let de: statig::UninitializedStateMachine<Blinky> = serde_json::from_str(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = bincode::serialize(&state_machine).unwrap();
-    let de: statig::UnInitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
+    let de: statig::UninitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = bincode::serialize(&state_machine_init).unwrap();
-    let de: statig::UnInitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
+    let de: statig::UninitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = bincode::serialize(&state_machine_not_blinking).unwrap();
-    let mut de: statig::UnInitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
+    let mut de: statig::UninitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
     let de = de.init();
 
     assert_eq!(de, state_machine_not_blinking);
