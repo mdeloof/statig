@@ -57,7 +57,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     };
 
     parse_quote!(
-        impl statig::IntoStateMachine for #object_type {
+        impl statig::blocking::IntoStateMachine for #object_type {
             type Event<'a> = #event_type;
             type Context<'a> = #context_type;
             type State = #state_type;
@@ -141,26 +141,26 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl statig::State<#object_type> for #state_type {
-            fn call_handler(&mut self, shared_storage: &mut #object_type, #event_ident: &<#object_type as statig::IntoStateMachine>::Event<'_>, #context_ident: &mut <#object_type as statig::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
+        impl statig::blocking::State<#object_type> for #state_type {
+            fn call_handler(&mut self, shared_storage: &mut #object_type, #event_ident: &<#object_type as statig::blocking::IntoStateMachine>::Event<'_>, #context_ident: &mut <#object_type as statig::blocking::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
-            fn call_entry_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::IntoStateMachine>::Context<'_>) {
+            fn call_entry_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::blocking::IntoStateMachine>::Context<'_>) {
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
-            fn call_exit_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::IntoStateMachine>::Context<'_>) {
+            fn call_exit_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::blocking::IntoStateMachine>::Context<'_>) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#object_type as statig::IntoStateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#object_type as statig::blocking::IntoStateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }
@@ -220,16 +220,16 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl<'a> statig::Superstate<#shared_storage_type> for #superstate_type
+        impl<'a> statig::blocking::Superstate<#shared_storage_type> for #superstate_type
         where
             Self: 'a,
         {
             fn call_handler(
                 &mut self,
                 shared_storage: &mut #shared_storage_type,
-                #event_ident: &<#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
-                #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-            ) -> statig::Response<<#shared_storage_type as statig::IntoStateMachine>::State> where Self: Sized {
+                #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
+                #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+            ) -> statig::Response<<#shared_storage_type as statig::blocking::IntoStateMachine>::State> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
@@ -238,7 +238,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
             fn call_entry_action(
                 &mut self,
                 shared_storage: &mut #shared_storage_type,
-                #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
             ) {
                 match self {
                     #(#call_entry_action_arms),*
@@ -248,14 +248,14 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
             fn call_exit_action(
                 &mut self,
                 shared_storage: &mut #shared_storage_type,
-                #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
             ) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::IntoStateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::blocking::IntoStateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }

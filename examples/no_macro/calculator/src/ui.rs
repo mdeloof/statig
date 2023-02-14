@@ -2,7 +2,7 @@ use eframe::egui::{self, Button, Label, Response, RichText, Style, Visuals, Widg
 use eframe::egui::{Layout, Ui};
 use eframe::emath::Align;
 use eframe::epaint::{FontFamily, FontId};
-use statig::InitializedStateMachine;
+use statig::blocking::InitializedStateMachine;
 
 use crate::state::{Calculator, Event, Operator};
 

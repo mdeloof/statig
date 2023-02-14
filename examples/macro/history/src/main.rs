@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use statig::prelude::*;
-use statig::IntoStateMachine;
 use std::io::Write;
 
 pub enum Event {

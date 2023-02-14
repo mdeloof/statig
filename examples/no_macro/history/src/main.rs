@@ -1,7 +1,6 @@
 #![allow(unused)]
 
-use statig::prelude::*;
-use statig::IntoStateMachine;
+use statig::blocking::{self, *};
 use std::io::Write;
 
 pub enum Event {
@@ -46,7 +45,7 @@ impl IntoStateMachine for Dishwasher {
     };
 }
 
-impl statig::State<Dishwasher> for State {
+impl blocking::State<Dishwasher> for State {
     fn call_handler(
         &mut self,
         shared: &mut Dishwasher,
@@ -73,7 +72,7 @@ impl statig::State<Dishwasher> for State {
     }
 }
 
-impl statig::Superstate<Dishwasher> for Superstate {
+impl blocking::Superstate<Dishwasher> for Superstate {
     fn call_handler(
         &mut self,
         shared: &mut Dishwasher,

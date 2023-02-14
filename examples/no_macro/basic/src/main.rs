@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use statig::prelude::*;
+use statig::blocking::{self, *};
 
 #[derive(Default)]
 pub struct Blinky {
@@ -38,7 +38,7 @@ impl IntoStateMachine for Blinky {
     };
 }
 
-impl statig::State<Blinky> for State {
+impl blocking::State<Blinky> for State {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<Self> {
         match self {
             State::On => blinky.on(event),

@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use statig::prelude::*;
-use statig::StateOrSuperstate;
 use std::fmt::Debug;
 use std::io::Write;
 

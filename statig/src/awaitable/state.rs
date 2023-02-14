@@ -1,7 +1,9 @@
+use futures::future::{FutureExt, LocalBoxFuture};
+
+use crate::awaitable::{Superstate, SuperstateExt};
 use crate::IntoStateMachine;
 use crate::Response;
 use crate::StateOrSuperstate;
-use crate::SuperstateExt;
 
 /// An enum that represents the leaf states of the state machine.
 pub trait State<M>
@@ -10,7 +12,7 @@ where
     M: IntoStateMachine,
 {
     /// Call the handler for the current state and let it handle the given event.
-    fn call_handler(
+    async fn call_handler(
         &mut self,
         shared_storage: &mut M,
         event: &M::Event<'_>,
@@ -19,11 +21,11 @@ where
 
     #[allow(unused)]
     /// Call the entry action for the current state.
-    fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
+    async fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>);
 
     #[allow(unused)]
     /// Call the exit action for the current state.
-    fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
+    async fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>);
 
     /// Return the superstate of the current state, if there is one.
     fn superstate(&mut self) -> Option<M::Superstate<'_>> {
@@ -34,7 +36,9 @@ where
 /// Extensions for `State` trait.
 pub trait StateExt<M>: State<M>
 where
-    M: IntoStateMachine<State = Self>,
+    M: IntoStateMachine<State = Self> + Send + Sync,
+    M::State: Send + Sync,
+    for<'b> M::Superstate<'b>: Superstate<M> + Send + Sync,
 {
     /// Check if two states are the same.
     fn same_state(lhs: &Self, rhs: &Self) -> bool {
@@ -84,62 +88,66 @@ where
     }
 
     /// Handle the given event in the current state.
-    fn handle(
-        &mut self,
-        shared_storage: &mut M,
-        event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
-    ) -> Response<Self>
+    fn handle<'a, 'b>(
+        &'a mut self,
+        shared_storage: &'a mut M,
+        event: &'a M::Event<'_>,
+        context: &'a mut M::Context<'_>,
+    ) -> LocalBoxFuture<'b, Response<M::State>>
     where
-        Self: Sized,
+        'a: 'b,
+        Self: Sized + Send + Sync,
     {
-        M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
+        async move {
+            M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
-        let response = self.call_handler(shared_storage, event, context);
+            let response = self.call_handler(shared_storage, event, context).await;
 
-        match response {
-            Response::Handled => Response::Handled,
-            Response::Super => match self.superstate() {
-                Some(mut superstate) => {
-                    M::ON_DISPATCH(
-                        shared_storage,
-                        StateOrSuperstate::Superstate(&superstate),
-                        event,
-                    );
+            match response {
+                Response::Handled => Response::Handled,
+                Response::Super => match self.superstate() {
+                    Some(mut superstate) => {
+                        M::ON_DISPATCH(
+                            shared_storage,
+                            StateOrSuperstate::Superstate(&superstate),
+                            event,
+                        );
 
-                    superstate.handle(shared_storage, event, context)
-                }
-                None => Response::Super,
-            },
-            Response::Transition(state) => Response::Transition(state),
+                        superstate.handle(shared_storage, event, context).await
+                    }
+                    None => Response::Super,
+                },
+                Response::Transition(state) => Response::Transition(state),
+            }
         }
+        .boxed_local()
     }
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current state.
-    fn enter(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
+    async fn enter(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_entry_action(shared_storage, context),
+            1 => self.call_entry_action(shared_storage, context).await,
             _ => {
                 if let Some(mut superstate) = self.superstate() {
-                    superstate.enter(shared_storage, context, levels - 1);
+                    superstate.enter(shared_storage, context, levels - 1).await;
                 }
-                self.call_entry_action(shared_storage, context);
+                self.call_entry_action(shared_storage, context).await;
             }
         }
     }
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
+    async fn exit(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
         match levels {
             0 => (),
-            1 => self.call_exit_action(shared_storage, context),
+            1 => self.call_exit_action(shared_storage, context).await,
             _ => {
-                self.call_exit_action(shared_storage, context);
+                self.call_exit_action(shared_storage, context).await;
                 if let Some(mut superstate) = self.superstate() {
-                    superstate.exit(shared_storage, context, levels - 1);
+                    superstate.exit(shared_storage, context, levels - 1).await;
                 }
             }
         }
@@ -148,7 +156,8 @@ where
 
 impl<T, M> StateExt<M> for T
 where
-    T: State<M>,
-    M: IntoStateMachine<State = T>,
+    T: State<M> + Send + Sync,
+    M: IntoStateMachine<State = T> + Send + Sync,
+    for<'b> M::Superstate<'b>: Superstate<M> + Send + Sync,
 {
 }

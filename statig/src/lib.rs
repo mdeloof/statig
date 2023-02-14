@@ -341,7 +341,7 @@
 //!
 //! ```
 //! # use statig::prelude::*;
-//! # use statig::StateOrSuperstate;
+//! # use statig::blocking::StateOrSuperstate;
 //! #
 //! # struct Blinky;
 //! #
@@ -583,14 +583,7 @@
 //! complex systems.
 
 #![no_std]
-
-mod state;
-mod state_machine;
-mod superstate;
-
-pub use state::*;
-pub use state_machine::*;
-pub use superstate::*;
+#![cfg_attr(feature = "async", feature(async_fn_in_trait))]
 
 /// Macro for deriving the state and superstate enum.
 ///
@@ -726,22 +719,23 @@ pub use statig_macro::superstate;
 #[cfg(feature = "macro")]
 pub use statig_macro::action;
 
+mod response;
+mod state_machine;
+mod state_or_superstate;
+
+pub mod blocking;
+
+#[cfg(feature = "async")]
+pub mod awaitable;
+
 pub mod prelude {
-    pub use crate::Response::{self, *};
-    pub use crate::{
-        IntoStateMachine, IntoStateMachineExt, State, StateExt, Superstate, SuperstateExt,
-    };
+
+    pub use crate::blocking::*;
 
     #[cfg(feature = "macro")]
     pub use statig_macro::state_machine;
 }
 
-/// Response that can be returned by a state machine.
-pub enum Response<S> {
-    /// Consider the event handled.
-    Handled,
-    /// Defer the event to the superstate.
-    Super,
-    /// Transition to the given state.
-    Transition(S),
-}
+pub use response::*;
+pub use state_machine::*;
+pub use state_or_superstate::*;

@@ -4,8 +4,8 @@ fn serialize_deserialize() {
     #![allow(unused)]
 
     use serde::{Deserialize, Serialize};
+    use statig::blocking::StateOrSuperstate;
     use statig::prelude::*;
-    use statig::StateOrSuperstate;
     use std::fmt::Debug;
     use std::io::Write;
 
@@ -65,27 +65,32 @@ fn serialize_deserialize() {
     state_machine_not_blinking.handle(&Event::ButtonPressed);
 
     let ser = serde_json::to_string(&state_machine).unwrap();
-    let de: statig::UninitializedStateMachine<Blinky> = serde_json::from_str(&ser).unwrap();
+    let de: statig::blocking::UninitializedStateMachine<Blinky> =
+        serde_json::from_str(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = serde_json::to_string(&state_machine_init).unwrap();
-    let de: statig::UninitializedStateMachine<Blinky> = serde_json::from_str(&ser).unwrap();
+    let de: statig::blocking::UninitializedStateMachine<Blinky> =
+        serde_json::from_str(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = bincode::serialize(&state_machine).unwrap();
-    let de: statig::UninitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
+    let de: statig::blocking::UninitializedStateMachine<Blinky> =
+        bincode::deserialize(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = bincode::serialize(&state_machine_init).unwrap();
-    let de: statig::UninitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
+    let de: statig::blocking::UninitializedStateMachine<Blinky> =
+        bincode::deserialize(&ser).unwrap();
 
     assert_eq!(de, state_machine);
 
     let ser = bincode::serialize(&state_machine_not_blinking).unwrap();
-    let mut de: statig::UninitializedStateMachine<Blinky> = bincode::deserialize(&ser).unwrap();
+    let mut de: statig::blocking::UninitializedStateMachine<Blinky> =
+        bincode::deserialize(&ser).unwrap();
     let de = de.init();
 
     assert_eq!(de, state_machine_not_blinking);

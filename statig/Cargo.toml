@@ -14,6 +14,7 @@ keywords = ["fsm", "hsm", "statechart", "embedded"]
 statig_macro = { path = "../macro", version = "0.2.0-beta", optional = true }
 serde = { version = "1.0.152", optional = true }
 bevy_ecs = { version = "0.9.1", optional = true }
+futures = { version = "0.3.26", optional = true }
 
 [dev-dependencies]
 bincode = "1.3.3"
@@ -27,4 +28,5 @@ default = ["macro"]
 macro = ["statig_macro"]
 serde = ["dep:serde"]
 bevy = ["dep:bevy_ecs"]
+async = ["dep:futures"]
 std = []

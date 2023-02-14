@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use statig::prelude::*;
+    use statig::blocking::{self, *};
     use std::fmt;
 
     type Response = statig::Response<State>;
@@ -58,7 +58,7 @@ mod tests {
         const INITIAL: State = State::S11;
     }
 
-    impl statig::State<Foo> for State {
+    impl blocking::State<Foo> for State {
         fn call_handler(
             &mut self,
             object: &mut Foo,
@@ -97,7 +97,7 @@ mod tests {
         }
     }
 
-    impl statig::Superstate<Foo> for Superstate {
+    impl blocking::Superstate<Foo> for Superstate {
         fn call_handler(
             &mut self,
             object: &mut Foo,

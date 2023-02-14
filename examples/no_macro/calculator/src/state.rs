@@ -1,4 +1,4 @@
-use statig::prelude::*;
+use statig::blocking::{self, *};
 
 pub enum Event {
     Ac,
@@ -57,7 +57,7 @@ pub enum Superstate<'a> {
     On,
 }
 
-impl IntoStateMachine for Calculator {
+impl blocking::IntoStateMachine for Calculator {
     type State = State;
 
     type Superstate<'a> = Superstate<'a>;
@@ -69,7 +69,7 @@ impl IntoStateMachine for Calculator {
     const INITIAL: State = State::Begin;
 }
 
-impl statig::State<Calculator> for State {
+impl blocking::State<Calculator> for State {
     fn call_handler(
         &mut self,
         calculator: &mut Calculator,
@@ -130,7 +130,7 @@ impl statig::State<Calculator> for State {
     }
 }
 
-impl<'a> statig::Superstate<Calculator> for Superstate<'a> {
+impl<'a> blocking::Superstate<Calculator> for Superstate<'a> {
     fn call_handler(
         &mut self,
         calculator: &mut Calculator,

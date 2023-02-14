@@ -1,7 +1,6 @@
 #![allow(unused)]
 
-use statig::prelude::*;
-use statig::IntoStateMachine;
+use statig::blocking::{self, *};
 use std::io::Write;
 
 #[derive(Default)]
@@ -46,7 +45,7 @@ impl IntoStateMachine for Blinky {
 }
 
 // Implement the `statig::State` trait for the state enum.
-impl statig::State<Blinky> for State {
+impl blocking::State<Blinky> for State {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<Self> {
         match self {
             State::LedOn => Blinky::led_on(event),
@@ -65,7 +64,7 @@ impl statig::State<Blinky> for State {
 }
 
 // Implement the `statig::Superstate` trait for the superstate enum.
-impl statig::Superstate<Blinky> for Superstate {
+impl blocking::Superstate<Blinky> for Superstate {
     fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<State> {
         match self {
             Superstate::Blinking => Blinky::blinking(event),

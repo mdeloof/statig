@@ -2,8 +2,8 @@
 
 #[cfg(test)]
 mod tests {
+    use statig::blocking::{self, *};
 
-    use statig::prelude::*;
     use std::io::Write;
 
     #[derive(Default)]
@@ -77,7 +77,7 @@ mod tests {
         }
     }
 
-    impl statig::State<Blinky> for StateEnum {
+    impl blocking::State<Blinky> for StateEnum {
         fn call_handler(
             &mut self,
             object: &mut Blinky,
@@ -119,7 +119,7 @@ mod tests {
         Playing { led: &'sub mut bool },
     }
 
-    impl<'sub> statig::Superstate<Blinky> for Superstate<'sub> {
+    impl<'sub> blocking::Superstate<Blinky> for Superstate<'sub> {
         fn call_handler(
             &mut self,
             object: &mut Blinky,

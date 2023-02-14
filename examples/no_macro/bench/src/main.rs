@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use statig::prelude::*;
+use statig::blocking::{self, *};
 use std::io::Empty;
 use std::io::Write;
 use std::time::Instant;
@@ -52,7 +52,7 @@ impl IntoStateMachine for CdPlayer {
     const INITIAL: State = State::Empty;
 }
 
-impl statig::State<CdPlayer> for State {
+impl blocking::State<CdPlayer> for State {
     fn call_handler(
         &mut self,
         cd_player: &mut CdPlayer,
