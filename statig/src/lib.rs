@@ -585,6 +585,11 @@
 #![no_std]
 #![cfg_attr(feature = "async", feature(async_fn_in_trait))]
 
+mod inner;
+mod into_state_machine;
+mod response;
+mod state_or_superstate;
+
 /// Macro for deriving the state and superstate enum.
 ///
 /// By parsing the underlying `impl` block and searching for methods with the
@@ -719,23 +724,23 @@ pub use statig_macro::superstate;
 #[cfg(feature = "macro")]
 pub use statig_macro::action;
 
-mod response;
-mod state_machine;
-mod state_or_superstate;
+pub mod prelude {
+    #[cfg(feature = "async")]
+    pub use crate::awaitable::{IntoStateMachineExt as _, StateExt as _, *};
+    pub use crate::blocking::{IntoStateMachineExt as _, StateExt as _, *};
+    pub use crate::Response::{self, *};
+    pub use crate::StateOrSuperstate;
+    #[cfg(feature = "macro")]
+    pub use statig_macro::state_machine;
+}
 
 pub mod blocking;
 
 #[cfg(feature = "async")]
 pub mod awaitable;
 
-pub mod prelude {
+pub(crate) use inner::*;
 
-    pub use crate::blocking::*;
-
-    #[cfg(feature = "macro")]
-    pub use statig_macro::state_machine;
-}
-
+pub use into_state_machine::*;
 pub use response::*;
-pub use state_machine::*;
 pub use state_or_superstate::*;
