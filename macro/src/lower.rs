@@ -55,6 +55,8 @@ pub struct StateMachine {
     pub event_ident: Ident,
     /// The external input pattern.
     pub context_ident: Ident,
+    /// Whether the state machine is sync (blocking) or async (awaitable).
+    pub mode: Mode,
 }
 
 /// Information regarding a state.
@@ -68,7 +70,7 @@ pub struct State {
     pub pat: Pat,
     /// The call to the state handler
     /// (e.g. `Blinky::on(object, led, input)`).
-    pub handler_call: ExprCall,
+    pub handler_call: Expr,
     /// The call to the entry action of the state, if defined
     /// (e.g. `Blinky::enter_on(object, led)`, `{}`, ..).
     pub entry_action_call: Expr,
@@ -112,6 +114,12 @@ pub struct Action {
     pub handler_call: ExprCall,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    Awaitable,
+    Blocking,
+}
+
 pub fn lower(model: &Model) -> Ir {
     let item_impl = model.item_impl.clone();
 
@@ -128,6 +136,8 @@ pub fn lower(model: &Model) -> Ir {
 
     let event_ident = model.state_machine.event_ident.clone();
     let context_ident = model.state_machine.context_ident.clone();
+
+    let mut mode = Mode::Blocking;
 
     let mut states: HashMap<Ident, State> = model
         .states
@@ -278,6 +288,9 @@ pub fn lower(model: &Model) -> Ir {
                 }
             }
         }
+        if state.is_async {
+            mode = Mode::Awaitable;
+        }
     }
 
     for superstate in model.superstates.values() {
@@ -310,6 +323,15 @@ pub fn lower(model: &Model) -> Ir {
                     context_type = Some(ty);
                 }
             }
+        }
+        if superstate.is_async {
+            mode = Mode::Awaitable;
+        }
+    }
+
+    for action in model.actions.values() {
+        if action.is_async {
+            mode = Mode::Awaitable;
         }
     }
 
@@ -350,6 +372,7 @@ pub fn lower(model: &Model) -> Ir {
         visibility,
         event_ident,
         context_ident,
+        mode,
     };
 
     Ir {
@@ -390,8 +413,10 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
     let variant = parse_quote!(#variant_name { #(#variant_fields),* });
     let pat = parse_quote!(#state_name::#variant_name { #(#pat_fields),*});
     let constructor = parse_quote!(const fn #state_handler_name ( #(#variant_fields),* ) -> Self { Self::#variant_name { #(#pat_fields),*} });
-    let handler_call =
-        parse_quote!(#shared_storage_type::#state_handler_name(#(#handler_inputs),*));
+    let handler_call = match &state.is_async {
+        true => parse_quote!(#shared_storage_type::#state_handler_name(#(#handler_inputs),*).await),
+        false => parse_quote!(#shared_storage_type::#state_handler_name(#(#handler_inputs),*)),
+    };
     let entry_action_call = parse_quote!({});
     let exit_action_call = parse_quote!({});
     let superstate_pat = parse_quote!(None);
@@ -439,8 +464,12 @@ pub fn lower_superstate(
 
     let variant = parse_quote!(#superstate_name { #(#variant_fields),* });
     let pat = parse_quote!(#superstate_type::#superstate_name { #(#pat_fields),*});
-    let handler_call =
-        parse_quote!(#shared_storage_type::#superstate_handler_name(#(#handler_inputs),*));
+    let handler_call = match &superstate.is_async {
+        true => {
+            parse_quote!(#shared_storage_type::#superstate_handler_name(#(#handler_inputs),*).await)
+        }
+        false => parse_quote!(#shared_storage_type::#superstate_handler_name(#(#handler_inputs),*)),
+    };
     let entry_action_call = parse_quote!({});
     let exit_action_call = parse_quote!({});
     let superstate_pat = parse_quote!(None);
@@ -478,7 +507,10 @@ pub fn lower_action(action: &analyze::Action, state_machine: &analyze::StateMach
         }
     }
 
-    let handler_call = parse_quote!(#shared_storage_type::#action_handler_name(#(#call_inputs),*));
+    let handler_call = match &action.is_async {
+        true => parse_quote!(#shared_storage_type::#action_handler_name(#(#call_inputs),*).await),
+        false => parse_quote!(#shared_storage_type::#action_handler_name(#(#call_inputs),*)),
+    };
 
     Action { handler_call }
 }
@@ -656,6 +688,7 @@ fn create_lower_state_machine() -> StateMachine {
         visibility: parse_quote!(pub),
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),
+        mode: Mode::Blocking,
     }
 }
 
@@ -680,6 +713,7 @@ fn create_analyze_state() -> analyze::State {
             parse_quote!(led: &mut bool),
             parse_quote!(counter: &mut usize),
         ],
+        is_async: false,
     }
 }
 
@@ -732,6 +766,7 @@ fn create_analyze_superstate() -> analyze::Superstate {
             parse_quote!(led: &mut bool),
             parse_quote!(counter: &mut usize),
         ],
+        is_async: false,
     }
 }
 
@@ -755,6 +790,7 @@ fn create_analyze_action() -> analyze::Action {
     analyze::Action {
         handler_name: parse_quote!(enter_on),
         inputs: vec![parse_quote!(&mut self), parse_quote!(led: &mut bool)],
+        is_async: false,
     }
 }
 

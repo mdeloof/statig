@@ -12,6 +12,7 @@ members = [
     "examples/macro/calculator",
     "examples/macro/barrier",
     "examples/macro/bench_complex",
+    "examples/macro/basic_async",
 
     "examples/no_macro/basic",
     "examples/no_macro/blinky",

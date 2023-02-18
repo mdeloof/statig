@@ -76,6 +76,8 @@ pub struct State {
     pub event_arg: Option<FnArg>,
     /// Context that is submitted to the state machine.
     pub context_arg: Option<FnArg>,
+    /// Whether the function is async or not.
+    pub is_async: bool,
 }
 
 /// Information regarding a superstate.
@@ -101,6 +103,8 @@ pub struct Superstate {
     pub event_arg: Option<FnArg>,
     /// Context that is submitted to the state machine.
     pub context_arg: Option<FnArg>,
+    /// Whether the function is async or not.
+    pub is_async: bool,
 }
 
 /// Information regarding an action.
@@ -110,6 +114,8 @@ pub struct Action {
     pub handler_name: Ident,
     /// Inputs required by the action handler.
     pub inputs: Vec<FnArg>,
+    /// Whether the function is async or not.
+    pub is_async: bool,
 }
 
 /// Analyze the impl block and create a model.
@@ -364,6 +370,8 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let mut event_arg = None;
     let mut context_arg = None;
 
+    let is_async = method.sig.asyncness.is_some();
+
     for input in &method.sig.inputs {
         match input {
             FnArg::Receiver(_) => shared_storage_input = Some(input.clone()),
@@ -435,6 +443,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         state_inputs,
         event_arg,
         context_arg,
+        is_async,
     }
 }
 
@@ -451,6 +460,8 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
     let mut context_arg = None;
+
+    let is_async = method.sig.asyncness.is_some();
 
     for input in &method.sig.inputs {
         match input {
@@ -523,6 +534,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         state_inputs,
         event_arg,
         context_arg,
+        is_async,
     }
 }
 
@@ -530,10 +542,12 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
 pub fn analyze_action(method: &ImplItemMethod) -> Action {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.clone().into_iter().collect();
+    let is_async = method.sig.asyncness.is_some();
 
     Action {
         handler_name,
         inputs,
+        is_async,
     }
 }
 
@@ -659,6 +673,7 @@ fn valid_state_analyze() {
         state_inputs: vec![],
         event_arg: Some(parse_quote!(event: &Event)),
         context_arg: None,
+        is_async: false,
     };
 
     let superstate = Superstate {
@@ -672,16 +687,19 @@ fn valid_state_analyze() {
         state_inputs: vec![],
         event_arg: Some(parse_quote!(event: &Event)),
         context_arg: None,
+        is_async: false,
     };
 
     let entry_action = Action {
         handler_name: parse_quote!(enter_on),
         inputs: vec![parse_quote!(&mut self)],
+        is_async: false,
     };
 
     let exit_action = Action {
         handler_name: parse_quote!(enter_off),
         inputs: vec![parse_quote!(&mut self)],
+        is_async: false,
     };
 
     let mut states = HashMap::new();

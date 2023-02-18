@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_quote, Arm, ItemEnum, ItemFn, ItemImpl, Variant};
 
-use crate::lower::Ir;
+use crate::lower::{Ir, Mode};
 
 pub fn codegen(ir: Ir) -> TokenStream {
     let item_impl = &ir.item_impl;
@@ -15,6 +15,7 @@ pub fn codegen(ir: Ir) -> TokenStream {
     let superstate_impl = codegen_superstate_impl_superstate(&ir);
 
     quote!(
+        // Import the proc_macro attributes so they can be used to tag functions.
         use statig::{state, superstate, action};
 
         #item_impl
@@ -42,6 +43,11 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
 
     let initial_state = &ir.state_machine.initial_state;
 
+    let mode = match ir.state_machine.mode {
+        Mode::Blocking => quote!(blocking),
+        Mode::Awaitable => quote!(awaitable),
+    };
+
     let on_transition = match &ir.state_machine.on_transition {
         None => quote!(),
         Some(on_transition) => quote!(
@@ -57,7 +63,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     };
 
     parse_quote!(
-        impl statig::blocking::IntoStateMachine for #object_type {
+        impl statig::#mode::IntoStateMachine for #object_type {
             type Event<'a> = #event_type;
             type Context<'a> = #context_type;
             type State = #state_type;
@@ -119,6 +125,11 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     let mut superstate_arms: Vec<Arm> = Vec::new();
     let mut same_state_arms: Vec<Arm> = Vec::new();
 
+    let (mode, asyncness) = match ir.state_machine.mode {
+        Mode::Blocking => (quote!(blocking), quote!()),
+        Mode::Awaitable => (quote!(awaitable), quote!(async)),
+    };
+
     for state in ir.states.values() {
         let pat = &state.pat;
         let handler_call = &state.handler_call;
@@ -141,26 +152,26 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl statig::blocking::State<#object_type> for #state_type {
-            fn call_handler(&mut self, shared_storage: &mut #object_type, #event_ident: &<#object_type as statig::blocking::IntoStateMachine>::Event<'_>, #context_ident: &mut <#object_type as statig::blocking::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
+        impl statig::#mode::State<#object_type> for #state_type {
+            #asyncness fn call_handler(&mut self, shared_storage: &mut #object_type, #event_ident: &<#object_type as statig::#mode::IntoStateMachine>::Event<'_>, #context_ident: &mut <#object_type as statig::#mode::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
-            fn call_entry_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::blocking::IntoStateMachine>::Context<'_>) {
+            #asyncness fn call_entry_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::#mode::IntoStateMachine>::Context<'_>) {
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
-            fn call_exit_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::blocking::IntoStateMachine>::Context<'_>) {
+            #asyncness fn call_exit_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::#mode::IntoStateMachine>::Context<'_>) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#object_type as statig::blocking::IntoStateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#object_type as statig::#mode::IntoStateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }
@@ -199,6 +210,11 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
     let mut superstate_arms: Vec<Arm> = Vec::new();
     let mut same_state_arms: Vec<Arm> = Vec::new();
 
+    let (mode, asyncness) = match ir.state_machine.mode {
+        Mode::Blocking => (quote!(blocking), quote!()),
+        Mode::Awaitable => (quote!(awaitable), quote!(async)),
+    };
+
     for state in ir.superstates.values() {
         let pat = &state.pat;
         let handler_call = &state.handler_call;
@@ -220,42 +236,42 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl<'a> statig::blocking::Superstate<#shared_storage_type> for #superstate_type
+        impl<'a> statig::#mode::Superstate<#shared_storage_type> for #superstate_type
         where
             Self: 'a,
         {
-            fn call_handler(
+            #asyncness fn call_handler(
                 &mut self,
                 shared_storage: &mut #shared_storage_type,
-                #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
-                #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
-            ) -> statig::Response<<#shared_storage_type as statig::blocking::IntoStateMachine>::State> where Self: Sized {
+                #event_ident: &<#shared_storage_type as statig::#mode::IntoStateMachine>::Event<'_>,
+                #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>
+            ) -> statig::Response<<#shared_storage_type as statig::#mode::IntoStateMachine>::State> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
-            fn call_entry_action(
+            #asyncness fn call_entry_action(
                 &mut self,
                 shared_storage: &mut #shared_storage_type,
-                #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>
             ) {
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
-            fn call_exit_action(
+            #asyncness fn call_exit_action(
                 &mut self,
                 shared_storage: &mut #shared_storage_type,
-                #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>
             ) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::blocking::IntoStateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::#mode::IntoStateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }
