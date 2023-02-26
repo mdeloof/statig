@@ -1,17 +1,23 @@
+use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
+
 use proc_macro2::Span;
 use proc_macro_error::abort;
-use quote::format_ident;
-use std::collections::HashMap;
-use std::ops::Deref;
+
 use syn::parse::Parser;
-use syn::{parse_quote, Expr, Field, ItemImpl, Lifetime, Type};
-use syn::{ExprCall, FnArg, Ident, Pat, Path, Variant};
-use syn::{ItemFn, Visibility};
+use syn::{parse_quote, PatType};
+use syn::{
+    Expr, ExprCall, Field, FnArg, GenericArgument, GenericParam, Generics, Ident, ItemFn, ItemImpl,
+    Lifetime, Pat, Path, Type, Variant, Visibility, WhereClause, WherePredicate,
+};
+
+use quote::format_ident;
 
 use crate::analyze;
 use crate::analyze::Model;
+use crate::SUPERSTATE_LIFETIME;
 
-const SUPERSTATE_LIFETIME: &str = "'a";
+type GenericsMap = Vec<(GenericArgument, GenericParam, Vec<WherePredicate>)>;
 
 /// Intermediate representation of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
@@ -33,18 +39,24 @@ pub struct StateMachine {
     pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub shared_storage_type: Type,
+    /// The generics associated with the shared storage type.
+    pub shared_storage_generics: Generics,
     /// The type of the event.
     pub event_type: Type,
     /// The type of the context.
     pub context_type: Type,
     /// The type of the state enum.
-    pub state_type: Type,
+    pub state_ident: Ident,
     /// Derives that will be applied on the state type.
     pub state_derives: Vec<Path>,
+    /// The generics associated with the state type.
+    pub state_generics: Generics,
     /// The type of the superstate enum (ex. `Superstate<'a>`)
-    pub superstate_type: Type,
+    pub superstate_ident: Ident,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
+    /// The generics associated with the superstate type.
+    pub superstate_generics: Generics,
     /// The path of the `on_transition` callback.
     pub on_transition: Option<Path>,
     /// The path of the `on_dipsatch` callback.
@@ -122,22 +134,20 @@ pub enum Mode {
 
 pub fn lower(model: &Model) -> Ir {
     let item_impl = model.item_impl.clone();
-
     let initial_state = model.state_machine.initial_state.clone();
-
-    let state_name = &model.state_machine.state_type;
-    let state_type = parse_quote!(#state_name);
-
-    let superstate_ident = &model.state_machine.superstate_type;
-    let mut superstate_type = parse_quote!(#superstate_ident);
-
+    let state_ident = model.state_machine.state_ident.clone();
+    let superstate_ident = model.state_machine.superstate_ident.clone();
     let on_transition = model.state_machine.on_transition.clone();
     let on_dispatch = model.state_machine.on_dispatch.clone();
-
     let event_ident = model.state_machine.event_ident.clone();
     let context_ident = model.state_machine.context_ident.clone();
+    let shared_storage_type = model.state_machine.shared_storage_type.clone();
+    let shared_storage_generics = model.state_machine.shared_storage_generics.clone();
+    let state_derives = model.state_machine.state_derives.clone();
+    let superstate_derives = model.state_machine.superstate_derives.clone();
+    let visibility = model.state_machine.visibility.clone();
 
-    let mut mode = Mode::Blocking;
+    let mut superstate_lifetime: Option<Lifetime> = None;
 
     let mut states: HashMap<Ident, State> = model
         .states
@@ -150,7 +160,8 @@ pub fn lower(model: &Model) -> Ir {
         .iter()
         .inspect(|(_, value)| {
             if !value.state_inputs.is_empty() {
-                superstate_type = parse_quote!(#superstate_ident <'a>);
+                let lifetime = Lifetime::new(SUPERSTATE_LIFETIME, Span::call_site());
+                superstate_lifetime = Some(lifetime);
             }
         })
         .map(|(key, value)| (key.clone(), lower_superstate(value, &model.state_machine)))
@@ -201,10 +212,9 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
-    let superstates_clone = superstates.clone();
-
     // Linking superstates
-    for key in superstates_clone.keys() {
+    let superstates_clone = superstates.clone();
+    for (key, superstate) in &mut superstates {
         if let Some(superstate_superstate) = model
             .superstates
             .get(key)
@@ -213,9 +223,7 @@ pub fn lower(model: &Model) -> Ir {
             match superstates_clone.get(superstate_superstate) {
                 Some(superstate_superstate) => {
                     let superstate_superstate_pat = &superstate_superstate.pat;
-                    if let Some(superstate) = superstates.get_mut(key) {
-                        superstate.superstate_pat = parse_quote!(Some(#superstate_superstate_pat))
-                    }
+                    superstate.superstate_pat = parse_quote!(Some(#superstate_superstate_pat))
                 }
                 None => abort!(superstate_superstate, "superstate not found"),
             }
@@ -227,11 +235,7 @@ pub fn lower(model: &Model) -> Ir {
             .and_then(|state| state.entry_action.as_ref())
         {
             match actions.get(entry_action) {
-                Some(action) => {
-                    if let Some(superstate) = superstates.get_mut(key) {
-                        superstate.entry_action_call = action.handler_call.clone().into();
-                    }
-                }
+                Some(action) => superstate.entry_action_call = action.handler_call.clone().into(),
                 None => abort!(entry_action, "action not found"),
             }
         }
@@ -242,23 +246,21 @@ pub fn lower(model: &Model) -> Ir {
             .and_then(|state| state.exit_action.as_ref())
         {
             match actions.get(exit_action) {
-                Some(action) => {
-                    if let Some(superstate) = superstates.get_mut(key) {
-                        superstate.exit_action_call = action.handler_call.clone().into();
-                    }
-                }
+                Some(action) => superstate.exit_action_call = action.handler_call.clone().into(),
                 None => abort!(exit_action, "action not found"),
             }
         }
     }
 
-    // Finding event types
+    // Finding event and/or context types and check whether there are any async
+    // functions.
 
+    let mut mode = Mode::Blocking;
     let mut event_type = None;
     let mut context_type = None;
 
     for state in model.states.values() {
-        if let Some(FnArg::Typed(pat_type)) = &state.event_arg {
+        if let Some(pat_type) = &state.event_arg {
             if let Pat::Ident(external_input_ident) = &*pat_type.pat {
                 if model
                     .state_machine
@@ -273,7 +275,7 @@ pub fn lower(model: &Model) -> Ir {
                 }
             }
         }
-        if let Some(FnArg::Typed(pat_type)) = &state.context_arg {
+        if let Some(pat_type) = &state.context_arg {
             if let Pat::Ident(external_input_ident) = &*pat_type.pat {
                 if model
                     .state_machine
@@ -294,7 +296,7 @@ pub fn lower(model: &Model) -> Ir {
     }
 
     for superstate in model.superstates.values() {
-        if let Some(FnArg::Typed(pat_type)) = &superstate.event_arg {
+        if let Some(pat_type) = &superstate.event_arg {
             if let Pat::Ident(external_input_ident) = &*pat_type.pat {
                 if model
                     .state_machine
@@ -309,7 +311,7 @@ pub fn lower(model: &Model) -> Ir {
                 }
             }
         }
-        if let Some(FnArg::Typed(pat_type)) = &superstate.context_arg {
+        if let Some(pat_type) = &superstate.context_arg {
             if let Pat::Ident(external_input_ident) = &*pat_type.pat {
                 if model
                     .state_machine
@@ -351,22 +353,82 @@ pub fn lower(model: &Model) -> Ir {
         },
     };
 
-    let shared_storage_type = model.state_machine.shared_storage_type.clone();
-    let state_derives = model.state_machine.state_derives.clone();
+    let shared_storage_generics_map = map_generics(&shared_storage_generics);
 
-    let superstate_derives = model.state_machine.superstate_derives.clone();
+    // Merge all the sets of the candidates generics of the state enum variant.
+    let mut state_candidates_generics = HashSet::new();
+    for state in model.states.values() {
+        state_candidates_generics.extend(state.candidates_generics.iter().cloned());
+    }
 
-    let visibility = model.state_machine.visibility.clone();
+    // Merge all the sets of the candidates generics of the superstate enum variant.
+    let mut superstate_candidates_generics = HashSet::new();
+    for state in model.states.values() {
+        superstate_candidates_generics.extend(state.candidates_generics.iter().cloned());
+    }
+
+    let state_generics_arguments: HashSet<_> = model
+        .state_machine
+        .candidates_generics
+        .intersection(&state_candidates_generics)
+        .collect();
+
+    let superstate_generics_arguments: HashSet<_> = model
+        .state_machine
+        .candidates_generics
+        .intersection(&superstate_candidates_generics)
+        .collect();
+
+    let mut state_generics = Generics::default();
+    for (key, param, predicates) in &shared_storage_generics_map {
+        if state_generics_arguments.contains(key) {
+            state_generics.params.push(param.clone());
+            match &mut state_generics.where_clause {
+                Some(clause) => clause.predicates.extend(predicates.iter().cloned()),
+                None => {
+                    state_generics.where_clause = Some(WhereClause {
+                        where_token: parse_quote!(where),
+                        predicates: parse_quote!(#(#predicates),*),
+                    })
+                }
+            }
+        }
+    }
+
+    let mut superstate_generics = Generics::default();
+    for (key, param, predicates) in &shared_storage_generics_map {
+        if superstate_generics_arguments.contains(key) {
+            superstate_generics.params.push(param.clone());
+            match &mut superstate_generics.where_clause {
+                Some(clause) => clause.predicates.extend(predicates.iter().cloned()),
+                None => {
+                    superstate_generics.where_clause = Some(WhereClause {
+                        where_token: parse_quote!(where),
+                        predicates: parse_quote!(#(#predicates),*),
+                    })
+                }
+            }
+        }
+    }
+
+    if let Some(lifetime) = superstate_lifetime {
+        superstate_generics
+            .params
+            .push(GenericParam::Lifetime(syn::LifetimeDef::new(lifetime)));
+    }
 
     let state_machine = StateMachine {
         initial_state,
         shared_storage_type,
+        shared_storage_generics,
         event_type,
         context_type,
-        state_type,
+        state_ident,
         state_derives,
-        superstate_type,
+        state_generics,
+        superstate_ident,
         superstate_derives,
+        superstate_generics,
         on_transition,
         on_dispatch,
         visibility,
@@ -386,8 +448,11 @@ pub fn lower(model: &Model) -> Ir {
 pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine) -> State {
     let variant_name = snake_case_to_pascal_case(&state.handler_name);
     let state_handler_name = &state.handler_name;
-    let shared_storage_type = &state_machine.shared_storage_type;
-    let state_name = &state_machine.state_type;
+    let shared_storage_ident = &state_machine.shared_storage_ident;
+    let (_, shared_storage_type_generics, _) =
+        &state_machine.shared_storage_generics.split_for_impl();
+    let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
+    let state_name = &state_machine.state_ident;
 
     let mut variant_fields: Vec<_> = state
         .state_inputs
@@ -413,10 +478,16 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
     let variant = parse_quote!(#variant_name { #(#variant_fields),* });
     let pat = parse_quote!(#state_name::#variant_name { #(#pat_fields),*});
     let constructor = parse_quote!(const fn #state_handler_name ( #(#variant_fields),* ) -> Self { Self::#variant_name { #(#pat_fields),*} });
+
     let handler_call = match &state.is_async {
-        true => parse_quote!(#shared_storage_type::#state_handler_name(#(#handler_inputs),*).await),
-        false => parse_quote!(#shared_storage_type::#state_handler_name(#(#handler_inputs),*)),
+        true => {
+            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#state_handler_name(#(#handler_inputs),*).await)
+        }
+        false => {
+            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#state_handler_name(#(#handler_inputs),*))
+        }
     };
+
     let entry_action_call = parse_quote!({});
     let exit_action_call = parse_quote!({});
     let superstate_pat = parse_quote!(None);
@@ -438,8 +509,11 @@ pub fn lower_superstate(
 ) -> Superstate {
     let superstate_name = snake_case_to_pascal_case(&superstate.handler_name);
     let superstate_handler_name = &superstate.handler_name;
-    let shared_storage_type = &state_machine.shared_storage_type;
-    let superstate_type = &state_machine.superstate_type;
+    let shared_storage_ident = &state_machine.shared_storage_ident;
+    let (_, shared_storage_type_generics, _) =
+        &state_machine.shared_storage_generics.split_for_impl();
+    let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
+    let superstate_type = &state_machine.superstate_ident;
 
     let mut variant_fields: Vec<_> = superstate
         .state_inputs
@@ -466,9 +540,11 @@ pub fn lower_superstate(
     let pat = parse_quote!(#superstate_type::#superstate_name { #(#pat_fields),*});
     let handler_call = match &superstate.is_async {
         true => {
-            parse_quote!(#shared_storage_type::#superstate_handler_name(#(#handler_inputs),*).await)
+            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#superstate_handler_name(#(#handler_inputs),*).await)
         }
-        false => parse_quote!(#shared_storage_type::#superstate_handler_name(#(#handler_inputs),*)),
+        false => {
+            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#superstate_handler_name(#(#handler_inputs),*))
+        }
     };
     let entry_action_call = parse_quote!({});
     let exit_action_call = parse_quote!({});
@@ -486,7 +562,10 @@ pub fn lower_superstate(
 
 pub fn lower_action(action: &analyze::Action, state_machine: &analyze::StateMachine) -> Action {
     let action_handler_name = &action.handler_name;
-    let shared_storage_type = &state_machine.shared_storage_type;
+    let shared_storage_ident = &state_machine.shared_storage_ident;
+    let (_, shared_storage_type_generics, _) =
+        &state_machine.shared_storage_generics.split_for_impl();
+    let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
 
     let mut call_inputs: Vec<Ident> = Vec::new();
 
@@ -508,8 +587,12 @@ pub fn lower_action(action: &analyze::Action, state_machine: &analyze::StateMach
     }
 
     let handler_call = match &action.is_async {
-        true => parse_quote!(#shared_storage_type::#action_handler_name(#(#call_inputs),*).await),
-        false => parse_quote!(#shared_storage_type::#action_handler_name(#(#call_inputs),*)),
+        true => {
+            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*).await)
+        }
+        false => {
+            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*))
+        }
     };
 
     Action { handler_call }
@@ -525,51 +608,98 @@ fn fn_arg_to_ident(fn_arg: &FnArg) -> Ident {
     }
 }
 
-fn fn_arg_to_state_field(fn_arg: &FnArg) -> Field {
-    match fn_arg {
-        FnArg::Receiver(_) => panic!("`self` can never be a state field"),
-        FnArg::Typed(pat_type) => {
-            let field_type = match pat_type.ty.as_ref() {
-                Type::Reference(reference) => reference.elem.clone(),
-                _ => abort!(fn_arg, "input must be passed as a reference"),
-            };
-            match pat_type.pat.as_ref() {
-                Pat::Ident(pat_ident) => {
-                    let field_ident = &pat_ident.ident;
-                    Field::parse_named
-                        .parse2(quote::quote!(#field_ident: #field_type))
-                        .unwrap()
-                }
-                _ => panic!("all patterns should be verified to be idents"),
-            }
+fn fn_arg_to_state_field(pat_type: &PatType) -> Field {
+    let field_type = match pat_type.ty.as_ref() {
+        Type::Reference(reference) => reference.elem.clone(),
+        _ => abort!(pat_type, "input must be passed as a reference"),
+    };
+    match pat_type.pat.as_ref() {
+        Pat::Ident(pat_ident) => {
+            let field_ident = &pat_ident.ident;
+            Field::parse_named
+                .parse2(quote::quote!(#field_ident: #field_type))
+                .unwrap()
         }
+        _ => panic!("all patterns should be verified to be idents"),
     }
 }
 
-fn fn_arg_to_superstate_field(fn_arg: &FnArg) -> Field {
-    match fn_arg {
-        FnArg::Receiver(_) => panic!(),
-        FnArg::Typed(pat_type) => {
-            let field_type = match pat_type.ty.as_ref() {
-                Type::Reference(reference) => {
-                    let mut reference = reference.clone();
-                    reference.lifetime =
-                        Some(Lifetime::new(SUPERSTATE_LIFETIME, Span::call_site()));
-                    Type::Reference(reference)
-                }
-                _ => abort!(fn_arg, "input must be passed as a reference"),
-            };
-            match pat_type.pat.as_ref() {
-                Pat::Ident(pat_ident) => {
-                    let field_ident = &pat_ident.ident;
-                    Field::parse_named
-                        .parse2(quote::quote!(#field_ident: #field_type))
-                        .unwrap()
-                }
-                _ => panic!("all patterns should be verified to be idents"),
+fn fn_arg_to_superstate_field(pat_type: &PatType) -> Field {
+    let field_type = match pat_type.ty.as_ref() {
+        Type::Reference(reference) => {
+            let mut reference = reference.clone();
+            reference.lifetime = Some(Lifetime::new(SUPERSTATE_LIFETIME, Span::call_site()));
+            Type::Reference(reference)
+        }
+        _ => abort!(pat_type, "input must be passed as a reference"),
+    };
+    match pat_type.pat.as_ref() {
+        Pat::Ident(pat_ident) => {
+            let field_ident = &pat_ident.ident;
+            Field::parse_named
+                .parse2(quote::quote!(#field_ident: #field_type))
+                .unwrap()
+        }
+        _ => panic!("all patterns should be verified to be idents"),
+    }
+}
+
+/// Create hash map that associates certain generics with their predicates.
+fn map_generics(generics: &Generics) -> GenericsMap {
+    let mut map = Vec::new();
+
+    // Iterate over the generic parameters and add them to the map.
+    for param in &generics.params {
+        match param {
+            GenericParam::Type(ty) => {
+                let ident = &ty.ident;
+                map.push((
+                    GenericArgument::Type(parse_quote!(#ident)),
+                    param.clone(),
+                    Vec::new(),
+                ));
             }
+            GenericParam::Lifetime(lifetime) => {
+                let lifetime = lifetime.lifetime.clone();
+                map.push((
+                    GenericArgument::Lifetime(lifetime),
+                    param.clone(),
+                    Vec::new(),
+                ));
+            }
+            GenericParam::Const(constant) => {
+                let constant = constant.ident.clone();
+                map.push((
+                    GenericArgument::Type(parse_quote!(#constant)),
+                    param.clone(),
+                    Vec::new(),
+                ));
+            }
+        };
+    }
+
+    for predicate in generics
+        .where_clause
+        .iter()
+        .flat_map(|clause| &clause.predicates)
+    {
+        let argument = match predicate {
+            WherePredicate::Type(ty) => {
+                let ty = &ty.bounded_ty;
+                GenericArgument::Type(parse_quote!(#ty))
+            }
+            WherePredicate::Lifetime(lifetime) => {
+                let lifetime = lifetime.lifetime.clone();
+                GenericArgument::Lifetime(lifetime)
+            }
+            _ => continue,
+        };
+        if let Some((_, _, predicates)) = map.iter_mut().find(|(arg, _, _)| arg == &argument) {
+            predicates.push(predicate.clone());
         }
     }
+
+    map
 }
 
 fn snake_case_to_pascal_case(snake: &Ident) -> Ident {
@@ -583,10 +713,10 @@ fn snake_case_to_pascal_case(snake: &Ident) -> Ident {
     format_ident!("{}", pascal)
 }
 
-fn pat_to_type(pat: &Pat, idents: &HashMap<Ident, Type>) -> Type {
+fn _pat_to_type(pat: &Pat, idents: &HashMap<Ident, Type>) -> Type {
     match pat {
         Pat::Box(pat) => {
-            let ty = pat_to_type(&pat.pat, idents);
+            let ty = _pat_to_type(&pat.pat, idents);
             parse_quote!(Box<#ty>)
         }
         Pat::Ident(pat) => match idents.get(&pat.ident) {
@@ -638,7 +768,7 @@ fn pat_to_type(pat: &Pat, idents: &HashMap<Ident, Type>) -> Type {
             let types: Vec<_> = tuple
                 .elems
                 .iter()
-                .map(|pat| pat_to_type(pat, idents))
+                .map(|pat| _pat_to_type(pat, idents))
                 .collect();
             parse_quote!((#(#types),*))
         }
@@ -658,11 +788,14 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
     analyze::StateMachine {
         initial_state: parse_quote!(State::on()),
         shared_storage_type: parse_quote!(Blinky),
+        shared_storage_ident: parse_quote!(Blinky),
+        shared_storage_generics: parse_quote!(),
+        candidates_generics: HashSet::new(),
         event_type: None,
         context_type: None,
-        state_type: parse_quote!(State),
+        state_ident: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
-        superstate_type: parse_quote!(Superstate),
+        superstate_ident: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         on_transition: None,
         on_dispatch: None,
@@ -674,15 +807,21 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
 
 #[cfg(test)]
 fn create_lower_state_machine() -> StateMachine {
+    let mut superstate_generics = Generics::default();
+    superstate_generics.params.push(parse_quote!('sub));
     StateMachine {
         initial_state: parse_quote!(State::on()),
         shared_storage_type: parse_quote!(Blinky),
+        shared_storage_generics: parse_quote!(),
         event_type: parse_quote!(()),
         context_type: parse_quote!(()),
-        state_type: parse_quote!(State),
+        #[rustfmt::skip]
+        state_ident: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
-        superstate_type: parse_quote!(Superstate<'a>),
+        state_generics: Generics::default(),
+        superstate_ident: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
+        superstate_generics,
         on_transition: None,
         on_dispatch: None,
         visibility: parse_quote!(pub),
@@ -707,12 +846,27 @@ fn create_analyze_state() -> analyze::State {
             parse_quote!(counter: &mut usize),
         ],
         shared_storage_input: Some(parse_quote!(&mut self)),
-        event_arg: Some(parse_quote!(event: &Event)),
+        event_arg: Some(
+            if let FnArg::Typed(pat_type) = parse_quote!(event: &Event) {
+                pat_type
+            } else {
+                panic!();
+            },
+        ),
         context_arg: None,
         state_inputs: vec![
-            parse_quote!(led: &mut bool),
-            parse_quote!(counter: &mut usize),
+            if let FnArg::Typed(pat_type) = parse_quote!(led: &mut bool) {
+                pat_type
+            } else {
+                panic!();
+            },
+            if let FnArg::Typed(pat_type) = parse_quote!(counter: &mut usize) {
+                pat_type
+            } else {
+                panic!();
+            },
         ],
+        candidates_generics: HashSet::new(),
         is_async: false,
     }
 }
@@ -760,12 +914,27 @@ fn create_analyze_superstate() -> analyze::Superstate {
             parse_quote!(counter: &mut usize),
         ],
         shared_storage_input: Some(parse_quote!(&mut self)),
-        event_arg: Some(parse_quote!(event: &Event)),
+        event_arg: Some(
+            if let FnArg::Typed(pat_type) = parse_quote!(event: &Event) {
+                pat_type
+            } else {
+                panic!();
+            },
+        ),
         context_arg: None,
         state_inputs: vec![
-            parse_quote!(led: &mut bool),
-            parse_quote!(counter: &mut usize),
+            if let FnArg::Typed(pat_type) = parse_quote!(led: &mut bool) {
+                pat_type
+            } else {
+                panic!();
+            },
+            if let FnArg::Typed(pat_type) = parse_quote!(counter: &mut usize) {
+                pat_type
+            } else {
+                panic!();
+            },
         ],
+        candidates_generics: HashSet::new(),
         is_async: false,
     }
 }
@@ -774,8 +943,8 @@ fn create_analyze_superstate() -> analyze::Superstate {
 fn create_lower_superstate() -> Superstate {
     Superstate {
         variant: parse_quote!(Playing {
-            led: &'a mut bool,
-            counter: &'a mut usize
+            led: &'sub mut bool,
+            counter: &'sub mut usize
         }),
         pat: parse_quote!(Superstate::Playing { led, counter }),
         handler_call: parse_quote!(Blinky::playing(shared_storage, input, led, counter)),
@@ -890,14 +1059,14 @@ fn test_pat_to_type() {
 
     let pat = parse_quote!(Vec3 { x, y, z });
 
-    let actual = pat_to_type(&pat, &idents);
+    let actual = _pat_to_type(&pat, &idents);
     let expected = parse_quote!(Vec3);
 
     assert_eq!(actual, expected);
 
     let pat = parse_quote!((counter, context));
 
-    let actual = pat_to_type(&pat, &idents);
+    let actual = _pat_to_type(&pat, &idents);
     let expected = parse_quote!((i32, Context));
 
     assert_eq!(actual, expected);

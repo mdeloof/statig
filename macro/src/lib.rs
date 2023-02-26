@@ -9,11 +9,14 @@ mod analyze;
 mod codegen;
 mod lower;
 mod parse;
+mod visitors;
 
 use analyze::analyze;
 use codegen::codegen;
 use lower::lower;
 use parse::{parse_args, parse_input};
+
+const SUPERSTATE_LIFETIME: &str = "'sub";
 
 #[proc_macro_error]
 #[proc_macro_attribute]

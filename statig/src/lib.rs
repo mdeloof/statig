@@ -583,6 +583,7 @@
 //! complex systems.
 
 #![no_std]
+#![allow(incomplete_features)]
 #![cfg_attr(feature = "async", feature(async_fn_in_trait))]
 
 mod inner;

@@ -1,13 +1,15 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{parse_quote, Arm, ItemEnum, ItemFn, ItemImpl, Variant};
+use syn::{parse_quote, Arm, ItemEnum, ItemFn, ItemImpl, Lifetime, Variant};
 
 use crate::lower::{Ir, Mode};
+use crate::SUPERSTATE_LIFETIME;
 
 pub fn codegen(ir: Ir) -> TokenStream {
     let item_impl = &ir.item_impl;
 
     let state_machine_impl = codegen_state_machine_impl(&ir);
+
     let state_enum = codegen_state(&ir);
     let state_impl = codegen_state_impl(&ir);
     let state_impl_state = codegen_state_impl_state(&ir);
@@ -36,10 +38,26 @@ pub fn codegen(ir: Ir) -> TokenStream {
 
 fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let object_type = &ir.state_machine.shared_storage_type;
+    let shared_storage_generics = &ir
+        .state_machine
+        .shared_storage_generics
+        .params
+        .iter()
+        .collect::<Vec<_>>();
+    let shared_storage_predicates = &ir
+        .state_machine
+        .shared_storage_generics
+        .where_clause
+        .iter()
+        .map(|clause| &clause.predicates)
+        .collect::<Vec<_>>();
     let event_type = &ir.state_machine.event_type;
     let context_type = &ir.state_machine.context_type;
-    let state_type = &ir.state_machine.state_type;
-    let superstate_type = &ir.state_machine.superstate_type;
+    let state_ident = &ir.state_machine.state_ident;
+    let (_, state_generics, _) = &ir.state_machine.state_generics.split_for_impl();
+    let superstate_ident = &ir.state_machine.superstate_ident;
+    let (_, superstate_generics, _) = &ir.state_machine.superstate_generics.split_for_impl();
+    let lifetime = Lifetime::new(SUPERSTATE_LIFETIME, Span::call_site());
 
     let initial_state = &ir.state_machine.initial_state;
 
@@ -63,12 +81,15 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     };
 
     parse_quote!(
-        impl statig::#mode::IntoStateMachine for #object_type {
-            type Event<'a> = #event_type;
-            type Context<'a> = #context_type;
-            type State = #state_type;
-            type Superstate<'a> = #superstate_type;
-            const INITIAL: #state_type = #initial_state;
+        impl <#(#shared_storage_generics),*> statig::#mode::IntoStateMachine for #object_type
+        where
+            #(#shared_storage_predicates),*
+        {
+            type Event<#lifetime> = #event_type;
+            type Context<#lifetime> = #context_type;
+            type State = #state_ident #state_generics;
+            type Superstate<#lifetime> = #superstate_ident #superstate_generics ;
+            const INITIAL: #state_ident #state_generics = #initial_state;
 
             #on_transition
 
@@ -78,8 +99,10 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
 }
 
 fn codegen_state(ir: &Ir) -> ItemEnum {
-    let state_type = &ir.state_machine.state_type;
+    let state_ident = &ir.state_machine.state_ident;
+    let (state_generics, _, _) = &ir.state_machine.state_generics.split_for_impl();
     let state_derives = &ir.state_machine.state_derives;
+
     let variants: Vec<Variant> = ir
         .states
         .values()
@@ -89,14 +112,15 @@ fn codegen_state(ir: &Ir) -> ItemEnum {
 
     parse_quote!(
         #[derive(#(#state_derives),*)]
-        # visibility enum #state_type {
+        # visibility enum #state_ident #state_generics {
             #(#variants),*
         }
     )
 }
 
 fn codegen_state_impl(ir: &Ir) -> ItemImpl {
-    let state_type = &ir.state_machine.state_type;
+    let state_ident = &ir.state_machine.state_ident;
+    let (impl_generics, state_generics, _) = &ir.state_machine.state_generics.split_for_impl();
 
     let constructors: Vec<ItemFn> = ir
         .states
@@ -106,7 +130,7 @@ fn codegen_state_impl(ir: &Ir) -> ItemImpl {
         .collect();
 
     parse_quote!(
-        impl #state_type {
+        impl #impl_generics #state_ident #state_generics {
             #(#constructors)*
         }
     )
@@ -114,7 +138,21 @@ fn codegen_state_impl(ir: &Ir) -> ItemImpl {
 
 fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     let object_type = &ir.state_machine.shared_storage_type;
-    let state_type = &ir.state_machine.state_type;
+    let shared_storage_generics = &ir
+        .state_machine
+        .shared_storage_generics
+        .params
+        .iter()
+        .collect::<Vec<_>>();
+    let shared_storage_predicates = &ir
+        .state_machine
+        .shared_storage_generics
+        .where_clause
+        .iter()
+        .map(|clause| &clause.predicates)
+        .collect::<Vec<_>>();
+    let state_ident = &ir.state_machine.state_ident;
+    let (_, state_generics, _) = &ir.state_machine.state_generics.split_for_impl();
     let event_ident = &ir.state_machine.event_ident;
     let context_ident = &ir.state_machine.context_ident;
 
@@ -152,7 +190,10 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl statig::#mode::State<#object_type> for #state_type {
+        impl <#(#shared_storage_generics),*> statig::#mode::State<#object_type> for #state_ident #state_generics
+        where
+            #(#shared_storage_predicates),*
+        {
             #asyncness fn call_handler(&mut self, shared_storage: &mut #object_type, #event_ident: &<#object_type as statig::#mode::IntoStateMachine>::Event<'_>, #context_ident: &mut <#object_type as statig::#mode::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
@@ -181,8 +222,10 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 }
 
 fn codegen_superstate(ir: &Ir) -> ItemEnum {
-    let superstate_type = &ir.state_machine.superstate_type;
+    let superstate_ident = &ir.state_machine.superstate_ident;
+    let (superstate_generics, _, _) = &ir.state_machine.superstate_generics.split_for_impl();
     let superstate_derives = &ir.state_machine.superstate_derives;
+
     let variants: Vec<Variant> = ir
         .superstates
         .values()
@@ -192,7 +235,7 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
 
     parse_quote!(
         #[derive(#(#superstate_derives),*)]
-        #visibility enum #superstate_type {
+        #visibility enum #superstate_ident #superstate_generics {
             #(#variants),*
         }
     )
@@ -200,9 +243,24 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
 
 fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
     let shared_storage_type = &ir.state_machine.shared_storage_type;
-    let superstate_type = &ir.state_machine.superstate_type;
+    let shared_storage_generics = &ir
+        .state_machine
+        .shared_storage_generics
+        .params
+        .iter()
+        .collect::<Vec<_>>();
+    let shared_storage_predicates = &ir
+        .state_machine
+        .shared_storage_generics
+        .where_clause
+        .iter()
+        .map(|clause| &clause.predicates)
+        .collect::<Vec<_>>();
+    let superstate_ident = &ir.state_machine.superstate_ident;
+    let (_, superstate_generics, _) = &ir.state_machine.superstate_generics.split_for_impl();
     let event_ident = &ir.state_machine.event_ident;
     let context_ident = &ir.state_machine.context_ident;
+    let lifetime = Lifetime::new(SUPERSTATE_LIFETIME, Span::call_site());
 
     let mut call_handler_arms: Vec<Arm> = Vec::new();
     let mut call_entry_action_arms: Vec<Arm> = Vec::new();
@@ -236,9 +294,10 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl<'a> statig::#mode::Superstate<#shared_storage_type> for #superstate_type
+        impl <#lifetime, #(#shared_storage_generics),*> statig::#mode::Superstate<#shared_storage_type> for #superstate_ident #superstate_generics
         where
-            Self: 'a,
+            Self: #lifetime,
+            #(#shared_storage_predicates),*
         {
             #asyncness fn call_handler(
                 &mut self,

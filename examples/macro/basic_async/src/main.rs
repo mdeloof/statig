@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(incomplete_features)]
 #![feature(async_fn_in_trait)]
 
 // The prelude module re-exports the most common used items from statig.

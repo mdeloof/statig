@@ -1,11 +1,14 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use proc_macro_error::abort;
 use syn::parse::Parser;
 use syn::{
-    parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, Ident, ImplItem, ImplItemMethod,
-    ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, Path, Type, Visibility,
+    parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, GenericArgument, Generics,
+    Ident, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatType, Path,
+    Receiver, Type, Visibility,
 };
+
+use crate::visitors::{generic_candidates_from_generics, generic_candidates_from_type};
 
 /// Model of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
@@ -29,16 +32,22 @@ pub struct StateMachine {
     pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub shared_storage_type: Type,
+    /// The identifier of the shared storage type.
+    pub shared_storage_ident: Ident,
+    /// The generics associated with the shared storage type.
+    pub shared_storage_generics: Generics,
+    /// Candidates for the generic arguments.
+    pub candidates_generics: HashSet<GenericArgument>,
     /// The type of the event that is passed to the state machine.
     pub event_type: Option<Type>,
     /// The type of the context that is passed to the state machine.
     pub context_type: Option<Type>,
     /// The name for the state type.
-    pub state_type: Type,
+    pub state_ident: Ident,
     /// Derives that will be applied on the state type.
     pub state_derives: Vec<Path>,
     /// The name of the superstate type.
-    pub superstate_type: Type,
+    pub superstate_ident: Ident,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,
     /// The identifier that is used for the event argument.
@@ -69,13 +78,15 @@ pub struct State {
     /// Inputs required by the state handler.
     pub inputs: Vec<FnArg>,
     /// Optional receiver input for the state handler (e.g. `&mut self`).
-    pub shared_storage_input: Option<FnArg>,
+    pub shared_storage_input: Option<Receiver>,
     /// Inputs provided by the state-local storage.
-    pub state_inputs: Vec<FnArg>,
+    pub state_inputs: Vec<PatType>,
     /// Event that is submitted to the state machine.
-    pub event_arg: Option<FnArg>,
+    pub event_arg: Option<PatType>,
     /// Context that is submitted to the state machine.
-    pub context_arg: Option<FnArg>,
+    pub context_arg: Option<PatType>,
+    /// Candidates for generic arguments for the state enum variant.
+    pub candidates_generics: HashSet<GenericArgument>,
     /// Whether the function is async or not.
     pub is_async: bool,
 }
@@ -96,13 +107,15 @@ pub struct Superstate {
     /// Inputs required by the superstate handler.
     pub inputs: Vec<FnArg>,
     /// Optional receiver input for the state handler (e.g. `&mut self`).
-    pub shared_storage_input: Option<FnArg>,
+    pub shared_storage_input: Option<Receiver>,
     /// Inputs provided by the state-local storage.
-    pub state_inputs: Vec<FnArg>,
+    pub state_inputs: Vec<PatType>,
     /// Event that is submitted to the state machine.
-    pub event_arg: Option<FnArg>,
+    pub event_arg: Option<PatType>,
     /// Context that is submitted to the state machine.
-    pub context_arg: Option<FnArg>,
+    pub context_arg: Option<PatType>,
+    /// Candidates for generic arguments for the state enum variant.
+    pub candidates_generics: HashSet<GenericArgument>,
     /// Whether the function is async or not.
     pub is_async: bool,
 }
@@ -168,6 +181,9 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 /// Retrieve the top level settings of the state machine.
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let shared_storage_type = item_impl.self_ty.as_ref().clone();
+    let shared_storage_ident = get_ident_from_type(&shared_storage_type);
+
+    let shared_storage_generics = item_impl.generics.clone();
     let mut event_type = None;
     let mut context_type = None;
 
@@ -188,6 +204,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let mut state_meta: MetaList = parse_quote!(state());
     let mut superstate_meta: MetaList = parse_quote!(superstate());
 
+    // Iterate over the meta attribites on the `#[state_machine]` macro.
     for arg in attribute_args {
         match arg {
             NestedMeta::Meta(Meta::NameValue(name_value))
@@ -263,6 +280,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         }
     }
 
+    // Check if there is an initial state given.
     let Some(initial_state) = initial_state else {
         abort!(
             initial_state,
@@ -271,6 +289,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         );
     };
 
+    // Iterate over the meta attributes for the state enum.
     for meta in state_meta
         .nested
         .iter()
@@ -305,6 +324,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         }
     }
 
+    // Iterate over the meta attributes for the superstate enum.
     for meta in superstate_meta
         .nested
         .iter()
@@ -339,14 +359,19 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         }
     }
 
+    let candidates_generics = generic_candidates_from_generics(&shared_storage_generics);
+
     StateMachine {
         initial_state,
         shared_storage_type,
+        shared_storage_ident,
+        shared_storage_generics,
+        candidates_generics,
         event_type,
         context_type,
-        state_type,
+        state_ident: state_type,
         state_derives,
-        superstate_type,
+        superstate_ident: superstate_type,
         superstate_derives,
         on_dispatch,
         on_transition,
@@ -369,24 +394,26 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
     let mut context_arg = None;
+    let mut candidates_generics = HashSet::new();
 
     let is_async = method.sig.asyncness.is_some();
 
+    // Iterate over the inputs of the state handler.
     for input in &method.sig.inputs {
         match input {
-            FnArg::Receiver(_) => shared_storage_input = Some(input.clone()),
+            FnArg::Receiver(receiver) => shared_storage_input = Some(receiver.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
                 Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
-                    event_arg = Some(input.clone());
+                    event_arg = Some(pat_type.clone());
                 }
                 Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
-                    context_arg = Some(input.clone());
+                    context_arg = Some(pat_type.clone());
                 }
                 Pat::Ident(_) => {
-                    state_inputs.push(input.clone());
+                    state_inputs.push(pat_type.clone());
                 }
                 Pat::Reference(_) => {
-                    state_inputs.push(input.clone());
+                    state_inputs.push(pat_type.clone());
                 }
                 Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
                 Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
@@ -401,9 +428,8 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         }
     }
 
-    let meta = get_meta(&method.attrs, "state");
-
-    for meta in meta {
+    // Iterate over the meta attributes on the state handler.
+    for meta in get_meta(&method.attrs, "state") {
         match meta {
             Meta::NameValue(name_value) if name_value.path.is_ident("superstate") => {
                 if let Lit::Str(value) = name_value.lit {
@@ -432,6 +458,12 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         }
     }
 
+    // Iterate over the inputs in the state and find any possible generic arguments
+    // that will need to be included in the state enum decleration.
+    for arg in &state_inputs {
+        candidates_generics.extend(generic_candidates_from_type(&arg.ty));
+    }
+
     State {
         handler_name,
         superstate,
@@ -443,6 +475,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         state_inputs,
         event_arg,
         context_arg,
+        candidates_generics,
         is_async,
     }
 }
@@ -460,24 +493,26 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
     let mut context_arg = None;
+    let mut candidates_generics = HashSet::new();
 
     let is_async = method.sig.asyncness.is_some();
 
+    // Iterate over the inputs of the superstate handler.
     for input in &method.sig.inputs {
         match input {
-            FnArg::Receiver(_) => shared_storage_input = Some(input.clone()),
+            FnArg::Receiver(receiver) => shared_storage_input = Some(receiver.clone()),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
                 Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
-                    event_arg = Some(input.clone());
+                    event_arg = Some(pat_type.clone());
                 }
                 Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
-                    context_arg = Some(input.clone());
+                    context_arg = Some(pat_type.clone());
                 }
                 Pat::Ident(_) => {
-                    state_inputs.push(input.clone());
+                    state_inputs.push(pat_type.clone());
                 }
                 Pat::Reference(_) => {
-                    state_inputs.push(input.clone());
+                    state_inputs.push(pat_type.clone());
                 }
                 Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
                 Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
@@ -492,9 +527,8 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         }
     }
 
-    let meta = get_meta(&method.attrs, "superstate");
-
-    for meta in meta {
+    // Iterate over the meta attributes on the superstate handler.
+    for meta in get_meta(&method.attrs, "superstate") {
         match meta {
             Meta::NameValue(name_value) if name_value.path.is_ident("superstate") => {
                 if let Lit::Str(value) = name_value.lit {
@@ -523,6 +557,12 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         }
     }
 
+    // Iterate over the inputs in the state and find any possible generic arguments
+    // that will need to be included in the state enum decleration.
+    for arg in &state_inputs {
+        candidates_generics.extend(generic_candidates_from_type(&arg.ty));
+    }
+
     Superstate {
         handler_name,
         superstate,
@@ -534,6 +574,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         state_inputs,
         event_arg,
         context_arg,
+        candidates_generics,
         is_async,
     }
 }
@@ -569,25 +610,33 @@ pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
         .collect()
 }
 
+pub fn get_ident_from_type(ty: &Type) -> Ident {
+    match ty {
+        Type::Path(path) => path.path.segments.last().map(|s| &s.ident).unwrap().clone(),
+        Type::Reference(reference) => get_ident_from_type(&reference.elem),
+        _ => todo!("can not get ident of type"),
+    }
+}
+
 /// Destructure a pattern and get the idents that will be bound.
-pub fn get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
+pub fn _get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
     match pat {
         Pat::Ident(pat_ident) => vec![pat_ident.ident.clone()],
         Pat::Tuple(pat_tuple) => pat_tuple
             .elems
             .iter()
-            .flat_map(get_idents_from_pat)
+            .flat_map(_get_idents_from_pat)
             .collect(),
         Pat::TupleStruct(pat_struct) => pat_struct
             .pat
             .elems
             .iter()
-            .flat_map(get_idents_from_pat)
+            .flat_map(_get_idents_from_pat)
             .collect(),
         Pat::Struct(pat_struct) => pat_struct
             .fields
             .iter()
-            .flat_map(|field| get_idents_from_pat(field.pat.as_ref()))
+            .flat_map(|field| _get_idents_from_pat(field.pat.as_ref()))
             .collect(),
         Pat::Range(_) => vec![],
         _ => abort!(pat, "pattern type is not supported"),
@@ -633,6 +682,9 @@ fn valid_state_analyze() {
     let initial_state = parse_quote!(State::on());
 
     let shared_storage_type = parse_quote!(Blinky);
+    let shared_storage_ident = parse_quote!(Blinky);
+    let shared_storage_generics = parse_quote!();
+    let candidates_generics = HashSet::new();
     let event_type = None;
     let context_type = None;
 
@@ -649,11 +701,14 @@ fn valid_state_analyze() {
     let state_machine = StateMachine {
         initial_state,
         shared_storage_type,
+        shared_storage_ident,
+        shared_storage_generics,
+        candidates_generics,
         event_type,
         context_type,
-        state_type,
+        state_ident: state_type,
         state_derives,
-        superstate_type,
+        superstate_ident: superstate_type,
         superstate_derives,
         on_transition,
         on_dispatch,
@@ -671,8 +726,13 @@ fn valid_state_analyze() {
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
         shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
-        event_arg: Some(parse_quote!(event: &Event)),
+        event_arg: Some(if let FnArg::Typed(event) = parse_quote!(event: &Event) {
+            event
+        } else {
+            return;
+        }),
         context_arg: None,
+        candidates_generics: HashSet::new(),
         is_async: false,
     };
 
@@ -685,8 +745,13 @@ fn valid_state_analyze() {
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
         shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
-        event_arg: Some(parse_quote!(event: &Event)),
+        event_arg: Some(if let FnArg::Typed(event) = parse_quote!(event: &Event) {
+            event
+        } else {
+            return;
+        }),
         context_arg: None,
+        candidates_generics: HashSet::new(),
         is_async: false,
     };
 
