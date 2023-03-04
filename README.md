@@ -233,6 +233,7 @@ fn led_on(context: &mut Context, event: &Event) -> Response<State> {
         }
     }
 }
+```
 
 ### Introspection
 
