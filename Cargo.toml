@@ -12,13 +12,10 @@ members = [
     "examples/macro/calculator",
     "examples/macro/barrier",
     "examples/macro/bench_complex",
-    "examples/macro/basic_async",
-    "examples/macro/generics",
 
     "examples/no_macro/basic",
     "examples/no_macro/blinky",
     "examples/no_macro/bench",
     "examples/no_macro/history",
     "examples/no_macro/calculator",
-    "examples/no_macro/generics",
 ]
