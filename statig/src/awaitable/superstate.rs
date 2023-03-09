@@ -21,11 +21,11 @@ where
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
-    async fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>);
+    async fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
 
     #[allow(unused)]
     /// Call the exit action for the current superstate.
-    async fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>);
+    async fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
 
     /// Return the superstate of the current superstate, if there is one.
     fn superstate(&mut self) -> Option<M::Superstate<'_>>
