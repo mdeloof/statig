@@ -229,8 +229,10 @@ When state machines are used in a larger systems it can sometimes be necessary t
 fn led_on(context: &mut Context, event: &Event) -> Response<State> {
     match event {
         Event::TimerElapsed => {
-            context.
+            context.do_something();
+            Handled
         }
+        _ => Super
     }
 }
 ```
