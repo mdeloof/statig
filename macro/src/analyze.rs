@@ -1,14 +1,12 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use proc_macro_error::abort;
 use syn::parse::Parser;
 use syn::{
-    parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, GenericArgument, Generics,
-    Ident, ImplItem, ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatType, Path,
-    Receiver, Type, Visibility,
+    parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, Generics, Ident, ImplItem,
+    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatType, Path, Receiver, Type,
+    Visibility,
 };
-
-use crate::visitors::{generic_candidates_from_generics, generic_candidates_from_type};
 
 /// Model of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
@@ -36,8 +34,6 @@ pub struct StateMachine {
     pub shared_storage_ident: Ident,
     /// The generics associated with the shared storage type.
     pub shared_storage_generics: Generics,
-    /// Candidates for the generic arguments.
-    pub candidates_generics: HashSet<GenericArgument>,
     /// The type of the event that is passed to the state machine.
     pub event_type: Option<Type>,
     /// The type of the context that is passed to the state machine.
@@ -85,8 +81,6 @@ pub struct State {
     pub event_arg: Option<PatType>,
     /// Context that is submitted to the state machine.
     pub context_arg: Option<PatType>,
-    /// Candidates for generic arguments for the state enum variant.
-    pub candidates_generics: HashSet<GenericArgument>,
     /// Whether the function is async or not.
     pub is_async: bool,
 }
@@ -114,8 +108,6 @@ pub struct Superstate {
     pub event_arg: Option<PatType>,
     /// Context that is submitted to the state machine.
     pub context_arg: Option<PatType>,
-    /// Candidates for generic arguments for the state enum variant.
-    pub candidates_generics: HashSet<GenericArgument>,
     /// Whether the function is async or not.
     pub is_async: bool,
 }
@@ -181,17 +173,17 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 /// Retrieve the top level settings of the state machine.
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let shared_storage_type = item_impl.self_ty.as_ref().clone();
-    let shared_storage_ident = get_ident_from_type(&shared_storage_type);
-
     let shared_storage_generics = item_impl.generics.clone();
+    let shared_storage_ident = get_shared_storage_ident(&shared_storage_type);
+
     let mut event_type = None;
     let mut context_type = None;
 
     let mut initial_state: Option<ExprCall> = None;
 
-    let mut state_type = parse_quote!(State);
+    let mut state_ident = parse_quote!(State);
     let mut state_derives = Vec::new();
-    let mut superstate_type = parse_quote!(Superstate);
+    let mut superstate_ident = parse_quote!(Superstate);
     let mut superstate_derives = Vec::new();
 
     let mut on_transition = None;
@@ -301,7 +293,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         match meta {
             // Get the custom name for the state enum.
             Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
-                state_type = match &name_value.lit {
+                state_ident = match &name_value.lit {
                     Lit::Str(str_lit) => str_lit.parse().unwrap(),
                     _ => abort!(name_value, "expected string literal"),
                 }
@@ -336,7 +328,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         match meta {
             // Get the custom name for the superstate enum.
             Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
-                superstate_type = match &name_value.lit {
+                superstate_ident = match &name_value.lit {
                     Lit::Str(str_lit) => str_lit.parse().unwrap(),
                     _ => abort!(name_value, "expected string literal"),
                 }
@@ -359,19 +351,16 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         }
     }
 
-    let candidates_generics = generic_candidates_from_generics(&shared_storage_generics);
-
     StateMachine {
         initial_state,
         shared_storage_type,
         shared_storage_ident,
         shared_storage_generics,
-        candidates_generics,
         event_type,
         context_type,
-        state_ident: state_type,
+        state_ident,
         state_derives,
-        superstate_ident: superstate_type,
+        superstate_ident,
         superstate_derives,
         on_dispatch,
         on_transition,
@@ -394,7 +383,15 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
     let mut context_arg = None;
-    let mut candidates_generics = HashSet::new();
+
+    let generic_params = &method.sig.generics.params;
+    if !generic_params.is_empty() {
+        abort!(
+            generic_params,
+            "state handlers can not define their generics themselves";
+            help = "consider declaring the generics on the impl block"
+        )
+    }
 
     let is_async = method.sig.asyncness.is_some();
 
@@ -458,12 +455,6 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         }
     }
 
-    // Iterate over the inputs in the state and find any possible generic arguments
-    // that will need to be included in the state enum decleration.
-    for arg in &state_inputs {
-        candidates_generics.extend(generic_candidates_from_type(&arg.ty));
-    }
-
     State {
         handler_name,
         superstate,
@@ -475,7 +466,6 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         state_inputs,
         event_arg,
         context_arg,
-        candidates_generics,
         is_async,
     }
 }
@@ -493,7 +483,15 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
     let mut context_arg = None;
-    let mut candidates_generics = HashSet::new();
+
+    let generic_params = &method.sig.generics.params;
+    if !generic_params.is_empty() {
+        abort!(
+            generic_params,
+            "superstate handlers can not define their generics themselves";
+            help = "consider declaring the generics on the impl block"
+        )
+    }
 
     let is_async = method.sig.asyncness.is_some();
 
@@ -557,12 +555,6 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         }
     }
 
-    // Iterate over the inputs in the state and find any possible generic arguments
-    // that will need to be included in the state enum decleration.
-    for arg in &state_inputs {
-        candidates_generics.extend(generic_candidates_from_type(&arg.ty));
-    }
-
     Superstate {
         handler_name,
         superstate,
@@ -574,7 +566,6 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         state_inputs,
         event_arg,
         context_arg,
-        candidates_generics,
         is_async,
     }
 }
@@ -584,6 +575,15 @@ pub fn analyze_action(method: &ImplItemMethod) -> Action {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.clone().into_iter().collect();
     let is_async = method.sig.asyncness.is_some();
+
+    let generic_params = &method.sig.generics.params;
+    if !generic_params.is_empty() {
+        abort!(
+            generic_params,
+            "action handlers can not define their generics themselves";
+            help = "consider declaring the generics on the impl block"
+        )
+    }
 
     Action {
         handler_name,
@@ -610,36 +610,11 @@ pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
         .collect()
 }
 
-pub fn get_ident_from_type(ty: &Type) -> Ident {
+/// Get the ident of the shared storage type.
+pub fn get_shared_storage_ident(ty: &Type) -> Ident {
     match ty {
         Type::Path(path) => path.path.segments.last().map(|s| &s.ident).unwrap().clone(),
-        Type::Reference(reference) => get_ident_from_type(&reference.elem),
-        _ => todo!("can not get ident of type"),
-    }
-}
-
-/// Destructure a pattern and get the idents that will be bound.
-pub fn _get_idents_from_pat(pat: &Pat) -> Vec<Ident> {
-    match pat {
-        Pat::Ident(pat_ident) => vec![pat_ident.ident.clone()],
-        Pat::Tuple(pat_tuple) => pat_tuple
-            .elems
-            .iter()
-            .flat_map(_get_idents_from_pat)
-            .collect(),
-        Pat::TupleStruct(pat_struct) => pat_struct
-            .pat
-            .elems
-            .iter()
-            .flat_map(_get_idents_from_pat)
-            .collect(),
-        Pat::Struct(pat_struct) => pat_struct
-            .fields
-            .iter()
-            .flat_map(|field| _get_idents_from_pat(field.pat.as_ref()))
-            .collect(),
-        Pat::Range(_) => vec![],
-        _ => abort!(pat, "pattern type is not supported"),
+        _ => todo!("can not get ident of shared storage"),
     }
 }
 
@@ -684,7 +659,6 @@ fn valid_state_analyze() {
     let shared_storage_type = parse_quote!(Blinky);
     let shared_storage_ident = parse_quote!(Blinky);
     let shared_storage_generics = parse_quote!();
-    let candidates_generics = HashSet::new();
     let event_type = None;
     let context_type = None;
 
@@ -703,7 +677,6 @@ fn valid_state_analyze() {
         shared_storage_type,
         shared_storage_ident,
         shared_storage_generics,
-        candidates_generics,
         event_type,
         context_type,
         state_ident: state_type,
@@ -732,7 +705,6 @@ fn valid_state_analyze() {
             return;
         }),
         context_arg: None,
-        candidates_generics: HashSet::new(),
         is_async: false,
     };
 
@@ -751,7 +723,6 @@ fn valid_state_analyze() {
             return;
         }),
         context_arg: None,
-        candidates_generics: HashSet::new(),
         is_async: false,
     };
 

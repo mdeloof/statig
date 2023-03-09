@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Deref;
 
 use proc_macro2::Span;
@@ -7,17 +7,18 @@ use proc_macro_error::abort;
 use syn::parse::Parser;
 use syn::{parse_quote, PatType};
 use syn::{
-    Expr, ExprCall, Field, FnArg, GenericArgument, GenericParam, Generics, Ident, ItemFn, ItemImpl,
-    Lifetime, Pat, Path, Type, Variant, Visibility, WhereClause, WherePredicate,
+    Expr, ExprCall, Field, FnArg, GenericParam, Generics, Ident, ItemFn, ItemImpl, Lifetime, Pat,
+    Path, Type, Variant, Visibility, WhereClause, WherePredicate,
 };
 
 use quote::format_ident;
 
 use crate::analyze;
 use crate::analyze::Model;
+use crate::visitors::GenericParamVisitor;
 use crate::SUPERSTATE_LIFETIME;
 
-type GenericsMap = Vec<(GenericArgument, GenericParam, Vec<WherePredicate>)>;
+type GenericsMap = Vec<(GenericParam, Vec<WherePredicate>)>;
 
 /// Intermediate representation of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
@@ -59,7 +60,7 @@ pub struct StateMachine {
     pub superstate_generics: Generics,
     /// The path of the `on_transition` callback.
     pub on_transition: Option<Path>,
-    /// The path of the `on_dipsatch` callback.
+    /// The path of the `on_dispatch` callback.
     pub on_dispatch: Option<Path>,
     /// The visibility for the derived types,
     pub visibility: Visibility,
@@ -252,9 +253,7 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
-    // Finding event and/or context types and check whether there are any async
-    // functions.
-
+    // Find event and/or context types and check whether there are any async functions.
     let mut mode = Mode::Blocking;
     let mut event_type = None;
     let mut context_type = None;
@@ -353,35 +352,24 @@ pub fn lower(model: &Model) -> Ir {
         },
     };
 
+    // Find the generics that need to be included on the state and superstate enums.
     let shared_storage_generics_map = map_generics(&shared_storage_generics);
 
-    // Merge all the sets of the candidates generics of the state enum variant.
-    let mut state_candidates_generics = HashSet::new();
+    let mut visitor = GenericParamVisitor::new(&model.state_machine.shared_storage_generics);
     for state in model.states.values() {
-        state_candidates_generics.extend(state.candidates_generics.iter().cloned());
+        visitor.search(&state.state_inputs);
     }
+    let state_generic_params = visitor.finish();
 
-    // Merge all the sets of the candidates generics of the superstate enum variant.
-    let mut superstate_candidates_generics = HashSet::new();
-    for state in model.states.values() {
-        superstate_candidates_generics.extend(state.candidates_generics.iter().cloned());
+    let mut visitor = GenericParamVisitor::new(&model.state_machine.shared_storage_generics);
+    for superstate in model.superstates.values() {
+        visitor.search(&superstate.state_inputs);
     }
-
-    let state_generics_arguments: HashSet<_> = model
-        .state_machine
-        .candidates_generics
-        .intersection(&state_candidates_generics)
-        .collect();
-
-    let superstate_generics_arguments: HashSet<_> = model
-        .state_machine
-        .candidates_generics
-        .intersection(&superstate_candidates_generics)
-        .collect();
+    let superstate_generic_params = visitor.finish();
 
     let mut state_generics = Generics::default();
-    for (key, param, predicates) in &shared_storage_generics_map {
-        if state_generics_arguments.contains(key) {
+    for (param, predicates) in &shared_storage_generics_map {
+        if state_generic_params.contains(param) {
             state_generics.params.push(param.clone());
             match &mut state_generics.where_clause {
                 Some(clause) => clause.predicates.extend(predicates.iter().cloned()),
@@ -396,8 +384,8 @@ pub fn lower(model: &Model) -> Ir {
     }
 
     let mut superstate_generics = Generics::default();
-    for (key, param, predicates) in &shared_storage_generics_map {
-        if superstate_generics_arguments.contains(key) {
+    for (param, predicates) in &shared_storage_generics_map {
+        if superstate_generic_params.contains(param) {
             superstate_generics.params.push(param.clone());
             match &mut superstate_generics.where_clause {
                 Some(clause) => clause.predicates.extend(predicates.iter().cloned()),
@@ -411,6 +399,7 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
+    // If a lifetime is required it must be part of the superstate generics.
     if let Some(lifetime) = superstate_lifetime {
         superstate_generics
             .params
@@ -644,58 +633,45 @@ fn fn_arg_to_superstate_field(pat_type: &PatType) -> Field {
     }
 }
 
+pub fn get_generic_argument_ident(ty: &Type) -> Ident {
+    match ty {
+        Type::Path(path) => path.path.segments.last().map(|s| &s.ident).unwrap().clone(),
+        _ => todo!("can not get ident of shared storage"),
+    }
+}
+
+fn predicate_bounded_to_param(predicate: &WherePredicate, param: &GenericParam) -> bool {
+    match (predicate, param) {
+        (WherePredicate::Type(l), GenericParam::Type(r))
+            if get_generic_argument_ident(&l.bounded_ty) == r.ident =>
+        {
+            true
+        }
+        (WherePredicate::Lifetime(l), GenericParam::Lifetime(r)) if l.lifetime == r.lifetime => {
+            true
+        }
+        _ => false,
+    }
+}
+
 /// Create hash map that associates certain generics with their predicates.
 fn map_generics(generics: &Generics) -> GenericsMap {
-    let mut map = Vec::new();
+    let mut map: GenericsMap = generics
+        .params
+        .iter()
+        .map(|param| (param.clone(), Vec::new()))
+        .collect();
 
     // Iterate over the generic parameters and add them to the map.
-    for param in &generics.params {
-        match param {
-            GenericParam::Type(ty) => {
-                let ident = &ty.ident;
-                map.push((
-                    GenericArgument::Type(parse_quote!(#ident)),
-                    param.clone(),
-                    Vec::new(),
-                ));
+    for (param, predicates) in &mut map {
+        for predicate in generics
+            .where_clause
+            .iter()
+            .flat_map(|clause| &clause.predicates)
+        {
+            if predicate_bounded_to_param(predicate, param) {
+                predicates.push(predicate.clone())
             }
-            GenericParam::Lifetime(lifetime) => {
-                let lifetime = lifetime.lifetime.clone();
-                map.push((
-                    GenericArgument::Lifetime(lifetime),
-                    param.clone(),
-                    Vec::new(),
-                ));
-            }
-            GenericParam::Const(constant) => {
-                let constant = constant.ident.clone();
-                map.push((
-                    GenericArgument::Type(parse_quote!(#constant)),
-                    param.clone(),
-                    Vec::new(),
-                ));
-            }
-        };
-    }
-
-    for predicate in generics
-        .where_clause
-        .iter()
-        .flat_map(|clause| &clause.predicates)
-    {
-        let argument = match predicate {
-            WherePredicate::Type(ty) => {
-                let ty = &ty.bounded_ty;
-                GenericArgument::Type(parse_quote!(#ty))
-            }
-            WherePredicate::Lifetime(lifetime) => {
-                let lifetime = lifetime.lifetime.clone();
-                GenericArgument::Lifetime(lifetime)
-            }
-            _ => continue,
-        };
-        if let Some((_, _, predicates)) = map.iter_mut().find(|(arg, _, _)| arg == &argument) {
-            predicates.push(predicate.clone());
         }
     }
 
@@ -790,7 +766,6 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         shared_storage_type: parse_quote!(Blinky),
         shared_storage_ident: parse_quote!(Blinky),
         shared_storage_generics: parse_quote!(),
-        candidates_generics: HashSet::new(),
         event_type: None,
         context_type: None,
         state_ident: parse_quote!(State),
@@ -866,7 +841,6 @@ fn create_analyze_state() -> analyze::State {
                 panic!();
             },
         ],
-        candidates_generics: HashSet::new(),
         is_async: false,
     }
 }
@@ -934,7 +908,6 @@ fn create_analyze_superstate() -> analyze::Superstate {
                 panic!();
             },
         ],
-        candidates_generics: HashSet::new(),
         is_async: false,
     }
 }

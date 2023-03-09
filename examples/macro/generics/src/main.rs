@@ -6,8 +6,8 @@ pub enum Event<T> {
     Bar(T),
 }
 
-// All generics must be declared on the shared storage type and their then
-// available to inside the impl block to be used inside the state and action handlers.
+// All generics must be declared on the shared storage type. They can then
+// be used inside the state and action handlers.
 #[derive(Default)]
 pub struct Machine<'a, T, const SIZE: usize> {
     marker: PhantomData<&'a T>,

@@ -1,3 +1,3 @@
-mod generic_candidates;
+mod generic_param_visitor;
 
-pub use generic_candidates::*;
+pub use generic_param_visitor::*;
