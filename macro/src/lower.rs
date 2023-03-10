@@ -438,9 +438,6 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
     let variant_name = snake_case_to_pascal_case(&state.handler_name);
     let state_handler_name = &state.handler_name;
     let shared_storage_ident = &state_machine.shared_storage_ident;
-    let (_, shared_storage_type_generics, _) =
-        &state_machine.shared_storage_generics.split_for_impl();
-    let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
     let state_name = &state_machine.state_ident;
 
     let mut variant_fields: Vec<_> = state
@@ -470,10 +467,10 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
 
     let handler_call = match &state.is_async {
         true => {
-            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#state_handler_name(#(#handler_inputs),*).await)
+            parse_quote!(#shared_storage_ident ::#state_handler_name(#(#handler_inputs),*).await)
         }
         false => {
-            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#state_handler_name(#(#handler_inputs),*))
+            parse_quote!(#shared_storage_ident ::#state_handler_name(#(#handler_inputs),*))
         }
     };
 
@@ -499,9 +496,6 @@ pub fn lower_superstate(
     let superstate_name = snake_case_to_pascal_case(&superstate.handler_name);
     let superstate_handler_name = &superstate.handler_name;
     let shared_storage_ident = &state_machine.shared_storage_ident;
-    let (_, shared_storage_type_generics, _) =
-        &state_machine.shared_storage_generics.split_for_impl();
-    let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
     let superstate_type = &state_machine.superstate_ident;
 
     let mut variant_fields: Vec<_> = superstate
@@ -529,10 +523,10 @@ pub fn lower_superstate(
     let pat = parse_quote!(#superstate_type::#superstate_name { #(#pat_fields),*});
     let handler_call = match &superstate.is_async {
         true => {
-            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#superstate_handler_name(#(#handler_inputs),*).await)
+            parse_quote!(#shared_storage_ident ::#superstate_handler_name(#(#handler_inputs),*).await)
         }
         false => {
-            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#superstate_handler_name(#(#handler_inputs),*))
+            parse_quote!(#shared_storage_ident ::#superstate_handler_name(#(#handler_inputs),*))
         }
     };
     let entry_action_call = parse_quote!({});
