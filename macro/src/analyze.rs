@@ -34,10 +34,6 @@ pub struct StateMachine {
     pub shared_storage_ident: Ident,
     /// The generics associated with the shared storage type.
     pub shared_storage_generics: Generics,
-    /// The type of the event that is passed to the state machine.
-    pub event_type: Option<Type>,
-    /// The type of the context that is passed to the state machine.
-    pub context_type: Option<Type>,
     /// The name for the state type.
     pub state_ident: Ident,
     /// Derives that will be applied on the state type.
@@ -176,9 +172,6 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let shared_storage_generics = item_impl.generics.clone();
     let shared_storage_ident = get_shared_storage_ident(&shared_storage_type);
 
-    let mut event_type = None;
-    let mut context_type = None;
-
     let mut initial_state: Option<ExprCall> = None;
 
     let mut state_ident = parse_quote!(State);
@@ -203,20 +196,6 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                 if name_value.path.is_ident("initial") =>
             {
                 initial_state = match &name_value.lit {
-                    Lit::Str(input_pat) => input_pat.parse().ok(),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
-            }
-            NestedMeta::Meta(Meta::NameValue(name_value)) if name_value.path.is_ident("event") => {
-                event_type = match &name_value.lit {
-                    Lit::Str(input_pat) => input_pat.parse().ok(),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
-            }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("context") =>
-            {
-                context_type = match &name_value.lit {
                     Lit::Str(input_pat) => input_pat.parse().ok(),
                     _ => abort!(name_value, "must be a string literal"),
                 }
@@ -356,8 +335,6 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         shared_storage_type,
         shared_storage_ident,
         shared_storage_generics,
-        event_type,
-        context_type,
         state_ident,
         state_derives,
         superstate_ident,
@@ -614,7 +591,7 @@ pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
 pub fn get_shared_storage_ident(ty: &Type) -> Ident {
     match ty {
         Type::Path(path) => path.path.segments.last().map(|s| &s.ident).unwrap().clone(),
-        _ => todo!("can not get ident of shared storage"),
+        _ => panic!("can not get ident of shared storage"),
     }
 }
 
@@ -659,12 +636,10 @@ fn valid_state_analyze() {
     let shared_storage_type = parse_quote!(Blinky);
     let shared_storage_ident = parse_quote!(Blinky);
     let shared_storage_generics = parse_quote!();
-    let event_type = None;
-    let context_type = None;
 
-    let state_type = parse_quote!(State);
+    let state_ident = parse_quote!(State);
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
-    let superstate_type = parse_quote!(Superstate);
+    let superstate_ident = parse_quote!(Superstate);
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let on_transition = None;
     let on_dispatch = None;
@@ -677,11 +652,9 @@ fn valid_state_analyze() {
         shared_storage_type,
         shared_storage_ident,
         shared_storage_generics,
-        event_type,
-        context_type,
-        state_ident: state_type,
+        state_ident,
         state_derives,
-        superstate_ident: superstate_type,
+        superstate_ident,
         superstate_derives,
         on_transition,
         on_dispatch,

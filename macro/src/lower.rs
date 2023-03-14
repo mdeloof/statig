@@ -5,20 +5,18 @@ use proc_macro2::Span;
 use proc_macro_error::abort;
 
 use syn::parse::Parser;
-use syn::{parse_quote, PatType};
+use syn::parse_quote;
 use syn::{
     Expr, ExprCall, Field, FnArg, GenericParam, Generics, Ident, ItemFn, ItemImpl, Lifetime, Pat,
-    Path, Type, Variant, Visibility, WhereClause, WherePredicate,
+    PatType, Path, Type, Variant, Visibility, WhereClause, WherePredicate,
 };
 
 use quote::format_ident;
 
 use crate::analyze;
 use crate::analyze::Model;
-use crate::visitors::GenericParamVisitor;
+use crate::visitors::{GenericParamVisitor, LifetimeVisitor};
 use crate::SUPERSTATE_LIFETIME;
-
-type GenericsMap = Vec<(GenericParam, Vec<WherePredicate>)>;
 
 /// Intermediate representation of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
@@ -174,7 +172,7 @@ pub fn lower(model: &Model) -> Ir {
         .map(|(key, value)| (key.clone(), lower_action(value, &model.state_machine)))
         .collect();
 
-    // Linking states
+    // Linking states to their superstates and entry/exit actions.
     for (key, state) in &mut states {
         if let Some(superstate) = model
             .states
@@ -213,7 +211,7 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
-    // Linking superstates
+    // Linking superstates to superstates and entry/exit action.
     let superstates_clone = superstates.clone();
     for (key, superstate) in &mut superstates {
         if let Some(superstate_superstate) = model
@@ -268,7 +266,7 @@ pub fn lower(model: &Model) -> Ir {
                 {
                     let ty = match &*pat_type.ty {
                         Type::Reference(reference) => reference.elem.deref().clone(),
-                        _ => todo!(),
+                        _ => abort!(pat_type.ty, "event must be passed in as a reference"),
                     };
                     event_type = Some(ty);
                 }
@@ -283,7 +281,7 @@ pub fn lower(model: &Model) -> Ir {
                 {
                     let ty = match &*pat_type.ty {
                         Type::Reference(reference) => reference.elem.deref().clone(),
-                        _ => todo!(),
+                        _ => abort!(pat_type.ty, "context must be passed in as a reference"),
                     };
                     context_type = Some(ty);
                 }
@@ -304,7 +302,7 @@ pub fn lower(model: &Model) -> Ir {
                 {
                     let ty = match &*pat_type.ty {
                         Type::Reference(reference) => reference.elem.deref().clone(),
-                        _ => todo!(),
+                        _ => abort!(pat_type.ty, "event must be passed in as a reference"),
                     };
                     event_type = Some(ty);
                 }
@@ -319,7 +317,7 @@ pub fn lower(model: &Model) -> Ir {
                 {
                     let ty = match &*pat_type.ty {
                         Type::Reference(reference) => reference.elem.deref().clone(),
-                        _ => todo!(),
+                        _ => abort!(pat_type.ty, "context must be passed in as a reference"),
                     };
                     context_type = Some(ty);
                 }
@@ -336,21 +334,25 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
-    let event_type = match &model.state_machine.event_type {
-        Some(event_type) => event_type.clone(),
-        None => match event_type {
-            Some(event_type) => event_type,
-            None => parse_quote!(()),
-        },
+    // Set the event type if it was found, otherwise set it to `()`.
+    let mut event_type = match event_type {
+        Some(event_type) => event_type,
+        None => parse_quote!(()),
     };
 
-    let context_type = match &model.state_machine.context_type {
-        Some(context_type) => context_type.clone(),
-        None => match context_type {
-            Some(context_type) => context_type,
-            None => parse_quote!(()),
-        },
+    // Rename all the anonymous lifetimes in the event type.
+    let mut lifetime_visitor = LifetimeVisitor::new("'event");
+    lifetime_visitor.rename_type(&mut event_type);
+
+    // Set the context type if it was found, otherwise set it to `()`.
+    let mut context_type = match context_type {
+        Some(context_type) => context_type,
+        None => parse_quote!(()),
     };
+
+    // Rename all the anonymous lifetimes in the context type.
+    let mut lifetime_visitor = LifetimeVisitor::new("'context");
+    lifetime_visitor.rename_type(&mut context_type);
 
     // Find the generics that need to be included on the state and superstate enums.
     let shared_storage_generics_map = map_generics(&shared_storage_generics);
@@ -596,6 +598,7 @@ fn fn_arg_to_state_field(pat_type: &PatType) -> Field {
         Type::Reference(reference) => reference.elem.clone(),
         _ => abort!(pat_type, "input must be passed as a reference"),
     };
+
     match pat_type.pat.as_ref() {
         Pat::Ident(pat_ident) => {
             let field_ident = &pat_ident.ident;
@@ -630,7 +633,7 @@ fn fn_arg_to_superstate_field(pat_type: &PatType) -> Field {
 pub fn get_generic_argument_ident(ty: &Type) -> Ident {
     match ty {
         Type::Path(path) => path.path.segments.last().map(|s| &s.ident).unwrap().clone(),
-        _ => todo!("can not get ident of shared storage"),
+        _ => panic!("can not get ident of shared storage"),
     }
 }
 
@@ -649,8 +652,8 @@ fn predicate_bounded_to_param(predicate: &WherePredicate, param: &GenericParam) 
 }
 
 /// Create hash map that associates certain generics with their predicates.
-fn map_generics(generics: &Generics) -> GenericsMap {
-    let mut map: GenericsMap = generics
+fn map_generics(generics: &Generics) -> Vec<(GenericParam, Vec<WherePredicate>)> {
+    let mut map: Vec<_> = generics
         .params
         .iter()
         .map(|param| (param.clone(), Vec::new()))
@@ -683,76 +686,6 @@ fn snake_case_to_pascal_case(snake: &Ident) -> Ident {
     format_ident!("{}", pascal)
 }
 
-fn _pat_to_type(pat: &Pat, idents: &HashMap<Ident, Type>) -> Type {
-    match pat {
-        Pat::Box(pat) => {
-            let ty = _pat_to_type(&pat.pat, idents);
-            parse_quote!(Box<#ty>)
-        }
-        Pat::Ident(pat) => match idents.get(&pat.ident) {
-            Some(ty) => ty.clone(),
-            None => {
-                abort!(pat,
-                    "ident could not be matched to type";
-                    help = "make sure the ident is used in at least one state or superstate"
-                )
-            }
-        },
-        Pat::Lit(pat) => abort!(
-            pat,
-            "`literal` patterns are not supported";
-            help = "pattern in function must be irrefutable"
-        ),
-        Pat::Macro(pat) => abort!(pat, "macro pattern not supported"),
-        Pat::Or(pat) => abort!(
-            pat,
-            "`or` patterns are not supported";
-            help = "pattern in function must be irrefutable"
-        ),
-        Pat::Path(pat) => abort!(
-            pat,
-            "`path` patterns are not supported";
-            help = "pattern in function must be irrefutable"
-        ),
-        Pat::Range(pat) => abort!(
-            pat,
-            "`range` patterns are not supported";
-            help = "pattern in function must be irrefutable"
-        ),
-        Pat::Reference(pat) => abort!(pat, "`reference` patterns are not supported"),
-        Pat::Rest(pat) => abort!(
-            pat,
-            "`rest` patterns are not supported";
-            help = "pattern in function must be irrefutable"
-        ),
-        Pat::Slice(pat) => abort!(
-            pat,
-            "`slice` patterns are not supported";
-            help = "pattern in function must be irrefutable"
-        ),
-        Pat::Struct(pat) => {
-            let ty = &pat.path;
-            parse_quote!(#ty)
-        }
-        Pat::Tuple(tuple) => {
-            let types: Vec<_> = tuple
-                .elems
-                .iter()
-                .map(|pat| _pat_to_type(pat, idents))
-                .collect();
-            parse_quote!((#(#types),*))
-        }
-        Pat::TupleStruct(pat) => {
-            let ty = &pat.path;
-            parse_quote!(#ty)
-        }
-        Pat::Type(pat) => pat.ty.deref().clone(),
-        Pat::Verbatim(_) => abort!(pat, "`verbatim` patterns are not supported"),
-        Pat::Wild(_) => abort!(pat, "`wildcard` patterns are not supported"),
-        _ => todo!(),
-    }
-}
-
 #[cfg(test)]
 fn create_analyze_state_machine() -> analyze::StateMachine {
     analyze::StateMachine {
@@ -760,8 +693,6 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         shared_storage_type: parse_quote!(Blinky),
         shared_storage_ident: parse_quote!(Blinky),
         shared_storage_generics: parse_quote!(),
-        event_type: None,
-        context_type: None,
         state_ident: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_ident: parse_quote!(Superstate),
@@ -1012,29 +943,6 @@ fn test_lower() {
 
     let actual = lower(&model);
     let expected = create_lower_model();
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn test_pat_to_type() {
-    let idents: HashMap<_, _> = [
-        (parse_quote!(counter), parse_quote!(i32)),
-        (parse_quote!(context), parse_quote!(Context)),
-    ]
-    .into();
-
-    let pat = parse_quote!(Vec3 { x, y, z });
-
-    let actual = _pat_to_type(&pat, &idents);
-    let expected = parse_quote!(Vec3);
-
-    assert_eq!(actual, expected);
-
-    let pat = parse_quote!((counter, context));
-
-    let actual = _pat_to_type(&pat, &idents);
-    let expected = parse_quote!((i32, Context));
 
     assert_eq!(actual, expected);
 }

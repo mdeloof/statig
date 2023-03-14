@@ -19,6 +19,7 @@ syn = { version = "1.0.107", features = [
     "quote",
     "extra-traits",
     "visit",
+    "visit-mut",
 ] }
 quote = "1.0.23"
 proc-macro2 = "1.0.50"

@@ -17,6 +17,8 @@ use lower::lower;
 use parse::{parse_args, parse_input};
 
 const SUPERSTATE_LIFETIME: &str = "'sub";
+const EVENT_LIFETIME: &str = "'event";
+const CONTEXT_LIFETIME: &str = "'context";
 
 #[proc_macro_error]
 #[proc_macro_attribute]

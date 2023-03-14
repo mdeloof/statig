@@ -13,6 +13,7 @@ members = [
     "examples/macro/barrier",
     "examples/macro/bench_complex",
     "examples/macro/generics",
+    "examples/macro/generic_event",
 
     "examples/no_macro/basic",
     "examples/no_macro/blinky",
