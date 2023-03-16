@@ -80,7 +80,7 @@ mod tests {
     impl blocking::State<Blinky> for StateEnum {
         fn call_handler(
             &mut self,
-            object: &mut Blinky,
+            shared_storage: &mut Blinky,
             event: &Event,
             _: &mut (),
         ) -> Response<StateEnum>
@@ -88,19 +88,19 @@ mod tests {
             Self: Sized,
         {
             match self {
-                StateEnum::On { led, counter } => Blinky::on(object, led, counter, event),
-                StateEnum::Off { led } => Blinky::off(object, led, event),
+                StateEnum::On { led, counter } => Blinky::on(shared_storage, led, counter, event),
+                StateEnum::Off { led } => Blinky::off(shared_storage, led, event),
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Blinky, _: &mut ()) {
+        fn call_entry_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
                 StateEnum::On { led, counter } => {}
-                StateEnum::Off { led } => Blinky::enter_off(object, led),
+                StateEnum::Off { led } => Blinky::enter_off(shared_storage, led),
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Blinky, _: &mut ()) {
+        fn call_exit_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
                 StateEnum::On { led, counter } => {}
                 StateEnum::Off { led } => {}
@@ -122,22 +122,22 @@ mod tests {
     impl<'sub> blocking::Superstate<Blinky> for Superstate<'sub> {
         fn call_handler(
             &mut self,
-            object: &mut Blinky,
+            shared_storage: &mut Blinky,
             event: &Event,
             _: &mut (),
         ) -> Response<StateEnum> {
             match self {
-                Superstate::Playing { led } => Blinky::playing(object, led),
+                Superstate::Playing { led } => Blinky::playing(shared_storage, led),
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Blinky, _: &mut ()) {
+        fn call_entry_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
                 Superstate::Playing { led } => {}
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Blinky, _: &mut ()) {
+        fn call_exit_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
                 Superstate::Playing { led } => {}
             }

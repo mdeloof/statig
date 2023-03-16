@@ -61,30 +61,30 @@ mod tests {
     impl blocking::State<Foo> for State {
         fn call_handler(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             event: &Event,
             _: &mut (),
         ) -> statig::Response<Self> {
             match self {
-                State::S211 {} => Foo::s211(object, event),
-                State::S11 {} => Foo::s11(object, event),
-                State::S12 {} => Foo::s12(object, event),
+                State::S211 {} => Foo::s211(shared_storage, event),
+                State::S11 {} => Foo::s11(shared_storage, event),
+                State::S12 {} => Foo::s12(shared_storage, event),
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Foo, _: &mut ()) {
+        fn call_entry_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                State::S211 {} => Foo::enter_s211(object),
-                State::S11 {} => Foo::enter_s11(object),
-                State::S12 {} => Foo::enter_s12(object),
+                State::S211 {} => Foo::enter_s211(shared_storage),
+                State::S11 {} => Foo::enter_s11(shared_storage),
+                State::S12 {} => Foo::enter_s12(shared_storage),
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Foo, _: &mut ()) {
+        fn call_exit_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                State::S211 {} => Foo::exit_s211(object),
-                State::S11 {} => Foo::exit_s11(object),
-                State::S12 {} => Foo::exit_s12(object),
+                State::S211 {} => Foo::exit_s211(shared_storage),
+                State::S11 {} => Foo::exit_s11(shared_storage),
+                State::S12 {} => Foo::exit_s12(shared_storage),
             }
         }
 
@@ -100,7 +100,7 @@ mod tests {
     impl blocking::Superstate<Foo> for Superstate {
         fn call_handler(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             event: &Event,
             _: &mut (),
         ) -> statig::Response<State>
@@ -108,28 +108,28 @@ mod tests {
             Self: Sized,
         {
             match self {
-                Superstate::S21 {} => Foo::s21(object, event),
-                Superstate::S {} => Foo::s(object, event),
-                Superstate::S2 {} => Foo::s2(object, event),
-                Superstate::S1 {} => Foo::s1(object, event),
+                Superstate::S21 {} => Foo::s21(shared_storage, event),
+                Superstate::S {} => Foo::s(shared_storage, event),
+                Superstate::S2 {} => Foo::s2(shared_storage, event),
+                Superstate::S1 {} => Foo::s1(shared_storage, event),
             }
         }
 
-        fn call_entry_action(&mut self, object: &mut Foo, _: &mut ()) {
+        fn call_entry_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                Superstate::S21 {} => Foo::enter_s21(object),
-                Superstate::S {} => Foo::enter_s(object),
-                Superstate::S2 {} => Foo::enter_s2(object),
-                Superstate::S1 {} => Foo::enter_s1(object),
+                Superstate::S21 {} => Foo::enter_s21(shared_storage),
+                Superstate::S {} => Foo::enter_s(shared_storage),
+                Superstate::S2 {} => Foo::enter_s2(shared_storage),
+                Superstate::S1 {} => Foo::enter_s1(shared_storage),
             }
         }
 
-        fn call_exit_action(&mut self, object: &mut Foo, _: &mut ()) {
+        fn call_exit_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                Superstate::S21 {} => Foo::exit_s21(object),
-                Superstate::S {} => Foo::exit_s(object),
-                Superstate::S2 {} => Foo::exit_s2(object),
-                Superstate::S1 {} => Foo::exit_s1(object),
+                Superstate::S21 {} => Foo::exit_s21(shared_storage),
+                Superstate::S {} => Foo::exit_s(shared_storage),
+                Superstate::S2 {} => Foo::exit_s2(shared_storage),
+                Superstate::S1 {} => Foo::exit_s1(shared_storage),
             }
         }
 

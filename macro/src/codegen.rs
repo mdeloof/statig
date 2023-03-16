@@ -39,7 +39,7 @@ pub fn codegen(ir: Ir) -> TokenStream {
 }
 
 fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
-    let object_type = &ir.state_machine.shared_storage_type;
+    let shared_storage_type = &ir.state_machine.shared_storage_type;
     let (impl_generics, _, where_clause) =
         &ir.state_machine.shared_storage_generics.split_for_impl();
     let event_type = &ir.state_machine.event_type;
@@ -74,7 +74,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     };
 
     parse_quote!(
-        impl #impl_generics statig::#mode::IntoStateMachine for #object_type #where_clause
+        impl #impl_generics statig::#mode::IntoStateMachine for #shared_storage_type #where_clause
         {
             type Event<#event_lifetime> = #event_type;
             type Context<#context_lifetime> = #context_type;
@@ -128,7 +128,7 @@ fn codegen_state_impl(ir: &Ir) -> ItemImpl {
 }
 
 fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
-    let object_type = &ir.state_machine.shared_storage_type;
+    let shared_storage_type = &ir.state_machine.shared_storage_type;
     let (impl_generics, _, where_clause) =
         &ir.state_machine.shared_storage_generics.split_for_impl();
     let state_ident = &ir.state_machine.state_ident;
@@ -170,27 +170,27 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
 
     parse_quote!(
         #[allow(unused)]
-        impl #impl_generics statig::#mode::State<#object_type> for #state_ident #state_generics #where_clause
+        impl #impl_generics statig::#mode::State<#shared_storage_type> for #state_ident #state_generics #where_clause
         {
-            #asyncness fn call_handler(&mut self, shared_storage: &mut #object_type, #event_ident: &<#object_type as statig::#mode::IntoStateMachine>::Event<'_>, #context_ident: &mut <#object_type as statig::#mode::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
+            #asyncness fn call_handler(&mut self, shared_storage: &mut #shared_storage_type, #event_ident: &<#shared_storage_type as statig::#mode::IntoStateMachine>::Event<'_>, #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
                 match self {
                     #(#call_handler_arms),*
                 }
             }
 
-            #asyncness fn call_entry_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::#mode::IntoStateMachine>::Context<'_>) {
+            #asyncness fn call_entry_action(&mut self, shared_storage: &mut #shared_storage_type, #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>) {
                 match self {
                     #(#call_entry_action_arms),*
                 }
             }
 
-            #asyncness fn call_exit_action(&mut self, shared_storage: &mut #object_type, #context_ident: &mut <#object_type as statig::#mode::IntoStateMachine>::Context<'_>) {
+            #asyncness fn call_exit_action(&mut self, shared_storage: &mut #shared_storage_type, #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>) {
                 match self {
                     #(#call_exit_action_arms),*
                 }
             }
 
-            fn superstate(&mut self) -> Option<<#object_type as statig::#mode::IntoStateMachine>::Superstate<'_>> {
+            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::#mode::IntoStateMachine>::Superstate<'_>> {
                 match self {
                     #(#superstate_arms),*
                 }

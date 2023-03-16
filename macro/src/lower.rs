@@ -80,13 +80,13 @@ pub struct State {
     /// (e.g. `State::On { led }`)
     pub pat: Pat,
     /// The call to the state handler
-    /// (e.g. `Blinky::on(object, led, input)`).
+    /// (e.g. `Blinky::on(shared_storage, led, input)`).
     pub handler_call: Expr,
     /// The call to the entry action of the state, if defined
-    /// (e.g. `Blinky::enter_on(object, led)`, `{}`, ..).
+    /// (e.g. `Blinky::enter_on(shared_storage, led)`, `{}`, ..).
     pub entry_action_call: Expr,
     /// The call to the exit action of the state, if defined
-    /// (e.g. `Blinky::exit_on(object, led)`, `{}`, ..).
+    /// (e.g. `Blinky::exit_on(shared_storage, led)`, `{}`, ..).
     pub exit_action_call: Expr,
     /// The pattern to create the superstate variant.
     /// (e.g. `Some(Superstate::Playing { led })`, `None`, ..).
@@ -105,13 +105,13 @@ pub struct Superstate {
     /// (e.g. `Superstate::Playing { led }`).
     pub pat: Pat,
     /// The call to the superstate handler
-    /// (e.g. `Blinky::playing(object, led)`)
+    /// (e.g. `Blinky::playing(shared_storage, led)`)
     pub handler_call: ExprCall,
     /// The call to the entry action of the superstate, if defined
-    /// (e.g. `Blinky::enter_playing(object, led)`)
+    /// (e.g. `Blinky::enter_playing(shared_storage, led)`)
     pub entry_action_call: Expr,
     /// The call to the exit action of the superstate, if defined
-    /// (e.g. `Blinky::exit_playing(object, led)`).
+    /// (e.g. `Blinky::exit_playing(shared_storage, led)`).
     pub exit_action_call: Expr,
     /// The pattern to create the superstate variant.
     /// (e.g. `Some(Superstate::Playing { led })`, `None`, ..).
@@ -121,7 +121,7 @@ pub struct Superstate {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Action {
     /// The call to the action.
-    /// (e.g. `Blinky::exit_off(object, led)`)
+    /// (e.g. `Blinky::exit_off(shared_storage, led)`)
     pub handler_call: ExprCall,
 }
 

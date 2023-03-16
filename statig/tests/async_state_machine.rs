@@ -68,38 +68,38 @@ mod tests {
     impl awaitable::State<Foo> for State {
         async fn call_handler(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             event: &<Foo as IntoStateMachine>::Event<'_>,
             _: &mut <Foo as IntoStateMachine>::Context<'_>,
         ) -> statig::Response<Self> {
             match self {
-                State::S211 {} => Foo::s211(object, event).await,
-                State::S11 {} => Foo::s11(object, event).await,
-                State::S12 {} => Foo::s12(object, event).await,
+                State::S211 {} => Foo::s211(shared_storage, event).await,
+                State::S11 {} => Foo::s11(shared_storage, event).await,
+                State::S12 {} => Foo::s12(shared_storage, event).await,
             }
         }
 
         async fn call_entry_action(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             _: &mut <Foo as IntoStateMachine>::Context<'_>,
         ) {
             match self {
-                State::S211 {} => Foo::enter_s211(object).await,
-                State::S11 {} => Foo::enter_s11(object).await,
-                State::S12 {} => Foo::enter_s12(object).await,
+                State::S211 {} => Foo::enter_s211(shared_storage).await,
+                State::S11 {} => Foo::enter_s11(shared_storage).await,
+                State::S12 {} => Foo::enter_s12(shared_storage).await,
             }
         }
 
         async fn call_exit_action(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             _: &mut <Foo as IntoStateMachine>::Context<'_>,
         ) {
             match self {
-                State::S211 {} => Foo::exit_s211(object).await,
-                State::S11 {} => Foo::exit_s11(object).await,
-                State::S12 {} => Foo::exit_s12(object).await,
+                State::S211 {} => Foo::exit_s211(shared_storage).await,
+                State::S11 {} => Foo::exit_s11(shared_storage).await,
+                State::S12 {} => Foo::exit_s12(shared_storage).await,
             }
         }
 
@@ -115,7 +115,7 @@ mod tests {
     impl awaitable::Superstate<Foo> for Superstate {
         async fn call_handler(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             event: &<Foo as IntoStateMachine>::Event<'_>,
             _: &mut <Foo as IntoStateMachine>::Context<'_>,
         ) -> statig::Response<State>
@@ -123,36 +123,36 @@ mod tests {
             Self: Sized,
         {
             match self {
-                Superstate::S21 {} => Foo::s21(object, event).await,
-                Superstate::S {} => Foo::s(object, event).await,
-                Superstate::S2 {} => Foo::s2(object, event).await,
-                Superstate::S1 {} => Foo::s1(object, event).await,
+                Superstate::S21 {} => Foo::s21(shared_storage, event).await,
+                Superstate::S {} => Foo::s(shared_storage, event).await,
+                Superstate::S2 {} => Foo::s2(shared_storage, event).await,
+                Superstate::S1 {} => Foo::s1(shared_storage, event).await,
             }
         }
 
         async fn call_entry_action(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             _: &mut <Foo as IntoStateMachine>::Context<'_>,
         ) {
             match self {
-                Superstate::S21 {} => Foo::enter_s21(object).await,
-                Superstate::S {} => Foo::enter_s(object).await,
-                Superstate::S2 {} => Foo::enter_s2(object).await,
-                Superstate::S1 {} => Foo::enter_s1(object).await,
+                Superstate::S21 {} => Foo::enter_s21(shared_storage).await,
+                Superstate::S {} => Foo::enter_s(shared_storage).await,
+                Superstate::S2 {} => Foo::enter_s2(shared_storage).await,
+                Superstate::S1 {} => Foo::enter_s1(shared_storage).await,
             }
         }
 
         async fn call_exit_action(
             &mut self,
-            object: &mut Foo,
+            shared_storage: &mut Foo,
             _: &mut <Foo as IntoStateMachine>::Context<'_>,
         ) {
             match self {
-                Superstate::S21 {} => Foo::exit_s21(object).await,
-                Superstate::S {} => Foo::exit_s(object).await,
-                Superstate::S2 {} => Foo::exit_s2(object).await,
-                Superstate::S1 {} => Foo::exit_s1(object).await,
+                Superstate::S21 {} => Foo::exit_s21(shared_storage).await,
+                Superstate::S {} => Foo::exit_s(shared_storage).await,
+                Superstate::S2 {} => Foo::exit_s2(shared_storage).await,
+                Superstate::S1 {} => Foo::exit_s1(shared_storage).await,
             }
         }
 
