@@ -1,4 +1,3 @@
-#![allow(incomplete_features)]
 #[cfg(test)]
 #[cfg(feature = "async")]
 mod tests {
@@ -61,17 +60,13 @@ mod tests {
         const INITIAL: State = State::S11;
     }
 
-    unsafe impl Send for Foo {}
-
-    unsafe impl Sync for Foo {}
-
     impl awaitable::State<Foo> for State {
-        fn call_handler<'future>(
-            &'future mut self,
-            shared_storage: &'future mut Foo,
-            event: &'future <Foo as IntoStateMachine>::Event<'_>,
-            _: &'future mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = statig::Response<Self>> + 'future>> {
+        fn call_handler<'fut>(
+            &'fut mut self,
+            shared_storage: &'fut mut Foo,
+            event: &'fut <Foo as IntoStateMachine>::Event<'_>,
+            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> Pin<Box<dyn Future<Output = statig::Response<Self>> + 'fut>> {
             Box::pin(async move {
                 match self {
                     State::S211 {} => Foo::s211(shared_storage, event).await,
@@ -81,11 +76,11 @@ mod tests {
             })
         }
 
-        fn call_entry_action<'future>(
-            &'future mut self,
-            shared_storage: &'future mut Foo,
-            _: &'future mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        fn call_entry_action<'fut>(
+            &'fut mut self,
+            shared_storage: &'fut mut Foo,
+            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
             Box::pin(async move {
                 match self {
                     State::S211 {} => Foo::enter_s211(shared_storage).await,
@@ -95,11 +90,11 @@ mod tests {
             })
         }
 
-        fn call_exit_action<'future>(
-            &'future mut self,
-            shared_storage: &'future mut Foo,
-            _: &'future mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        fn call_exit_action<'fut>(
+            &'fut mut self,
+            shared_storage: &'fut mut Foo,
+            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
             Box::pin(async move {
                 match self {
                     State::S211 {} => Foo::exit_s211(shared_storage).await,
@@ -119,12 +114,12 @@ mod tests {
     }
 
     impl awaitable::Superstate<Foo> for Superstate {
-        fn call_handler<'future>(
-            &'future mut self,
-            shared_storage: &'future mut Foo,
-            event: &'future <Foo as IntoStateMachine>::Event<'_>,
-            _: &'future mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = statig::Response<State>> + 'future>>
+        fn call_handler<'fut>(
+            &'fut mut self,
+            shared_storage: &'fut mut Foo,
+            event: &'fut <Foo as IntoStateMachine>::Event<'_>,
+            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> Pin<Box<dyn Future<Output = statig::Response<State>> + 'fut>>
         where
             Self: Sized,
         {
@@ -138,11 +133,11 @@ mod tests {
             })
         }
 
-        fn call_entry_action<'future>(
-            &'future mut self,
-            shared_storage: &'future mut Foo,
-            _: &'future mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        fn call_entry_action<'fut>(
+            &'fut mut self,
+            shared_storage: &'fut mut Foo,
+            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
             Box::pin(async move {
                 match self {
                     Superstate::S21 {} => Foo::enter_s21(shared_storage).await,
@@ -153,11 +148,11 @@ mod tests {
             })
         }
 
-        fn call_exit_action<'future>(
-            &'future mut self,
-            shared_storage: &'future mut Foo,
-            _: &'future mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        fn call_exit_action<'fut>(
+            &'fut mut self,
+            shared_storage: &'fut mut Foo,
+            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
             Box::pin(async move {
                 match self {
                     Superstate::S21 {} => Foo::exit_s21(shared_storage).await,
