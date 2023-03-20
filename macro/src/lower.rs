@@ -439,7 +439,10 @@ pub fn lower(model: &Model) -> Ir {
 pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine) -> State {
     let variant_name = snake_case_to_pascal_case(&state.handler_name);
     let state_handler_name = &state.handler_name;
-    let shared_storage_ident = &state_machine.shared_storage_ident;
+    let shared_storage_path = &state_machine.shared_storage_path;
+    let (_, shared_storage_type_generics, _) =
+        &state_machine.shared_storage_generics.split_for_impl();
+    let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
     let state_name = &state_machine.state_ident;
 
     let mut variant_fields: Vec<_> = state
@@ -469,10 +472,10 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
 
     let handler_call = match &state.is_async {
         true => {
-            parse_quote!(#shared_storage_ident ::#state_handler_name(#(#handler_inputs),*).await)
+            parse_quote!(#shared_storage_path #shared_storage_turbofish ::#state_handler_name(#(#handler_inputs),*).await)
         }
         false => {
-            parse_quote!(#shared_storage_ident ::#state_handler_name(#(#handler_inputs),*))
+            parse_quote!(#shared_storage_path #shared_storage_turbofish ::#state_handler_name(#(#handler_inputs),*))
         }
     };
 
@@ -497,7 +500,10 @@ pub fn lower_superstate(
 ) -> Superstate {
     let superstate_name = snake_case_to_pascal_case(&superstate.handler_name);
     let superstate_handler_name = &superstate.handler_name;
-    let shared_storage_ident = &state_machine.shared_storage_ident;
+    let shared_storage_path = &state_machine.shared_storage_path;
+    let (_, shared_storage_type_generics, _) =
+        &state_machine.shared_storage_generics.split_for_impl();
+    let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
     let superstate_type = &state_machine.superstate_ident;
 
     let mut variant_fields: Vec<_> = superstate
@@ -526,10 +532,10 @@ pub fn lower_superstate(
 
     let handler_call = match &superstate.is_async {
         true => {
-            parse_quote!(#shared_storage_ident ::#superstate_handler_name(#(#handler_inputs),*).await)
+            parse_quote!(#shared_storage_path #shared_storage_turbofish ::#superstate_handler_name(#(#handler_inputs),*).await)
         }
         false => {
-            parse_quote!(#shared_storage_ident ::#superstate_handler_name(#(#handler_inputs),*))
+            parse_quote!(#shared_storage_path #shared_storage_turbofish ::#superstate_handler_name(#(#handler_inputs),*))
         }
     };
 
@@ -549,7 +555,7 @@ pub fn lower_superstate(
 
 pub fn lower_action(action: &analyze::Action, state_machine: &analyze::StateMachine) -> Action {
     let action_handler_name = &action.handler_name;
-    let shared_storage_ident = &state_machine.shared_storage_ident;
+    let shared_storage_path = &state_machine.shared_storage_path;
     let (_, shared_storage_type_generics, _) =
         &state_machine.shared_storage_generics.split_for_impl();
     let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
@@ -575,10 +581,10 @@ pub fn lower_action(action: &analyze::Action, state_machine: &analyze::StateMach
 
     let handler_call = match &action.is_async {
         true => {
-            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*).await)
+            parse_quote!(#shared_storage_path #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*).await)
         }
         false => {
-            parse_quote!(#shared_storage_ident #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*))
+            parse_quote!(#shared_storage_path #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*))
         }
     };
 
@@ -693,7 +699,7 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
     analyze::StateMachine {
         initial_state: parse_quote!(State::on()),
         shared_storage_type: parse_quote!(Blinky),
-        shared_storage_ident: parse_quote!(Blinky),
+        shared_storage_path: parse_quote!(Blinky),
         shared_storage_generics: parse_quote!(),
         state_ident: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],

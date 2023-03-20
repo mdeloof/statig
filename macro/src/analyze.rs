@@ -30,8 +30,8 @@ pub struct StateMachine {
     pub initial_state: ExprCall,
     /// The type on which the state machine is implemented.
     pub shared_storage_type: Type,
-    /// The identifier of the shared storage type.
-    pub shared_storage_ident: Ident,
+    /// The path of the shared storage.
+    pub shared_storage_path: Path,
     /// The generics associated with the shared storage type.
     pub shared_storage_generics: Generics,
     /// The name for the state type.
@@ -170,7 +170,7 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
 pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
     let shared_storage_type = item_impl.self_ty.as_ref().clone();
     let shared_storage_generics = item_impl.generics.clone();
-    let shared_storage_ident = get_shared_storage_ident(&shared_storage_type);
+    let shared_storage_path = get_shared_storage_path(&shared_storage_type);
 
     let mut initial_state: Option<ExprCall> = None;
 
@@ -333,7 +333,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     StateMachine {
         initial_state,
         shared_storage_type,
-        shared_storage_ident,
+        shared_storage_path,
         shared_storage_generics,
         state_ident,
         state_derives,
@@ -588,10 +588,13 @@ pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
 }
 
 /// Get the ident of the shared storage type.
-pub fn get_shared_storage_ident(ty: &Type) -> Ident {
+pub fn get_shared_storage_path(ty: &Type) -> Path {
     match ty {
-        Type::Path(path) => path.path.segments.last().map(|s| &s.ident).unwrap().clone(),
-        _ => panic!("can not get ident of shared storage"),
+        Type::Path(path) => {
+            let segments: Vec<_> = path.path.segments.iter().map(|seg| &seg.ident).collect();
+            parse_quote!(#(#segments)::*)
+        }
+        _ => panic!("can not get path of shared storage"),
     }
 }
 
@@ -634,7 +637,7 @@ fn valid_state_analyze() {
     let initial_state = parse_quote!(State::on());
 
     let shared_storage_type = parse_quote!(Blinky);
-    let shared_storage_ident = parse_quote!(Blinky);
+    let shared_storage_path = parse_quote!(Blinky);
     let shared_storage_generics = parse_quote!();
 
     let state_ident = parse_quote!(State);
@@ -650,7 +653,7 @@ fn valid_state_analyze() {
     let state_machine = StateMachine {
         initial_state,
         shared_storage_type,
-        shared_storage_ident,
+        shared_storage_path,
         shared_storage_generics,
         state_ident,
         state_derives,

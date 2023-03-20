@@ -1,7 +1,5 @@
 #![allow(unused)]
 
-use std::fmt::Debug;
-
 use statig::blocking::*;
 use std::marker::PhantomData;
 
@@ -13,14 +11,21 @@ pub enum Event<T> {
 // All generics must be declared on the shared storage type. They can then
 // be used inside the state and action handlers.
 #[derive(Default)]
-pub struct Machine<'a, T, const SIZE: usize> {
-    marker: PhantomData<&'a T>,
+pub struct Machine<'a, T, A, const SIZE: usize> {
+    marker: PhantomData<(&'a T, A)>,
 }
 
+use statig::prelude::*;
+
+use std::boxed::Box;
+use std::fmt::Debug;
+use std::ops::Deref;
+
 #[state_machine(initial = "State::foo()")]
-impl<'d, T, const SIZE: usize> Machine<'d, T, SIZE>
+impl<'d, T, A, const SIZE: usize> Machine<'d, T, A, SIZE>
 where
     T: 'static + Debug + Clone + Default + Copy,
+    A: 'static + Deref,
 {
     #[state]
     fn foo(event: &Event<T>) -> Response<State<T, SIZE>> {
@@ -50,7 +55,7 @@ where
 }
 
 fn main() {
-    let mut machine = Machine::<Option<&u32>, 45>::default()
+    let mut machine = Machine::<Option<&u32>, Box<u32>, 45>::default()
         .uninitialized_state_machine()
         .init();
     machine.handle(&Event::Bar(None));
