@@ -106,7 +106,7 @@ pub struct Superstate {
     pub pat: Pat,
     /// The call to the superstate handler
     /// (e.g. `Blinky::playing(shared_storage, led)`)
-    pub handler_call: ExprCall,
+    pub handler_call: Expr,
     /// The call to the entry action of the superstate, if defined
     /// (e.g. `Blinky::enter_playing(shared_storage, led)`)
     pub entry_action_call: Expr,
@@ -523,6 +523,7 @@ pub fn lower_superstate(
 
     let variant = parse_quote!(#superstate_name { #(#variant_fields),* });
     let pat = parse_quote!(#superstate_type::#superstate_name { #(#pat_fields),*});
+
     let handler_call = match &superstate.is_async {
         true => {
             parse_quote!(#shared_storage_ident ::#superstate_handler_name(#(#handler_inputs),*).await)
@@ -531,6 +532,7 @@ pub fn lower_superstate(
             parse_quote!(#shared_storage_ident ::#superstate_handler_name(#(#handler_inputs),*))
         }
     };
+
     let entry_action_call = parse_quote!({});
     let exit_action_call = parse_quote!({});
     let superstate_pat = parse_quote!(None);

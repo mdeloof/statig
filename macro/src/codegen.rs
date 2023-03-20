@@ -143,11 +143,6 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     let mut superstate_arms: Vec<Arm> = Vec::new();
     let mut same_state_arms: Vec<Arm> = Vec::new();
 
-    let (mode, asyncness) = match ir.state_machine.mode {
-        Mode::Blocking => (quote!(blocking), quote!()),
-        Mode::Awaitable => (quote!(awaitable), quote!(async)),
-    };
-
     for state in ir.states.values() {
         let pat = &state.pat;
         let handler_call = &state.handler_call;
@@ -168,35 +163,74 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     superstate_arms.push(parse_quote!(_ => None));
     same_state_arms.push(parse_quote!(_ => false));
 
-    parse_quote!(
-        #[allow(unused)]
-        impl #impl_generics statig::#mode::State<#shared_storage_type> for #state_ident #state_generics #where_clause
-        {
-            #asyncness fn call_handler(&mut self, shared_storage: &mut #shared_storage_type, #event_ident: &<#shared_storage_type as statig::#mode::IntoStateMachine>::Event<'_>, #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
-                match self {
-                    #(#call_handler_arms),*
-                }
-            }
+    match ir.state_machine.mode {
+        Mode::Blocking => {
+            parse_quote!(
+                #[allow(unused)]
+                impl #impl_generics statig::blocking::State<#shared_storage_type> for #state_ident #state_generics #where_clause
+                {
+                    fn call_handler(&mut self, shared_storage: &mut #shared_storage_type, #event_ident: &<#shared_storage_type as statig::IntoStateMachine>::Event<'_>, #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>) -> statig::Response<Self> where Self: Sized {
+                        match self {
+                            #(#call_handler_arms),*
+                        }
+                    }
 
-            #asyncness fn call_entry_action(&mut self, shared_storage: &mut #shared_storage_type, #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>) {
-                match self {
-                    #(#call_entry_action_arms),*
-                }
-            }
+                    fn call_entry_action(&mut self, shared_storage: &mut #shared_storage_type, #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>) {
+                        match self {
+                            #(#call_entry_action_arms),*
+                        }
+                    }
 
-            #asyncness fn call_exit_action(&mut self, shared_storage: &mut #shared_storage_type, #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>) {
-                match self {
-                    #(#call_exit_action_arms),*
-                }
-            }
+                    fn call_exit_action(&mut self, shared_storage: &mut #shared_storage_type, #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>) {
+                        match self {
+                            #(#call_exit_action_arms),*
+                        }
+                    }
 
-            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::#mode::IntoStateMachine>::Superstate<'_>> {
-                match self {
-                    #(#superstate_arms),*
+                    fn superstate(&mut self) -> Option<<#shared_storage_type as statig::IntoStateMachine>::Superstate<'_>> {
+                        match self {
+                            #(#superstate_arms),*
+                        }
+                    }
                 }
-            }
+            )
         }
-    )
+        Mode::Awaitable => parse_quote!(
+            #[allow(unused)]
+            impl #impl_generics statig::awaitable::State<#shared_storage_type> for #state_ident #state_generics #where_clause
+            {
+                fn call_handler<'future>(&'future mut self, shared_storage: &'future mut #shared_storage_type, #event_ident: &'future <#shared_storage_type as statig::IntoStateMachine>::Event<'_>, #context_ident: &'future mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = statig::Response<Self>> + 'future>> {
+                    Box::pin(async move {
+                        match self {
+                            #(#call_handler_arms),*
+                        }
+                    })
+                }
+
+                fn call_entry_action<'future>(&'future mut self, shared_storage: &'future mut #shared_storage_type, #context_ident: &'future mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'future>> {
+                    Box::pin(async move {
+                        match self {
+                            #(#call_entry_action_arms),*
+                        }
+                    })
+                }
+
+                fn call_exit_action<'future>(&'future mut self, shared_storage: &'future mut #shared_storage_type, #context_ident: &'future mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'future>> {
+                    Box::pin(async move {
+                        match self {
+                            #(#call_exit_action_arms),*
+                        }
+                    })
+                }
+
+                fn superstate(&mut self) -> Option<<#shared_storage_type as statig::IntoStateMachine>::Superstate<'_>> {
+                    match self {
+                        #(#superstate_arms),*
+                    }
+                }
+            }
+        ),
+    }
 }
 
 fn codegen_superstate(ir: &Ir) -> ItemEnum {
@@ -244,11 +278,6 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
     let mut superstate_arms: Vec<Arm> = Vec::new();
     let mut same_state_arms: Vec<Arm> = Vec::new();
 
-    let (mode, asyncness) = match ir.state_machine.mode {
-        Mode::Blocking => (quote!(blocking), quote!()),
-        Mode::Awaitable => (quote!(awaitable), quote!(async)),
-    };
-
     for state in ir.superstates.values() {
         let pat = &state.pat;
         let handler_call = &state.handler_call;
@@ -268,46 +297,100 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
     superstate_arms.push(parse_quote!(_ => None));
     same_state_arms.push(parse_quote!(_ => false));
 
-    parse_quote!(
-        #[allow(unused)]
-        impl #impl_generics statig::#mode::Superstate<#shared_storage_type> for #superstate_ident #superstate_generics #where_clause
-        {
-            #asyncness fn call_handler(
-                &mut self,
-                shared_storage: &mut #shared_storage_type,
-                #event_ident: &<#shared_storage_type as statig::#mode::IntoStateMachine>::Event<'_>,
-                #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>
-            ) -> statig::Response<<#shared_storage_type as statig::#mode::IntoStateMachine>::State> where Self: Sized {
-                match self {
-                    #(#call_handler_arms),*
-                }
-            }
+    match ir.state_machine.mode {
+        Mode::Blocking => {
+            parse_quote!(
+                #[allow(unused)]
+                impl #impl_generics statig::blocking::Superstate<#shared_storage_type> for #superstate_ident #superstate_generics #where_clause
+                {
+                    fn call_handler(
+                        &mut self,
+                        shared_storage: &mut #shared_storage_type,
+                        #event_ident: &<#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
+                        #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) -> statig::Response<<#shared_storage_type as statig::IntoStateMachine>::State> where Self: Sized {
+                        match self {
+                            #(#call_handler_arms),*
+                        }
+                    }
 
-            #asyncness fn call_entry_action(
-                &mut self,
-                shared_storage: &mut #shared_storage_type,
-                #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>
-            ) {
-                match self {
-                    #(#call_entry_action_arms),*
-                }
-            }
+                    fn call_entry_action(
+                        &mut self,
+                        shared_storage: &mut #shared_storage_type,
+                        #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) {
+                        match self {
+                            #(#call_entry_action_arms),*
+                        }
+                    }
 
-            #asyncness fn call_exit_action(
-                &mut self,
-                shared_storage: &mut #shared_storage_type,
-                #context_ident: &mut <#shared_storage_type as statig::#mode::IntoStateMachine>::Context<'_>
-            ) {
-                match self {
-                    #(#call_exit_action_arms),*
-                }
-            }
+                    fn call_exit_action(
+                        &mut self,
+                        shared_storage: &mut #shared_storage_type,
+                        #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) {
+                        match self {
+                            #(#call_exit_action_arms),*
+                        }
+                    }
 
-            fn superstate(&mut self) -> Option<<#shared_storage_type as statig::#mode::IntoStateMachine>::Superstate<'_>> {
-                match self {
-                    #(#superstate_arms),*
+                    fn superstate(&mut self) -> Option<<#shared_storage_type as statig::IntoStateMachine>::Superstate<'_>> {
+                        match self {
+                            #(#superstate_arms),*
+                        }
+                    }
                 }
-            }
+            )
         }
-    )
+        Mode::Awaitable => {
+            parse_quote!(
+                #[allow(unused)]
+                impl #impl_generics statig::awaitable::Superstate<#shared_storage_type> for #superstate_ident #superstate_generics #where_clause
+                {
+                    fn call_handler<'future>(
+                        &'future mut self,
+                        shared_storage: &'future mut #shared_storage_type,
+                        #event_ident: &'future <#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
+                        #context_ident: &'future mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = statig::Response<<#shared_storage_type as statig::IntoStateMachine>::State>> + 'future>> {
+                        Box::pin(async move {
+                            match self {
+                                #(#call_handler_arms),*
+                            }
+                        })
+                    }
+
+                    fn call_entry_action<'future>(
+                        &'future mut self,
+                        shared_storage: &'future mut #shared_storage_type,
+                        #context_ident: &'future mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'future>> {
+                        Box::pin(async move {
+                            match self {
+                                #(#call_entry_action_arms),*
+                            }
+                        })
+                    }
+
+                    fn call_exit_action<'future>(
+                        &'future mut self,
+                        shared_storage: &'future mut #shared_storage_type,
+                        #context_ident: &'future mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'future>> {
+                        Box::pin(async move {
+                            match self {
+                                #(#call_exit_action_arms),*
+                            }
+                        })
+                    }
+
+                    fn superstate(&mut self) -> Option<<#shared_storage_type as statig::IntoStateMachine>::Superstate<'_>> {
+                        match self {
+                            #(#superstate_arms),*
+                        }
+                    }
+                }
+            )
+        }
+    }
 }

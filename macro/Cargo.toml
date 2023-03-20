@@ -8,7 +8,7 @@ license = "MIT"
 description = "Macro's for `statig`"
 readme = "../README.md"
 repository = "https://github.com/mdeloof/statig"
-keywords = ["fsm", "hsm", "statechart", "embedded"]
+keywords = ["fsm", "hsm", "statechart", "state-machine", "embedded"]
 
 [lib]
 proc-macro = true

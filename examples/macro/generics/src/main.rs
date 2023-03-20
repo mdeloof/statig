@@ -1,3 +1,7 @@
+#![allow(unused)]
+
+use std::fmt::Debug;
+
 use statig::blocking::*;
 use std::marker::PhantomData;
 
@@ -16,8 +20,7 @@ pub struct Machine<'a, T, const SIZE: usize> {
 #[state_machine(initial = "State::foo()")]
 impl<'d, T, const SIZE: usize> Machine<'d, T, SIZE>
 where
-    T: std::fmt::Debug + Clone + Default + Copy,
-    T: 'static,
+    T: 'static + Debug + Clone + Default + Copy,
 {
     #[state]
     fn foo(event: &Event<T>) -> Response<State<T, SIZE>> {
@@ -27,13 +30,11 @@ where
         }
     }
 
-    #[allow(unused)]
     #[action]
     fn enter_bar(value: &mut T) {
-        dbg!(value);
+        println!("{:?}", value);
     }
 
-    #[allow(unused)]
     #[state(superstate = "barbar", entry_action = "enter_bar")]
     fn bar(value: &mut T, buffer: &[T; SIZE], event: &Event<T>) -> Response<State<T, SIZE>> {
         match event {
@@ -42,7 +43,6 @@ where
         }
     }
 
-    #[allow(unused)]
     #[superstate]
     fn barbar(value: &mut T) -> Response<State<T, SIZE>> {
         Super

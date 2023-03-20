@@ -582,9 +582,8 @@
 //! I highly recommend it if you want to learn how to use state machines to design
 //! complex systems.
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(incomplete_features)]
-#![cfg_attr(feature = "async", feature(async_fn_in_trait))]
 
 mod inner;
 mod into_state_machine;

@@ -1,4 +1,5 @@
-use futures::future::{FutureExt, LocalBoxFuture};
+use core::future::Future;
+use core::pin::Pin;
 
 use crate::awaitable::{Superstate, SuperstateExt};
 use crate::IntoStateMachine;
@@ -12,20 +13,32 @@ where
     M: IntoStateMachine,
 {
     /// Call the handler for the current state and let it handle the given event.
-    async fn call_handler(
-        &mut self,
-        shared_storage: &mut M,
-        event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
-    ) -> Response<Self>;
+    fn call_handler<'future>(
+        &'future mut self,
+        shared_storage: &'future mut M,
+        event: &'future M::Event<'_>,
+        context: &'future mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'future>>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
-    async fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
+    fn call_entry_action<'future>(
+        &'future mut self,
+        shared_storage: &'future mut M,
+        context: &'future mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        Box::pin(core::future::ready(()))
+    }
 
     #[allow(unused)]
     /// Call the exit action for the current state.
-    async fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
+    fn call_exit_action<'future>(
+        &'future mut self,
+        shared_storage: &'future mut M,
+        context: &'future mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        Box::pin(core::future::ready(()))
+    }
 
     /// Return the superstate of the current state, if there is one.
     fn superstate(&mut self) -> Option<M::Superstate<'_>> {
@@ -88,17 +101,16 @@ where
     }
 
     /// Handle the given event in the current state.
-    fn handle<'a, 'b>(
-        &'a mut self,
-        shared_storage: &'a mut M,
-        event: &'a M::Event<'_>,
-        context: &'a mut M::Context<'_>,
-    ) -> LocalBoxFuture<'b, Response<M::State>>
+    fn handle<'future, 'b>(
+        &'future mut self,
+        shared_storage: &'future mut M,
+        event: &'future M::Event<'_>,
+        context: &'future mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'future>>
     where
-        'a: 'b,
-        Self: Sized + Send + Sync,
+        Self: 'future + Sized + Sync,
     {
-        async move {
+        let future = async move {
             M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
             let response = self.call_handler(shared_storage, event, context).await;
@@ -119,38 +131,54 @@ where
                 },
                 Response::Transition(state) => Response::Transition(state),
             }
-        }
-        .boxed_local()
+        };
+        Box::pin(future)
     }
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current state.
-    async fn enter(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
-        match levels {
-            0 => (),
-            1 => self.call_entry_action(shared_storage, context).await,
-            _ => {
-                if let Some(mut superstate) = self.superstate() {
-                    superstate.enter(shared_storage, context, levels - 1).await;
+    fn enter<'future>(
+        &'future mut self,
+        shared_storage: &'future mut M,
+        context: &'future mut M::Context<'_>,
+        levels: usize,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        let future = async move {
+            match levels {
+                0 => (),
+                1 => self.call_entry_action(shared_storage, context).await,
+                _ => {
+                    if let Some(mut superstate) = self.superstate() {
+                        superstate.enter(shared_storage, context, levels - 1).await;
+                    }
+                    self.call_entry_action(shared_storage, context).await;
                 }
-                self.call_entry_action(shared_storage, context).await;
             }
-        }
+        };
+        Box::pin(future)
     }
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    async fn exit(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
-        match levels {
-            0 => (),
-            1 => self.call_exit_action(shared_storage, context).await,
-            _ => {
-                self.call_exit_action(shared_storage, context).await;
-                if let Some(mut superstate) = self.superstate() {
-                    superstate.exit(shared_storage, context, levels - 1).await;
+    fn exit<'future>(
+        &'future mut self,
+        shared_storage: &'future mut M,
+        context: &'future mut M::Context<'_>,
+        levels: usize,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+        let future = async move {
+            match levels {
+                0 => (),
+                1 => self.call_exit_action(shared_storage, context).await,
+                _ => {
+                    self.call_exit_action(shared_storage, context).await;
+                    if let Some(mut superstate) = self.superstate() {
+                        superstate.exit(shared_storage, context, levels - 1).await;
+                    }
                 }
             }
-        }
+        };
+        Box::pin(future)
     }
 }
 
