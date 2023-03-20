@@ -32,10 +32,12 @@ pub enum Event {
     on_dispatch = "Self::on_dispatch"
 )]
 impl Blinky {
+    #[action]
+    fn cool() {}
     /// The `#[state]` attibute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Response<State>`.
-    #[state(superstate = "blinking")]
+    #[state(superstate = "blinking", entry_action = "cool")]
     async fn led_on(event: &Event) -> Response<State> {
         match event {
             // When we receive a `TimerElapsed` event we transition to the `led_off` state.

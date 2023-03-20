@@ -122,7 +122,7 @@ pub struct Superstate {
 pub struct Action {
     /// The call to the action.
     /// (e.g. `Blinky::exit_off(shared_storage, led)`)
-    pub handler_call: ExprCall,
+    pub handler_call: Expr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -579,12 +579,14 @@ pub fn lower_action(action: &analyze::Action, state_machine: &analyze::StateMach
         }
     }
 
+    let handler_inputs: Vec<Ident> = action.inputs.iter().map(fn_arg_to_ident).collect();
+
     let handler_call = match &action.is_async {
         true => {
-            parse_quote!(#shared_storage_path #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*).await)
+            parse_quote!(#shared_storage_path #shared_storage_turbofish ::#action_handler_name(#(#handler_inputs),*).await)
         }
         false => {
-            parse_quote!(#shared_storage_path #shared_storage_turbofish::#action_handler_name(#(#call_inputs),*))
+            parse_quote!(#shared_storage_path #shared_storage_turbofish ::#action_handler_name(#(#handler_inputs),*))
         }
     };
 
