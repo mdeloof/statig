@@ -206,7 +206,7 @@ where
 #[cfg(feature = "bevy")]
 impl<M> bevy_ecs::component::Component for StateMachine<M>
 where
-    Self: Send + Sync + 'static,
+    Self: 'static + Send + Sync,
     M: IntoStateMachine,
 {
     type Storage = bevy_ecs::component::TableStorage;
@@ -345,7 +345,7 @@ where
 #[cfg(feature = "bevy")]
 impl<M> bevy_ecs::component::Component for InitializedStateMachine<M>
 where
-    Self: Send + Sync + 'static,
+    Self: 'static + Send + Sync,
     M: IntoStateMachine,
 {
     type Storage = bevy_ecs::component::TableStorage;

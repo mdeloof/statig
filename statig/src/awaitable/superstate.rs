@@ -12,30 +12,30 @@ where
     M: IntoStateMachine,
 {
     /// Call the handler for the current superstate.
-    fn call_handler<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        event: &'future M::Event<'_>,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'future>>;
+    fn call_handler<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        event: &'fut M::Event<'_>,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut>>;
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
-    fn call_entry_action<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    fn call_entry_action<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         Box::pin(core::future::ready(()))
     }
 
     #[allow(unused)]
     /// Call the exit action for the current superstate.
-    fn call_exit_action<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    fn call_exit_action<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -49,12 +49,11 @@ where
 }
 
 /// Extensions for `Superstate` trait.
-pub trait SuperstateExt<'a, M>: Superstate<M>
+pub trait SuperstateExt<M>: Superstate<M>
 where
     Self: Sized,
-    M: IntoStateMachine + Send + Sync,
-    M::State: 'a + Send + Sync,
-    for<'b> M::Superstate<'b>: Superstate<M> + Send + Sync,
+    M: IntoStateMachine,
+    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     fn same_state(lhs: &M::Superstate<'_>, rhs: &M::Superstate<'_>) -> bool {
         use core::mem::{discriminant, transmute, Discriminant};
@@ -102,15 +101,12 @@ where
     }
 
     /// Handle the given event in the current superstate.
-    fn handle<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        event: &'future M::Event<'_>,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'future>>
-    where
-        Self: Sized + Send + Sync,
-    {
+    fn handle<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        event: &'fut M::Event<'_>,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut>> {
         Box::pin(async move {
             let response = self.call_handler(shared_storage, event, context).await;
 
@@ -135,12 +131,12 @@ where
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current superstate.
-    fn enter<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
+    fn enter<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
         mut levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         Box::pin(async move {
             match levels {
                 0 => (),
@@ -158,12 +154,12 @@ where
 
     /// Starting from the current superstate, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
+    fn exit<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
         mut levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         Box::pin(async move {
             match levels {
                 0 => (),
@@ -187,12 +183,12 @@ where
     M::State: 'a,
     M::Superstate<'a>: Superstate<M>,
 {
-    fn call_handler<'future>(
-        &'future mut self,
-        _: &'future mut M,
-        _: &'future M::Event<'_>,
-        _: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'future>> {
+    fn call_handler<'fut>(
+        &'fut mut self,
+        _: &'fut mut M,
+        _: &'fut M::Event<'_>,
+        _: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut>> {
         Box::pin(core::future::ready(Response::Handled))
     }
 
@@ -220,11 +216,10 @@ where
     }
 }
 
-impl<'a, T, M> SuperstateExt<'a, M> for T
+impl<T, M> SuperstateExt<M> for T
 where
     T: Superstate<M>,
-    M: IntoStateMachine + Send + Sync,
-    M::State: 'a + Send + Sync,
-    for<'b> M::Superstate<'b>: Superstate<M> + Send + Sync,
+    M: IntoStateMachine,
+    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
 }

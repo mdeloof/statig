@@ -52,9 +52,9 @@ where
 
 impl<M> StateMachine<M>
 where
-    M: IntoStateMachine + Send + Sync,
-    M::State: awaitable::State<M> + Send + Sync + 'static,
-    for<'a> M::Superstate<'a>: awaitable::Superstate<M> + Send + Sync,
+    M: IntoStateMachine,
+    M::State: awaitable::State<M> + 'static,
+    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M>,
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
@@ -210,7 +210,7 @@ where
 #[cfg(feature = "bevy")]
 impl<M> bevy_ecs::component::Component for StateMachine<M>
 where
-    Self: Send + Sync + 'static,
+    Self: 'static + Send + Sync,
     M: IntoStateMachine,
 {
     type Storage = bevy_ecs::component::TableStorage;
@@ -226,9 +226,9 @@ where
 
 impl<M> InitializedStateMachine<M>
 where
-    M: IntoStateMachine + Send + Sync,
-    M::State: awaitable::State<M> + Send + Sync + 'static,
-    for<'a> M::Superstate<'a>: awaitable::Superstate<M> + Send + Sync,
+    M: IntoStateMachine,
+    M::State: awaitable::State<M> + 'static,
+    for<'a> M::Superstate<'a>: awaitable::Superstate<M>,
 {
     /// Handle the given event.
     pub async fn handle(&mut self, event: &M::Event<'_>)
@@ -350,7 +350,7 @@ where
 #[cfg(feature = "bevy")]
 impl<M> bevy_ecs::component::Component for InitializedStateMachine<M>
 where
-    Self: Send + Sync + 'static,
+    Self: 'static + Send + Sync,
     M: IntoStateMachine,
 {
     type Storage = bevy_ecs::component::TableStorage;
@@ -370,9 +370,9 @@ where
 
 impl<'a, M> UninitializedStateMachine<M>
 where
-    M: IntoStateMachine + Send + Sync,
-    M::State: awaitable::State<M> + Send + Sync + 'static,
-    for<'b> M::Superstate<'b>: awaitable::Superstate<M> + Send + Sync,
+    M: IntoStateMachine,
+    M::State: awaitable::State<M> + 'static,
+    for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
 {
     /// Initialize the state machine by executing all entry actions towards
     /// the initial state.

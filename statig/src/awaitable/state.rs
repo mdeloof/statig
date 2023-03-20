@@ -13,30 +13,30 @@ where
     M: IntoStateMachine,
 {
     /// Call the handler for the current state and let it handle the given event.
-    fn call_handler<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        event: &'future M::Event<'_>,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'future>>;
+    fn call_handler<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        event: &'fut M::Event<'_>,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'fut>>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
-    fn call_entry_action<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    fn call_entry_action<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         Box::pin(core::future::ready(()))
     }
 
     #[allow(unused)]
     /// Call the exit action for the current state.
-    fn call_exit_action<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    fn call_exit_action<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -49,9 +49,8 @@ where
 /// Extensions for `State` trait.
 pub trait StateExt<M>: State<M>
 where
-    M: IntoStateMachine<State = Self> + Send + Sync,
-    M::State: Send + Sync,
-    for<'b> M::Superstate<'b>: Superstate<M> + Send + Sync,
+    M: IntoStateMachine<State = Self>,
+    for<'b> M::Superstate<'b>: Superstate<M>,
 {
     /// Check if two states are the same.
     fn same_state(lhs: &Self, rhs: &Self) -> bool {
@@ -101,15 +100,12 @@ where
     }
 
     /// Handle the given event in the current state.
-    fn handle<'future, 'b>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        event: &'future M::Event<'_>,
-        context: &'future mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'future>>
-    where
-        Self: 'future + Sized + Sync,
-    {
+    fn handle<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        event: &'fut M::Event<'_>,
+        context: &'fut mut M::Context<'_>,
+    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'fut>> {
         let future = async move {
             M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
@@ -137,12 +133,12 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current state.
-    fn enter<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
+    fn enter<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
         levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         let future = async move {
             match levels {
                 0 => (),
@@ -160,12 +156,12 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit<'future>(
-        &'future mut self,
-        shared_storage: &'future mut M,
-        context: &'future mut M::Context<'_>,
+    fn exit<'fut>(
+        &'fut mut self,
+        shared_storage: &'fut mut M,
+        context: &'fut mut M::Context<'_>,
         levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'future>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
         let future = async move {
             match levels {
                 0 => (),
@@ -184,8 +180,8 @@ where
 
 impl<T, M> StateExt<M> for T
 where
-    T: State<M> + Send + Sync,
-    M: IntoStateMachine<State = T> + Send + Sync,
-    for<'b> M::Superstate<'b>: Superstate<M> + Send + Sync,
+    T: State<M>,
+    M: IntoStateMachine<State = T>,
+    for<'b> M::Superstate<'b>: Superstate<M>,
 {
 }
