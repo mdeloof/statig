@@ -194,7 +194,7 @@ pub fn lower(model: &Model) -> Ir {
             .and_then(|state| state.entry_action.as_ref())
         {
             match actions.get(entry_action) {
-                Some(action) => state.entry_action_call = action.handler_call.clone().into(),
+                Some(action) => state.entry_action_call = action.handler_call.clone(),
                 None => abort!(entry_action, "entry action not found"),
             }
         }
@@ -205,7 +205,7 @@ pub fn lower(model: &Model) -> Ir {
             .and_then(|state| state.exit_action.as_ref())
         {
             match actions.get(exit_action) {
-                Some(action) => state.exit_action_call = action.handler_call.clone().into(),
+                Some(action) => state.exit_action_call = action.handler_call.clone(),
                 None => abort!(exit_action, "exit action not found"),
             }
         }
@@ -234,7 +234,7 @@ pub fn lower(model: &Model) -> Ir {
             .and_then(|state| state.entry_action.as_ref())
         {
             match actions.get(entry_action) {
-                Some(action) => superstate.entry_action_call = action.handler_call.clone().into(),
+                Some(action) => superstate.entry_action_call = action.handler_call.clone(),
                 None => abort!(entry_action, "action not found"),
             }
         }
@@ -245,7 +245,7 @@ pub fn lower(model: &Model) -> Ir {
             .and_then(|state| state.exit_action.as_ref())
         {
             match actions.get(exit_action) {
-                Some(action) => superstate.exit_action_call = action.handler_call.clone().into(),
+                Some(action) => superstate.exit_action_call = action.handler_call.clone(),
                 None => abort!(exit_action, "action not found"),
             }
         }
