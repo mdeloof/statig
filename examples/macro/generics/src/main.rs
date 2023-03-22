@@ -1,7 +1,10 @@
 #![allow(unused)]
 
-use statig::blocking::*;
+use std::fmt::Debug;
 use std::marker::PhantomData;
+use std::ops::Deref;
+
+use statig::prelude::*;
 
 pub enum Event<T> {
     Foo,
@@ -17,14 +20,12 @@ pub struct Machine<'a, T, A, const SIZE: usize> {
 
 use statig::prelude::*;
 
-use std::boxed::Box;
-use std::fmt::Debug;
-use std::ops::Deref;
-
 #[state_machine(initial = "State::foo()")]
 impl<'d, T, A, const SIZE: usize> Machine<'d, T, A, SIZE>
 where
-    T: 'static + Debug + Clone + Default + Copy,
+    // Note that we need to introduce a `'static` trait bound on the generics. This
+    // constrains the generic parameters to types that can be owned by the state machine.
+    T: 'static + Debug + Clone + Copy + Default,
     A: 'static + Deref,
 {
     #[state]
@@ -40,7 +41,7 @@ where
         println!("{:?}", value);
     }
 
-    #[state(superstate = "barbar", entry_action = "enter_bar")]
+    #[state(superstate = "foo_and_bar", entry_action = "enter_bar")]
     fn bar(value: &mut T, buffer: &[T; SIZE], event: &Event<T>) -> Response<State<T, SIZE>> {
         match event {
             Event::Foo => Transition(State::foo()),
@@ -49,7 +50,7 @@ where
     }
 
     #[superstate]
-    fn barbar(value: &mut T) -> Response<State<T, SIZE>> {
+    fn foo_and_bar(value: &mut T) -> Response<State<T, SIZE>> {
         Super
     }
 }

@@ -6,7 +6,9 @@ use crate::{Inner, IntoStateMachine};
 /// A state machine where the shared storage is of type `Self`.
 pub trait IntoStateMachineExt: IntoStateMachine
 where
-    Self::State: awaitable::State<Self>,
+    Self: Send,
+    for<'sub> Self::Superstate<'sub>: awaitable::Superstate<Self> + Send,
+    Self::State: awaitable::State<Self> + Send,
 {
     /// Create a state machine that will be lazily initialized.
     fn state_machine(self) -> StateMachine<Self>
@@ -36,8 +38,9 @@ where
 
 impl<T> IntoStateMachineExt for T
 where
-    T: IntoStateMachine,
-    Self::State: awaitable::State<Self>,
+    Self: IntoStateMachine + Send,
+    for<'sub> Self::Superstate<'sub>: awaitable::Superstate<Self> + Send,
+    Self::State: awaitable::State<Self> + Send,
 {
 }
 
@@ -52,22 +55,28 @@ where
 
 impl<M> StateMachine<M>
 where
-    M: IntoStateMachine,
-    M::State: awaitable::State<M> + 'static,
-    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M>,
+    M: IntoStateMachine + Send,
+    M::State: awaitable::State<M> + 'static + Send,
+    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
-    pub async fn init<'a>(&mut self)
+    pub async fn init(&mut self)
     where
-        M: IntoStateMachine<Context<'a> = ()>,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         self.init_with_context(&mut ()).await;
     }
 
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
-    pub async fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub async fn init_with_context(&mut self, context: &mut M::Context<'_>)
+    where
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
+    {
         if !self.initialized {
             self.inner.async_init_with_context(context).await;
             self.initialized = true;
@@ -76,20 +85,21 @@ where
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub async fn handle<'a>(&mut self, event: &M::Event<'_>)
+    pub async fn handle(&mut self, event: &M::Event<'_>)
     where
-        M: IntoStateMachine<Context<'a> = ()>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
     {
         self.handle_with_context(event, &mut ()).await;
     }
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub async fn handle_with_context(
-        &mut self,
-        event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
-    ) {
+    pub async fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
+    where
+        for<'ctx> M::Context<'ctx>: Send + Sync,
+        for<'evt> M::Event<'evt>: Send + Sync,
+    {
         if !self.initialized {
             self.inner.async_init_with_context(context).await;
             self.initialized = true;
@@ -97,16 +107,20 @@ where
         self.inner.async_handle_with_context(event, context).await;
     }
 
-    pub async fn step<'a>(&mut self)
+    pub async fn step(&mut self)
     where
-        M: IntoStateMachine<Event<'a> = (), Context<'a> = ()>,
+        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         self.handle_with_context(&(), &mut ()).await;
     }
 
-    pub async fn step_with_context<'a>(&mut self, context: &mut M::Context<'a>)
+    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>)
     where
-        M: IntoStateMachine<Event<'a> = ()>,
+        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         self.handle_with_context(&(), context).await;
     }
@@ -226,15 +240,16 @@ where
 
 impl<M> InitializedStateMachine<M>
 where
-    M: IntoStateMachine,
-    M::State: awaitable::State<M> + 'static,
-    for<'a> M::Superstate<'a>: awaitable::Superstate<M>,
+    M: IntoStateMachine + Send,
+    M::State: awaitable::State<M> + 'static + Send,
+    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
     /// Handle the given event.
     pub async fn handle(&mut self, event: &M::Event<'_>)
     where
-        for<'a> M: IntoStateMachine<Context<'a> = ()>,
-        for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         self.handle_with_context(event, &mut ()).await;
     }
@@ -243,7 +258,8 @@ where
     pub async fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
     where
         M: IntoStateMachine,
-        for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         self.inner.async_handle_with_context(event, context).await;
     }
@@ -251,17 +267,17 @@ where
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
     pub async fn step(&mut self)
     where
-        for<'a> M: IntoStateMachine<Event<'a> = (), Context<'a> = ()>,
-        for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
+        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
     {
         self.handle(&()).await;
     }
 
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub async fn step_with_context<'a>(&mut self, context: &mut M::Context<'_>)
+    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>)
     where
-        M: IntoStateMachine<Event<'a> = ()>,
-        for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
+        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         self.handle_with_context(&(), context).await;
     }
@@ -368,11 +384,11 @@ where
     inner: Inner<M>,
 }
 
-impl<'a, M> UninitializedStateMachine<M>
+impl<M> UninitializedStateMachine<M>
 where
-    M: IntoStateMachine,
-    M::State: awaitable::State<M> + 'static,
-    for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
+    M: IntoStateMachine + Send,
+    M::State: awaitable::State<M> + 'static + Send,
+    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
     /// Initialize the state machine by executing all entry actions towards
     /// the initial state.
@@ -400,8 +416,9 @@ where
     /// ```
     pub async fn init(self) -> InitializedStateMachine<M>
     where
-        M: IntoStateMachine<Context<'a> = ()>,
-        for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.async_init_with_context(&mut ()).await;
@@ -432,9 +449,10 @@ where
     /// // state machine.
     /// let initialized_state_machine = uninitialized_state_machine.init();
     /// ```
-    pub async fn init_with_context(self, context: &mut M::Context<'a>) -> InitializedStateMachine<M>
+    pub async fn init_with_context(self, context: &mut M::Context<'_>) -> InitializedStateMachine<M>
     where
-        for<'b> M::Superstate<'b>: awaitable::Superstate<M>,
+        for<'evt> M::Event<'evt>: Send + Sync,
+        for<'ctx> M::Context<'ctx>: Send + Sync,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.async_init_with_context(context).await;

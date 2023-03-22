@@ -9,8 +9,9 @@ use crate::StateOrSuperstate;
 /// An enum that represents the leaf states of the state machine.
 pub trait State<M>
 where
-    Self: Sized,
-    M: IntoStateMachine,
+    Self: Sized + Send,
+    M: IntoStateMachine<State = Self> + Send,
+    for<'b> M::Superstate<'b>: Superstate<M> + Send,
 {
     /// Call the handler for the current state and let it handle the given event.
     fn call_handler<'fut>(
@@ -18,7 +19,7 @@ where
         shared_storage: &'fut mut M,
         event: &'fut M::Event<'_>,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'fut>>;
+    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'fut + Send>>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
@@ -26,7 +27,7 @@ where
         &'fut mut self,
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -36,7 +37,7 @@ where
         &'fut mut self,
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -49,8 +50,11 @@ where
 /// Extensions for `State` trait.
 pub trait StateExt<M>: State<M>
 where
-    M: IntoStateMachine<State = Self>,
-    for<'b> M::Superstate<'b>: Superstate<M>,
+    Self: Send,
+    M: IntoStateMachine<State = Self> + Send,
+    for<'evt> M::Event<'evt>: Send + Sync,
+    for<'ctx> M::Context<'ctx>: Send + Sync,
+    for<'b> M::Superstate<'b>: Superstate<M> + Send,
 {
     /// Check if two states are the same.
     fn same_state(lhs: &Self, rhs: &Self) -> bool {
@@ -105,7 +109,7 @@ where
         shared_storage: &'fut mut M,
         event: &'fut M::Event<'_>,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'fut + Send>> {
         let future = async move {
             M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
@@ -138,7 +142,7 @@ where
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
         levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         let future = async move {
             match levels {
                 0 => (),
@@ -161,7 +165,7 @@ where
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
         levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         let future = async move {
             match levels {
                 0 => (),
@@ -180,8 +184,10 @@ where
 
 impl<T, M> StateExt<M> for T
 where
-    T: State<M>,
-    M: IntoStateMachine<State = T>,
-    for<'b> M::Superstate<'b>: Superstate<M>,
+    Self: State<M> + Send,
+    M: IntoStateMachine<State = T> + Send,
+    for<'evt> M::Event<'evt>: Send + Sync,
+    for<'ctx> M::Context<'ctx>: Send + Sync,
+    for<'b> M::Superstate<'b>: Superstate<M> + Send,
 {
 }

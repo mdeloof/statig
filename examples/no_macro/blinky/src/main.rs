@@ -33,12 +33,12 @@ impl IntoStateMachine for Blinky {
     /// The enum that represents the state.
     type State = State;
 
-    type Superstate<'a> = Superstate;
+    type Superstate<'sub> = Superstate;
 
     /// The event type that will be submitted to the state machine.
-    type Event<'a> = Event;
+    type Event<'evt> = Event;
 
-    type Context<'a> = ();
+    type Context<'ctx> = ();
 
     /// The initial state of the state machine.
     const INITIAL: State = State::LedOn;

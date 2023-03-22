@@ -4,6 +4,7 @@ use futures::executor;
 use statig::prelude::*;
 use std::fmt::Debug;
 use std::io::Write;
+use std::thread::spawn;
 
 #[derive(Debug, Default)]
 pub struct Blinky;
@@ -27,9 +28,9 @@ pub enum Event {
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
     // Set the `on_transition` callback.
-    on_transition = "Self::on_transition",
+    //on_transition = "Self::on_transition",
     // Set the `on_dispatch` callback.
-    on_dispatch = "Self::on_dispatch"
+    //on_dispatch = "Self::on_dispatch"
 )]
 impl Blinky {
     #[action]
@@ -97,7 +98,8 @@ where
     println!("{state_machine:?}: dispatching `{event:?}` to `{state:?}`");
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let future = async {
         let mut state_machine = Blinky::default().uninitialized_state_machine().init().await;
 
@@ -107,5 +109,7 @@ fn main() {
         state_machine.handle(&Event::ButtonPressed).await;
     };
 
-    executor::block_on(future);
+    let handle = tokio::spawn(future);
+
+    handle.await;
 }

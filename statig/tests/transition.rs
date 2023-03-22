@@ -49,11 +49,11 @@ mod tests {
     impl IntoStateMachine for Foo {
         type State = State;
 
-        type Superstate<'a> = Superstate;
+        type Superstate<'sub> = Superstate;
 
-        type Event<'a> = Event;
+        type Event<'evt> = Event;
 
-        type Context<'a> = ();
+        type Context<'ctx> = ();
 
         const INITIAL: State = State::S11;
     }

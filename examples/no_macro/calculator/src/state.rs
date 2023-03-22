@@ -47,12 +47,12 @@ pub enum State {
     Negated2 { operand1: f32, operator: Operator },
 }
 
-pub enum Superstate<'a> {
+pub enum Superstate<'sub> {
     Ready,
     Operand1,
     Operand2 {
-        operand1: &'a f32,
-        operator: &'a Operator,
+        operand1: &'sub f32,
+        operator: &'sub Operator,
     },
     On,
 }
@@ -60,11 +60,11 @@ pub enum Superstate<'a> {
 impl blocking::IntoStateMachine for Calculator {
     type State = State;
 
-    type Superstate<'a> = Superstate<'a>;
+    type Superstate<'sub> = Superstate<'sub>;
 
-    type Event<'a> = Event;
+    type Event<'evt> = Event;
 
-    type Context<'a> = ();
+    type Context<'ctx> = ();
 
     const INITIAL: State = State::Begin;
 }
@@ -130,7 +130,7 @@ impl blocking::State<Calculator> for State {
     }
 }
 
-impl<'a> blocking::Superstate<Calculator> for Superstate<'a> {
+impl<'sub> blocking::Superstate<Calculator> for Superstate<'sub> {
     fn call_handler(
         &mut self,
         calculator: &mut Calculator,

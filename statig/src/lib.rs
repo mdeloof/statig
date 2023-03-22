@@ -414,8 +414,8 @@
 //! States such as `Blinking` are called superstates. They define shared behavior of their child states. Superstates are also represented by an enum, but instead of owning their data, they borrow it from the underlying state.
 //!
 //! ```rust
-//! enum Superstate<'a> {
-//!     Blinking { counter: &'a usize }
+//! enum Superstate<'sub> {
+//!     Blinking { counter: &'sub usize }
 //! }
 //! ```
 //!
@@ -499,7 +499,7 @@
 //!     }
 //! }
 //!
-//! impl<'a> statig::Superstate<Blinky> for Superstate<'a> {
+//! impl<'sub> statig::Superstate<Blinky> for Superstate<'sub> {
 //!
 //!     ...
 //!
@@ -538,9 +538,11 @@
 //! impl StateMachine for Blinky {
 //!     type State = State;
 //!
-//!     type Superstate<'a> = Superstate<'a>;
+//!     type Superstate<'sub> = Superstate<'sub>;
 //!
-//!     type Event<'a> = Event;
+//!     type Event<'evt> = Event;
+//!
+//!     type Context<'ctx> = Context;
 //!
 //!     const INITIAL: State = State::off(10);
 //! }

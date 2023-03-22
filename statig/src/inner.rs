@@ -16,7 +16,7 @@ impl<M> Inner<M>
 where
     M: IntoStateMachine,
     M::State: blocking::State<M>,
-    for<'a> M::Superstate<'a>: blocking::Superstate<M>,
+    for<'sub> M::Superstate<'sub>: blocking::Superstate<M>,
 {
     /// Initialize the state machine by executing all entry actions towards the initial state.
     pub fn init_with_context(&mut self, context: &mut M::Context<'_>) {
@@ -58,9 +58,11 @@ where
 #[cfg(feature = "async")]
 impl<M> Inner<M>
 where
-    M: IntoStateMachine,
-    M::State: awaitable::State<M> + 'static,
-    for<'a> M::Superstate<'a>: awaitable::Superstate<M>,
+    M: IntoStateMachine + Send,
+    for<'evt> M::Event<'evt>: Send + Sync,
+    for<'ctx> M::Context<'ctx>: Send + Sync,
+    M::State: awaitable::State<M> + Send + 'static,
+    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
     pub async fn async_init_with_context(&mut self, context: &mut M::Context<'_>) {
         let enter_levels = self.state.depth();

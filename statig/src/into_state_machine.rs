@@ -6,18 +6,18 @@ where
     Self: Sized,
 {
     /// Event that is processed by the state machine.
-    type Event<'a>;
+    type Event<'evt>;
 
     /// External context that can be passed in.
-    type Context<'a>;
+    type Context<'ctx>;
 
     /// Enumeration of the various states.
     type State;
 
     /// Enumeration of the various superstates.
-    type Superstate<'a>
+    type Superstate<'sub>
     where
-        Self::State: 'a;
+        Self::State: 'sub;
 
     /// Initial state of the state machine.
     const INITIAL: Self::State;

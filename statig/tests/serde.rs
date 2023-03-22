@@ -3,11 +3,12 @@
 fn serialize_deserialize() {
     #![allow(unused)]
 
+    use std::fmt::Debug;
+    use std::io::Write;
+
     use serde::{Deserialize, Serialize};
     use statig::blocking::StateOrSuperstate;
     use statig::prelude::*;
-    use std::fmt::Debug;
-    use std::io::Write;
 
     #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
     pub struct Blinky {

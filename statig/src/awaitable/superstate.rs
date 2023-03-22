@@ -17,7 +17,7 @@ where
         shared_storage: &'fut mut M,
         event: &'fut M::Event<'_>,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut>>;
+    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut + Send>>;
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
@@ -25,7 +25,7 @@ where
         &'fut mut self,
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -35,7 +35,7 @@ where
         &'fut mut self,
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -51,9 +51,12 @@ where
 /// Extensions for `Superstate` trait.
 pub trait SuperstateExt<M>: Superstate<M>
 where
-    Self: Sized,
-    M: IntoStateMachine,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
+    Self: Sized + Send,
+    M: IntoStateMachine + Send,
+    for<'evt> M::Event<'evt>: Send + Sync,
+    for<'ctx> M::Context<'ctx>: Send + Sync,
+    M::State: Send,
+    for<'sub> M::Superstate<'sub>: Superstate<M> + Send,
 {
     fn same_state(lhs: &M::Superstate<'_>, rhs: &M::Superstate<'_>) -> bool {
         use core::mem::{discriminant, transmute, Discriminant};
@@ -106,7 +109,7 @@ where
         shared_storage: &'fut mut M,
         event: &'fut M::Event<'_>,
         context: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut + Send>> {
         Box::pin(async move {
             let response = self.call_handler(shared_storage, event, context).await;
 
@@ -136,7 +139,7 @@ where
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
         mut levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         Box::pin(async move {
             match levels {
                 0 => (),
@@ -159,7 +162,7 @@ where
         shared_storage: &'fut mut M,
         context: &'fut mut M::Context<'_>,
         mut levels: usize,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
         Box::pin(async move {
             match levels {
                 0 => (),
@@ -177,18 +180,19 @@ where
 }
 
 /// When no superstates are required, the user can pass the [`()`](unit) type.
-impl<'a, M> Superstate<M> for ()
+impl<M> Superstate<M> for ()
 where
-    M: IntoStateMachine,
-    M::State: 'a,
-    M::Superstate<'a>: Superstate<M>,
+    M: IntoStateMachine + Send,
+    M::State: Send,
+    for<'evt> M::Event<'evt>: Send + Sync,
+    for<'ctx> M::Context<'ctx>: Send + Sync,
 {
     fn call_handler<'fut>(
         &'fut mut self,
         _: &'fut mut M,
         _: &'fut M::Event<'_>,
         _: &'fut mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut>> {
+    ) -> Pin<Box<dyn Future<Output = Response<M::State>> + 'fut + Send>> {
         Box::pin(core::future::ready(Response::Handled))
     }
 
@@ -196,7 +200,7 @@ where
         &mut self,
         _: &mut M,
         _: &mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()>>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -204,7 +208,7 @@ where
         &mut self,
         _: &mut M,
         _: &mut M::Context<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()>>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         Box::pin(core::future::ready(()))
     }
 
@@ -218,8 +222,11 @@ where
 
 impl<T, M> SuperstateExt<M> for T
 where
-    T: Superstate<M>,
-    M: IntoStateMachine,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
+    Self: Superstate<M> + Send,
+    M: IntoStateMachine + Send,
+    for<'evt> M::Event<'evt>: Send + Sync,
+    for<'ctx> M::Context<'ctx>: Send + Sync,
+    M::State: Send,
+    for<'sub> M::Superstate<'sub>: Superstate<M> + Send,
 {
 }

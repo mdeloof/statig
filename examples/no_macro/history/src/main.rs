@@ -30,11 +30,11 @@ pub enum Superstate {
 impl IntoStateMachine for Dishwasher {
     type State = State;
 
-    type Superstate<'a> = Superstate;
+    type Superstate<'sub> = Superstate;
 
-    type Event<'a> = Event;
+    type Event<'evt> = Event;
 
-    type Context<'a> = ();
+    type Context<'ctx> = ();
 
     const INITIAL: State = State::Idle;
 

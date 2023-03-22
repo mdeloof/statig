@@ -1,5 +1,5 @@
 [package]
-name = "async_blinky"
+name = "macro_async_blinky"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 statig = { path = "../../../statig", features = ["async"] }
 futures = { version = "0.3.26" }
+tokio = { version = "*", features = ["full"] }

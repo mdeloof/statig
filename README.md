@@ -14,6 +14,8 @@ Hierarchical state machines for designing event-driven systems.
 - State-local storage
 - Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 - (Optional) macro's for reducing boilerplate.
+- Support for generics.
+- Support for async actions and handlers (with `async` feature flag).
 
 ---
 
@@ -267,6 +269,10 @@ impl Blinky {
 }
 ```
 
+### Async
+
+All handlers and actions can be made async.
+
 ---
 
 ## Implementation
@@ -310,8 +316,8 @@ enum State {
 States such as `Blinking` are called superstates. They define shared behavior of their child states. Superstates are also represented by an enum, but instead of owning their data, they borrow it from the underlying state.
 
 ```rust
-enum Superstate<'a> {
-    Blinking { counter: &'a usize }
+enum Superstate<'sub> {
+    Blinking { counter: &'sub usize }
 }
 ```
 
@@ -395,7 +401,7 @@ impl statig::State<Blinky> for State {
     }
 }
 
-impl<'a> statig::Superstate<Blinky> for Superstate<'a> {
+impl<'sub> statig::Superstate<Blinky> for Superstate<'sub> {
 
     ...
 
@@ -434,9 +440,11 @@ Finally, the `StateMachine` trait is implemented on the type that will be used f
 impl StateMachine for Blinky {
     type State = State;
 
-    type Superstate<'a> = Superstate<'a>;
+    type Superstate<'sub> = Superstate<'sub>;
 
-    type Event<'a> = Event;
+    type Event<'evt> = Event;
+
+    type Context<'ctx> = Context;
 
     const INITIAL: State = State::off(10);
 }

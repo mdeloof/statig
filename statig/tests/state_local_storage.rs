@@ -16,12 +16,12 @@ mod tests {
         /// `#[state_machine]` macro.
         type State = StateEnum;
 
-        type Superstate<'a> = Superstate<'a>;
+        type Superstate<'sub> = Superstate<'sub>;
 
         /// The event type that will be submitted to the state machine.
-        type Event<'a> = Event;
+        type Event<'evt> = Event;
 
-        type Context<'a> = ();
+        type Context<'ctx> = ();
 
         /// The initial state of the state machine.
         const INITIAL: StateEnum = StateEnum::On {

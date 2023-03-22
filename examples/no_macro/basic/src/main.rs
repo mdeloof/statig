@@ -22,12 +22,12 @@ impl IntoStateMachine for Blinky {
     type State = State;
 
     /// We are not using any superstates for this state machine, so we set it to `()`.
-    type Superstate<'a> = ();
+    type Superstate<'sub> = ();
 
     /// The event type that will be submitted to the state machine.
-    type Event<'a> = Event;
+    type Event<'evt> = Event;
 
-    type Context<'a> = ();
+    type Context<'ctx> = ();
 
     /// The initial state of the state machine.
     const INITIAL: State = State::Off;

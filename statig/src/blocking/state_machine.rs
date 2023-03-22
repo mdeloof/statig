@@ -58,9 +58,9 @@ where
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
-    pub fn init<'a>(&mut self)
+    pub fn init(&mut self)
     where
-        M: IntoStateMachine<Context<'a> = ()>,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
     {
         self.init_with_context(&mut ());
     }
@@ -76,9 +76,9 @@ where
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub fn handle<'a>(&mut self, event: &M::Event<'_>)
+    pub fn handle(&mut self, event: &M::Event<'_>)
     where
-        M: IntoStateMachine<Context<'a> = ()>,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
     {
         self.handle_with_context(event, &mut ());
     }
@@ -93,16 +93,16 @@ where
         self.inner.handle_with_context(event, context);
     }
 
-    pub fn step<'a, 'b>(&mut self)
+    pub fn step(&mut self)
     where
-        M: IntoStateMachine<Event<'a> = (), Context<'b> = ()>,
+        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
     {
         self.handle_with_context(&(), &mut ());
     }
 
-    pub fn step_with_context<'a>(&mut self, context: &mut M::Context<'a>)
+    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
     where
-        M: IntoStateMachine<Event<'a> = ()>,
+        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
         self.handle_with_context(&(), context);
     }
@@ -226,9 +226,9 @@ where
     M::State: blocking::State<M>,
 {
     /// Handle the given event.
-    pub fn handle<'a>(&mut self, event: &M::Event<'_>)
+    pub fn handle(&mut self, event: &M::Event<'_>)
     where
-        M: IntoStateMachine<Context<'a> = ()>,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
         for<'sub> M::Superstate<'sub>: blocking::Superstate<M>,
     {
         self.handle_with_context(event, &mut ());
@@ -244,18 +244,18 @@ where
     }
 
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step<'a, 'b>(&mut self)
+    pub fn step(&mut self)
     where
-        M: IntoStateMachine<Event<'a> = (), Context<'b> = ()>,
+        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
         for<'sub> M::Superstate<'sub>: blocking::Superstate<M>,
     {
         self.handle(&());
     }
 
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step_with_context<'a>(&mut self, context: &mut M::Context<'_>)
+    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
     where
-        M: IntoStateMachine<Event<'a> = ()>,
+        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
         for<'sub> M::Superstate<'sub>: blocking::Superstate<M>,
     {
         self.handle_with_context(&(), context);
@@ -392,9 +392,9 @@ where
     /// // state machine.
     /// let initialized_state_machine = uninitialized_state_machine.init();
     /// ```
-    pub fn init<'a>(self) -> InitializedStateMachine<M>
+    pub fn init(self) -> InitializedStateMachine<M>
     where
-        M: IntoStateMachine<Context<'a> = ()>,
+        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
         for<'sub> M::Superstate<'sub>: blocking::Superstate<M>,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };

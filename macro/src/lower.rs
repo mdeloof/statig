@@ -50,7 +50,7 @@ pub struct StateMachine {
     pub state_derives: Vec<Path>,
     /// The generics associated with the state type.
     pub state_generics: Generics,
-    /// The type of the superstate enum (ex. `Superstate<'a>`)
+    /// The type of the superstate enum (ex. `Superstate<'sub>`)
     pub superstate_ident: Ident,
     /// Derives that will be applied to the superstate type.
     pub superstate_derives: Vec<Path>,

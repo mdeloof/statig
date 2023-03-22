@@ -95,10 +95,16 @@ where
 }
 
 fn main() {
+    let start = std::time::Instant::now();
+
     let mut state_machine = Blinky::default().uninitialized_state_machine().init();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);
+
+    let end = std::time::Instant::now();
+
+    println!("Duration: {:?}", end - start);
 }
