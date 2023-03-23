@@ -79,19 +79,8 @@ impl Blinky {
     }
 
     fn on_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
-        on_dispatch(self, state, event);
+        println!("dispatching `{event:?}` to `{state:?}`");
     }
-}
-
-// The `on_dispatch` callback that will be called before an event is dispatched
-// to a state or superstate.
-fn on_dispatch<M, S, E>(state_machine: M, state: S, event: E)
-where
-    M: Debug,
-    S: Debug,
-    E: Debug,
-{
-    println!("{state_machine:?}: dispatching `{event:?}` to `{state:?}`");
 }
 
 fn main() {

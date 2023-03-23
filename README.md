@@ -271,7 +271,31 @@ impl Blinky {
 
 ### Async
 
-All handlers and actions can be made async.
+All handlers and actions can be made async. (Requires the `async` feature to be enabled).
+
+```rust
+#[state_machine(initial = "State::led_on()")]
+impl Blinky {
+    #[state(superstate = "blinking")]
+    async fn led_on(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::led_off()),
+            _ => Super
+        }
+    }
+}
+```
+
+The `#[state_machine]` macro will then automatically use the async variants of statig.
+
+```rust
+async fn main() {
+    let mut state_machine = Blinky::default().uninitialized_state_machine().init().await;
+
+    state_machine.handle(&Event::TimerElapsed).await;
+    state_machine.handle(&Event::ButtonPressed).await;
+}
+```
 
 ---
 
