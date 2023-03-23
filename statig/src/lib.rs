@@ -8,6 +8,8 @@
 //! - State-local storage
 //! - Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 //! - (Optional) macro's for reducing boilerplate.
+//! - Support for generics.
+//! - Support for async actions and handlers (with `async` feature flag).
 //!
 //! ## Statig in action
 //!
@@ -70,7 +72,7 @@
 //!     }
 //! }
 //!
-//! let mut state_machine = Blinky::default().uninitialized_state_machine().init();
+//! let mut state_machine = Blinky::default().state_machine();
 //! state_machine.handle(&Event::TimerElapsed);
 //! state_machine.handle(&Event::ButtonPressed);
 //! ```
@@ -331,6 +333,48 @@
 //! `counter` is only available in the `led_on` state but can also be accessed in
 //! its superstates and actions.
 //!
+//! ### Context
+//!
+//! When state machines are used in a larger systems it can sometimes be necessary to pass in an external mutable context.
+//!
+//! ```rust
+//! # use statig::prelude::*;
+//! # #[derive(Default)]
+//! # pub struct Blinky {
+//! #     led: bool,
+//! # }
+//! #
+//! # pub struct Context;
+//! #
+//! # impl Context {
+//! #     fn do_something(&self) {}
+//! # }
+//! #
+//! # pub enum Event {
+//! #     TimerElapsed,
+//! #     ButtonPressed
+//! # }
+//! #
+//! #[state_machine(initial = "State::led_on()")]
+//! impl Blinky {
+//!     #[state]
+//!     fn led_on(context: &mut Context, event: &Event) -> Response<State> {
+//!         match event {
+//!             Event::TimerElapsed => {
+//!                 context.do_something();
+//!                 Handled
+//!             }
+//!             _ => Super
+//!         }
+//!     }
+//! }
+//! #
+//! # let mut context = Context {};
+//!
+//! let mut state_machine = Blinky::default().state_machine();
+//! state_machine.handle_with_context(&Event::TimerElapsed, &mut context);
+//! ```
+//!
 //! ### Introspection
 //!
 //! For logging purposes you can define two callbacks that will be called at specific
@@ -369,6 +413,47 @@
 //!         println!("dispatched `{:?}` to `{:?}`", event, state);
 //!     }
 //! }
+//! ```
+//!
+//! ### Async
+//!
+//! All handlers and actions can be made async. (Requires the `async` feature to be enabled).
+//!
+//! ```rust
+//! # use statig::prelude::*;
+//! # #[derive(Default)]
+//! # pub struct Blinky {
+//! #     led: bool,
+//! # }
+//! #
+//! # pub struct Context;
+//! #
+//! # pub enum Event {
+//! #     TimerElapsed,
+//! #     ButtonPressed
+//! # }
+//! #
+//! #[state_machine(initial = "State::led_on()")]
+//! impl Blinky {
+//!     #[state]
+//!     async fn led_on(event: &Event) -> Response<State> {
+//!         match event {
+//!             Event::TimerElapsed => Transition(State::led_off()),
+//!             _ => Super
+//!         }
+//!     }
+//! #    #[state]
+//! #    fn led_off() -> Response<State> {
+//! #        Handled
+//! #    }
+//! }
+//!
+//! # let future = async {
+//! let mut state_machine = Blinky::default().uninitialized_state_machine().init().await;
+//!
+//! state_machine.handle(&Event::TimerElapsed).await;
+//! state_machine.handle(&Event::ButtonPressed).await;
+//! # };
 //! ```
 //!
 //! ---
@@ -598,8 +683,8 @@ mod state_or_superstate;
 /// `state`, `superstate` or `action` attribute, the `state_machine` macro can
 /// derive the state and superstate enums. By default these will be given the
 /// names '`State`' and '`Superstate`'. Next to that the macro will also
-/// implement the [`State`](crate::State) trait for the state enum and the
-/// [`Superstate`](crate::Superstate) trait for the superstate enum.
+/// implement the [`State`](crate::blocking::State) trait for the state enum and the
+/// [`Superstate`](crate::blocking::Superstate) trait for the superstate enum.
 ///
 /// To override the default configuration you can use the following attributes.
 ///
@@ -726,6 +811,7 @@ pub use statig_macro::superstate;
 #[cfg(feature = "macro")]
 pub use statig_macro::action;
 
+/// Prelude containing the necessary imports for use with macro.
 pub mod prelude {
     #[cfg(feature = "async")]
     pub use crate::awaitable::{IntoStateMachineExt as _, StateExt as _, *};

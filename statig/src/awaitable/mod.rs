@@ -1,3 +1,5 @@
+//! Module for awaitable (async) mode.
+
 mod state;
 mod state_machine;
 mod superstate;

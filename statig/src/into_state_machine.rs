@@ -1,6 +1,6 @@
 use crate::StateOrSuperstate;
 
-/// A data structure that declares the types associated with the state machine.
+/// Trait for transorming a type into a state machine.
 pub trait IntoStateMachine
 where
     Self: Sized,

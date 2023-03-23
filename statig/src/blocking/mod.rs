@@ -1,3 +1,5 @@
+//! Module for blocking (sync) mode.
+
 mod state;
 mod state_machine;
 mod superstate;

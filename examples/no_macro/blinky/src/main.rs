@@ -103,7 +103,7 @@ impl Blinky {
 }
 
 fn main() {
-    let mut state_machine = Blinky::default().uninitialized_state_machine().init();
+    let mut state_machine = Blinky::default().state_machine();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);

@@ -30,6 +30,7 @@ Hierarchical state machines for designing event-driven systems.
     - [State-local storage](#state-local-storage)
     - [Context](#context)
     - [Introspection](#introspection)
+    - [Async](#async)
 - [Implementation](#implementation)
 - [FAQ](#faq)
 - [Credits](#credits)
@@ -97,7 +98,7 @@ impl Blinky {
 }
 
 fn main() {
-    let mut state_machine = Blinky::default().uninitialized_state_machine().init();
+    let mut state_machine = Blinky::default().state_machine();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);
@@ -224,7 +225,7 @@ fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
 
 ### Context
 
-When state machines are used in a larger systems it can sometimes be necessary to pass in an external mutable context.
+When state machines are used in a larger systems it can sometimes be necessary to pass in an external mutable context. By default this context is mapped to the `context` argument of the method.
 
 ```rust
 #[state]
@@ -237,6 +238,12 @@ fn led_on(context: &mut Context, event: &Event) -> Response<State> {
         _ => Super
     }
 }
+```
+
+You will then be required to use the `handle_with_context` method so submit events to the state machine.
+
+```rust
+state_machine.handle_with_context(&Event::TimerElapsed, &mut context);
 ```
 
 ### Introspection
@@ -276,7 +283,7 @@ All handlers and actions can be made async. (Requires the `async` feature to be 
 ```rust
 #[state_machine(initial = "State::led_on()")]
 impl Blinky {
-    #[state(superstate = "blinking")]
+    #[state]
     async fn led_on(event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed => Transition(State::led_off()),
@@ -461,7 +468,7 @@ For example chaning the value of `counter` in the exit action of `LedOn` will ha
 Finally, the `StateMachine` trait is implemented on the type that will be used for the shared storage.
 
 ```rust
-impl StateMachine for Blinky {
+impl IntoStateMachine for Blinky {
     type State = State;
 
     type Superstate<'sub> = Superstate<'sub>;

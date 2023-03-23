@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-/// Response that can be returned by a state machine.
+/// Response returned by event handlers in a state machine.
 pub enum Response<S> {
     /// Consider the event handled.
     Handled,
