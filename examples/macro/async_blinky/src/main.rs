@@ -28,9 +28,9 @@ pub enum Event {
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
     // Set the `on_transition` callback.
-    //on_transition = "Self::on_transition",
+    on_transition = "Self::on_transition",
     // Set the `on_dispatch` callback.
-    //on_dispatch = "Self::on_dispatch"
+    on_dispatch = "Self::on_dispatch"
 )]
 impl Blinky {
     #[action]

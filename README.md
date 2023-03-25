@@ -15,7 +15,7 @@ Hierarchical state machines for designing event-driven systems.
 - Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 - (Optional) macro's for reducing boilerplate.
 - Support for generics.
-- Support for async actions and handlers (with `async` feature flag).
+- Support for async actions and handlers (only on `std`).
 
 ---
 
@@ -240,7 +240,7 @@ fn led_on(context: &mut Context, event: &Event) -> Response<State> {
 }
 ```
 
-You will then be required to use the `handle_with_context` method so submit events to the state machine.
+You will then be required to use the `handle_with_context` method to submit events to the state machine.
 
 ```rust
 state_machine.handle_with_context(&Event::TimerElapsed, &mut context);

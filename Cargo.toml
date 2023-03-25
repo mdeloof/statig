@@ -14,6 +14,7 @@ members = [
     "examples/macro/bench_complex",
     "examples/macro/generics",
     "examples/macro/async_blinky",
+    "examples/macro/async_io",
 
     "examples/no_macro/basic",
     "examples/no_macro/blinky",

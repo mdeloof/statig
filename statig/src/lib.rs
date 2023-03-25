@@ -9,7 +9,7 @@
 //! - Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 //! - (Optional) macro's for reducing boilerplate.
 //! - Support for generics.
-//! - Support for async actions and handlers (with `async` feature flag).
+//! - Support for async handlers and actions (only on `std`).
 //!
 //! ## Statig in action
 //!
