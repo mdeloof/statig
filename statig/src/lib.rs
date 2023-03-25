@@ -417,7 +417,9 @@
 //!
 //! ### Async
 //!
-//! All handlers and actions can be made async. (Requires the `async` feature to be enabled).
+//! All handlers and actions can be made async. The `#[state_machine]` macro will
+//! automatically detect that async functions are being used and generate an async state
+//! machine. (This is only available on `std` for now and requires the `async` feature to be enabled).
 //!
 //! ```rust
 //! # use statig::prelude::*;

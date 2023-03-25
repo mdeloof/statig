@@ -278,7 +278,7 @@ impl Blinky {
 
 ### Async
 
-All handlers and actions can be made async. (Requires the `async` feature to be enabled).
+All handlers and actions can be made async. (This is only available on `std` for now and requires the `async` feature to be enabled).
 
 ```rust
 #[state_machine(initial = "State::led_on()")]
@@ -293,11 +293,12 @@ impl Blinky {
 }
 ```
 
-The `#[state_machine]` macro will then automatically use the async variants of statig.
+The `#[state_machine]` macro will then automatically detect that async functions are being used
+and generate an async state machine.
 
 ```rust
 async fn main() {
-    let mut state_machine = Blinky::default().uninitialized_state_machine().init().await;
+    let mut state_machine = Blinky::default().state_machine();
 
     state_machine.handle(&Event::TimerElapsed).await;
     state_machine.handle(&Event::ButtonPressed).await;
