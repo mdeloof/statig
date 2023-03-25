@@ -451,7 +451,7 @@
 //! }
 //!
 //! # let future = async {
-//! let mut state_machine = Blinky::default().uninitialized_state_machine().init().await;
+//! let mut state_machine = Blinky::default().state_machine();
 //!
 //! state_machine.handle(&Event::TimerElapsed).await;
 //! state_machine.handle(&Event::ButtonPressed).await;
