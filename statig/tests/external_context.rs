@@ -5,8 +5,7 @@ mod tests {
     #[derive(Default)]
     struct Counter;
 
-    #[derive(Clone)]
-    struct ExternalContext(usize);
+    struct ExternalContext<'a, 'b>(&'a mut usize, &'b mut usize);
 
     enum Event {
         ButtonPressed,
@@ -16,10 +15,10 @@ mod tests {
     #[state_machine(initial = "State::up()")]
     impl Counter {
         #[state]
-        fn up(context: &mut ExternalContext, event: &Event) -> Response<State> {
+        fn up(context: &mut ExternalContext<'_, '_>, event: &Event) -> Response<State> {
             match event {
                 Event::ButtonPressed => {
-                    context.0 = context.0.saturating_add(1);
+                    *context.0 = context.0.saturating_add(1);
                     Handled
                 }
                 Event::TimerElapsed => Transition(State::down()),
@@ -27,10 +26,10 @@ mod tests {
         }
 
         #[state]
-        fn down(context: &mut ExternalContext, event: &Event) -> Response<State> {
+        fn down(context: &mut ExternalContext<'_, '_>, event: &Event) -> Response<State> {
             match event {
                 Event::ButtonPressed => {
-                    context.0 = context.0.saturating_sub(1);
+                    *context.0 = context.0.saturating_sub(1);
                     Handled
                 }
                 Event::TimerElapsed => Transition(State::up()),
@@ -40,7 +39,9 @@ mod tests {
 
     #[test]
     fn main() {
-        let mut external_context = ExternalContext(0);
+        let mut a = 34;
+        let mut b = 23;
+        let mut external_context = ExternalContext(&mut a, &mut b);
 
         let mut blinky = Counter::default()
             .uninitialized_state_machine()
@@ -56,7 +57,7 @@ mod tests {
             blinky.handle_with_context(event, &mut external_context);
         }
 
-        assert_eq!(external_context.0, 3);
+        assert_eq!(*external_context.0, 3);
 
         let events = [
             Event::TimerElapsed,
@@ -69,6 +70,6 @@ mod tests {
             blinky.handle_with_context(event, &mut external_context);
         }
 
-        assert_eq!(external_context.0, 0);
+        assert_eq!(*external_context.0, 0);
     }
 }
