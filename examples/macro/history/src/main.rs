@@ -1,7 +1,4 @@
-#![allow(unused)]
-
 use statig::prelude::*;
-use std::io::Write;
 
 pub enum Event {
     StartProgram,
@@ -10,42 +7,21 @@ pub enum Event {
     TimerElapsed,
 }
 
+#[derive(Debug)]
 pub struct Dishwasher {
     previous_state: State,
 }
 
-#[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
+#[state_machine(
+    initial = "State::idle()",
+    on_transition = "Self::on_transition",
+    state(derive(Debug, Clone))
+)]
 impl Dishwasher {
-    #[state]
-    fn idle(event: &Event) -> Response<State> {
-        match event {
-            Event::StartProgram => Transition(State::soap()),
-            _ => Super,
-        }
-    }
-
-    #[state]
-    fn soap(event: &Event) -> Response<State> {
-        match event {
-            Event::TimerElapsed => Transition(State::rinse()),
-            _ => Super,
-        }
-    }
-
-    #[state]
-    fn rinse(event: &Event) -> Response<State> {
-        match event {
-            Event::TimerElapsed => Transition(State::dry()),
-            _ => Super,
-        }
-    }
-
-    #[state]
-    fn dry(event: &Event) -> Response<State> {
-        match event {
-            Event::TimerElapsed => Transition(State::idle()),
-            _ => Super,
-        }
+    // On every transition we update the previous state, so we can transition back to it.
+    fn on_transition(&mut self, source: &State, _target: &State) {
+        // println!("transitioned from `{:?}` to `{:?}`", source, _target);
+        self.previous_state = source.clone();
     }
 
     #[superstate]
@@ -58,8 +34,40 @@ impl Dishwasher {
         }
     }
 
+    #[state(superstate = "door_closed")]
+    fn idle(event: &Event) -> Response<State> {
+        match event {
+            Event::StartProgram => Transition(State::soap()),
+            _ => Super,
+        }
+    }
+
+    #[state(superstate = "door_closed")]
+    fn soap(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::rinse()),
+            _ => Super,
+        }
+    }
+
+    #[state(superstate = "door_closed")]
+    fn rinse(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::dry()),
+            _ => Super,
+        }
+    }
+
+    #[state(superstate = "door_closed")]
+    fn dry(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Transition(State::idle()),
+            _ => Super,
+        }
+    }
+
     #[state]
-    fn door_opened(&mut self, event: &Event) -> Response<State> {
+    fn door_opened(&self, event: &Event) -> Response<State> {
         match event {
             // When the door is closed again, the program is resumed from
             // the previous state.
@@ -76,6 +84,8 @@ fn main() {
     .uninitialized_state_machine()
     .init();
 
+    println!("State: {:?}", state_machine.state()); // State: Idle
+
     state_machine.handle(&Event::StartProgram);
 
     println!("State: {:?}", state_machine.state()); // State: Soap
@@ -89,6 +99,10 @@ fn main() {
     println!("State: {:?}", state_machine.state()); // State: Dry
 
     state_machine.handle(&Event::DoorOpened);
+
+    println!("State: {:?}", state_machine.state()); // State: DoorOpened
+
+    state_machine.handle(&Event::TimerElapsed);
 
     println!("State: {:?}", state_machine.state()); // State: DoorOpened
 
