@@ -217,7 +217,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                     shared_storage: &'fut mut #shared_storage_type,
                     #event_ident: &'fut <#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
                     #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = statig::Response<Self>> + 'fut + Send>> {
+                ) -> core::pin::Pin<Box<dyn core::future::Future<Output = statig::Response<Self>> + 'fut + Send>> {
                     Box::pin(async move {
                         match self {
                             #(#call_handler_arms),*
@@ -229,7 +229,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                     &'fut mut self,
                     shared_storage: &'fut mut #shared_storage_type,
                     #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
+                ) -> core::pin::Pin<Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
                     Box::pin(async move {
                         match self {
                             #(#call_entry_action_arms),*
@@ -241,7 +241,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                     &'fut mut self,
                     shared_storage: &'fut mut #shared_storage_type,
                     #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
+                ) -> core::pin::Pin<Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
                     Box::pin(async move {
                         match self {
                             #(#call_exit_action_arms),*
@@ -378,7 +378,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                         shared_storage: &'fut mut #shared_storage_type,
                         #event_ident: &'fut <#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
                         #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = statig::Response<<#shared_storage_type as statig::IntoStateMachine>::State>> + 'fut + Send>> {
+                    ) -> core::pin::Pin<Box<dyn core::future::Future<Output = statig::Response<<#shared_storage_type as statig::IntoStateMachine>::State>> + 'fut + Send>> {
                         Box::pin(async move {
                             match self {
                                 #(#call_handler_arms),*
@@ -390,7 +390,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                         &'fut mut self,
                         shared_storage: &'fut mut #shared_storage_type,
                         #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
+                    ) -> core::pin::Pin<Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
                         Box::pin(async move {
                             match self {
                                 #(#call_entry_action_arms),*
@@ -402,7 +402,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                         &'fut mut self,
                         shared_storage: &'fut mut #shared_storage_type,
                         #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
+                    ) -> core::pin::Pin<Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
                         Box::pin(async move {
                             match self {
                                 #(#call_exit_action_arms),*
