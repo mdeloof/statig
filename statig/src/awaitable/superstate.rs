@@ -1,3 +1,6 @@
+extern crate alloc;
+use alloc::boxed::Box;
+
 use core::cmp::Ordering;
 use core::future::Future;
 use core::pin::Pin;

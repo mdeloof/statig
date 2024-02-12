@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use std::ops::Deref;
+use core::ops::Deref;
+use hashbrown::HashMap;
 
 use proc_macro2::Span;
 use proc_macro_error::abort;
