@@ -381,6 +381,7 @@
 //! points during state machine execution.
 //!
 //! - `on_dispatch` is called before an event is dispatched to a specific state or superstate.
+//! - `after_dispatch` is called after an event is dispatched to a specific state or superstate.
 //! - `on_transition` is called after a transition has occurred.
 //!
 //! ```
@@ -395,6 +396,7 @@
 //! #[state_machine(
 //!     initial = "State::on()",
 //!     on_dispatch = "Self::on_dispatch",
+//!     after_dispatch = "Self::after_dispatch",
 //!     on_transition = "Self::on_transition",
 //!     state(derive(Debug)),
 //!     superstate(derive(Debug))
@@ -410,6 +412,9 @@
 //!     }
 //!
 //!     fn on_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
+//!         println!("dispatched `{:?}` to `{:?}`", event, state);
+//!     }
+//!     fn after_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
 //!         println!("dispatched `{:?}` to `{:?}`", event, state);
 //!     }
 //! }
