@@ -76,7 +76,7 @@ impl CdPlayer {
 }
 
 fn main() {
-    let mut state_machine = CdPlayer::default().uninitialized_state_machine().init();
+    let mut state_machine = CdPlayer.uninitialized_state_machine().init();
 
     let loops: u32 = rand::random();
 

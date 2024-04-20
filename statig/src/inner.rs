@@ -59,11 +59,9 @@ where
 #[cfg(feature = "async")]
 impl<M> Inner<M>
 where
-    M: IntoStateMachine + Send,
-    for<'evt> M::Event<'evt>: Send + Sync,
-    for<'ctx> M::Context<'ctx>: Send + Sync,
-    M::State: awaitable::State<M> + Send + 'static,
-    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
+    M: IntoStateMachine,
+    M::State: awaitable::State<M> + 'static,
+    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M>,
 {
     pub async fn async_init_with_context(&mut self, context: &mut M::Context<'_>) {
         let enter_levels = self.state.depth();

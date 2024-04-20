@@ -86,7 +86,7 @@ impl Blinky {
 fn main() {
     let start = std::time::Instant::now();
 
-    let mut state_machine = Blinky::default().state_machine();
+    let mut state_machine = Blinky.state_machine();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);

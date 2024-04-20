@@ -1,5 +1,5 @@
 #![cfg_attr(not(doctest), doc = include_str!("../../README.md"))]
-#![cfg_attr(all(not(feature = "std"), not(doc)), no_std)]
+#![no_std]
 #![allow(incomplete_features)]
 
 mod inner;
@@ -143,6 +143,9 @@ pub use statig_macro::action;
 
 /// Prelude containing the necessary imports for use with macro.
 pub mod prelude {
+    #![allow(ambiguous_glob_reexports)]
+    #![allow(unused_imports)]
+
     #[cfg(any(feature = "async", doc))]
     pub use crate::awaitable::{IntoStateMachineExt as _, StateExt as _, *};
     pub use crate::blocking::{IntoStateMachineExt as _, StateExt as _, *};

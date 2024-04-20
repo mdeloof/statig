@@ -22,7 +22,7 @@ pub enum Event {
 /// `statig::Superstate` traits.
 #[state_machine(
     // This sets the initial state to `led_on`.
-    initial = "State::led_on()",
+    initial = "State::led_on(2)",
     // Derive the Debug trait on the `State` enum.
     state(derive(Debug)),
     // Derive the Debug trait on the `Superstate` enum.
@@ -43,10 +43,10 @@ impl Blinky {
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Response<State>`.
     #[state(superstate = "blinking", entry_action = "cool")]
-    async fn led_on(event: &Event) -> Response<State> {
+    async fn led_on(value: &i32, event: &Event) -> Response<State> {
         match event {
             // When we receive a `TimerElapsed` event we transition to the `led_off` state.
-            Event::TimerElapsed => Transition(State::led_off()),
+            Event::TimerElapsed => Transition(State::led_off(2)),
             // Other events are deferred to the superstate, in this case `blinking`.
             _ => Super,
         }
@@ -54,16 +54,16 @@ impl Blinky {
 
     /// Note you can mix sync and async handlers/actions.
     #[state(superstate = "blinking")]
-    fn led_off(event: &Event) -> Response<State> {
+    fn led_off(value: &i32, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Transition(State::led_on()),
+            Event::TimerElapsed => Transition(State::led_on(2)),
             _ => Super,
         }
     }
 
     /// The `#[superstate]` attribute marks this as a superstate handler.
     #[superstate]
-    async fn blinking(event: &Event) -> Response<State> {
+    async fn blinking(value: &i32, event: &Event) -> Response<State> {
         match event {
             Event::ButtonPressed => Transition(State::not_blinking()),
             _ => Super,
@@ -73,7 +73,7 @@ impl Blinky {
     #[state]
     async fn not_blinking(event: &Event) -> Response<State> {
         match event {
-            Event::ButtonPressed => Transition(State::led_on()),
+            Event::ButtonPressed => Transition(State::led_on(2)),
             // Altough this state has no superstate, we can still defer the event which
             // will cause the event to be handled by an implicit `top` superstate.
             _ => Super,
@@ -102,8 +102,10 @@ impl Blinky {
 
 #[tokio::main]
 async fn main() {
-    let future = async {
-        let mut state_machine = Blinky::default().uninitialized_state_machine().init().await;
+    use tokio::task;
+
+    let future = async move {
+        let mut state_machine = Blinky.state_machine(); //.uninitialized_state_machine().init().await;
 
         state_machine.handle(&Event::TimerElapsed).await;
         state_machine.handle(&Event::ButtonPressed).await;
@@ -111,7 +113,9 @@ async fn main() {
         state_machine.handle(&Event::ButtonPressed).await;
     };
 
-    let handle = tokio::spawn(future);
+    let local = task::LocalSet::new();
+
+    let handle = local.run_until(future);
 
     handle.await;
 }

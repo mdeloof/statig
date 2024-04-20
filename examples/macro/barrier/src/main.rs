@@ -49,7 +49,7 @@ impl Foo {
 }
 
 fn main() {
-    let mut state_machine = Foo::default().uninitialized_state_machine().init();
+    let mut state_machine = Foo.uninitialized_state_machine().init();
 
     dbg!(state_machine.state());
 

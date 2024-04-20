@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use statig::prelude::*;
+    use statig::blocking::*;
     use std::fmt;
 
     type Response = statig::Response<State>;

@@ -5,6 +5,7 @@ mod tests {
     #[derive(Default)]
     struct Counter;
 
+    #[allow(dead_code)]
     struct ExternalContext<'a, 'b>(&'a mut usize, &'b mut usize);
 
     enum Event {
@@ -39,11 +40,11 @@ mod tests {
 
     #[test]
     fn main() {
-        let mut a = 34;
-        let mut b = 23;
+        let mut a = 0;
+        let mut b = 0;
         let mut external_context = ExternalContext(&mut a, &mut b);
 
-        let mut blinky = Counter::default()
+        let mut blinky = Counter
             .uninitialized_state_machine()
             .init_with_context(&mut external_context);
 
