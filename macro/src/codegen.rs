@@ -1,8 +1,6 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{
-    parse_quote, Arm, GenericParam, ItemEnum, ItemFn, ItemImpl, Lifetime, LifetimeDef, Variant,
-};
+use syn::{parse_quote, Arm, ItemEnum, ItemFn, ItemImpl, Lifetime, Variant};
 
 use crate::lower::{Ir, Mode};
 use crate::{CONTEXT_LIFETIME, EVENT_LIFETIME, SUPERSTATE_LIFETIME};
@@ -144,8 +142,7 @@ fn codegen_state_impl(ir: &Ir) -> ItemImpl {
 
 fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     let shared_storage_type = &ir.state_machine.shared_storage_type;
-    let (impl_generics, _, where_clause) =
-        &ir.state_machine.shared_storage_generics.split_for_impl();
+    let (impl_generics, _, where_clause) = &ir.state_machine.state_impl_generics.split_for_impl();
     let state_ident = &ir.state_machine.state_ident;
     let (_, state_generics, _) = &ir.state_machine.state_generics.split_for_impl();
     let event_ident = &ir.state_machine.event_ident;
@@ -227,43 +224,47 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
             #[allow(unused)]
             impl #impl_generics statig::awaitable::State<#shared_storage_type> for #state_ident #state_generics #where_clause
             {
-                fn call_handler<'fut>(
-                    &'fut mut self,
-                    shared_storage: &'fut mut #shared_storage_type,
-                    #event_ident: &'fut <#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
-                    #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = statig::Response<Self>> + 'fut + Send>> {
-                    Box::pin(async move {
+                #[allow(clippy::manual_async_fn)]
+                fn call_handler(
+                    &mut self,
+                    shared_storage: &mut #shared_storage_type,
+                    #event_ident: &<#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
+                    #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                ) -> impl core::future::Future<Output = statig::Response<Self>> {
+                    async move {
                         match self {
                             #(#call_handler_arms),*
                         }
-                    })
+                    }
                 }
 
-                fn call_entry_action<'fut>(
-                    &'fut mut self,
-                    shared_storage: &'fut mut #shared_storage_type,
-                    #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
-                    Box::pin(async move {
+                #[allow(clippy::manual_async_fn)]
+                fn call_entry_action(
+                    &mut self,
+                    shared_storage: &mut #shared_storage_type,
+                    #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                ) -> impl core::future::Future<Output = ()> {
+                    async move {
                         match self {
                             #(#call_entry_action_arms),*
                         }
-                    })
+                    }
                 }
 
-                fn call_exit_action<'fut>(
-                    &'fut mut self,
-                    shared_storage: &'fut mut #shared_storage_type,
-                    #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
-                    Box::pin(async move {
+                #[allow(clippy::manual_async_fn)]
+                fn call_exit_action(
+                    &mut self,
+                    shared_storage: &mut #shared_storage_type,
+                    #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                ) -> impl core::future::Future<Output = ()> {
+                    async move {
                         match self {
                             #(#call_exit_action_arms),*
                         }
-                    })
+                    }
                 }
 
+                #[allow(clippy::manual_async_fn)]
                 fn superstate(&mut self) -> Option<<#shared_storage_type as statig::IntoStateMachine>::Superstate<'_>> {
                     match self {
                         #(#superstate_arms),*
@@ -296,18 +297,9 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
 
 fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
     let shared_storage_type = &ir.state_machine.shared_storage_type;
-    let mut shared_storage_generics = ir.state_machine.shared_storage_generics.clone();
-    let lifetime = Lifetime::new(SUPERSTATE_LIFETIME, Span::call_site());
-    let superstate_lifetime_def = LifetimeDef::new(lifetime.clone());
-    let superstate_lifetime_param = GenericParam::Lifetime(superstate_lifetime_def);
-    shared_storage_generics
-        .params
-        .push(superstate_lifetime_param);
-    match &mut shared_storage_generics.where_clause {
-        Some(clause) => clause.predicates.push(parse_quote!(Self: #lifetime)),
-        None => shared_storage_generics.where_clause = parse_quote!(where Self: #lifetime),
-    }
-    let (impl_generics, _, where_clause) = shared_storage_generics.split_for_impl();
+
+    let (impl_generics, _, where_clause) =
+        ir.state_machine.superstate_impl_generics.split_for_impl();
     let superstate_ident = &ir.state_machine.superstate_ident;
     let (_, superstate_generics, _) = &ir.state_machine.superstate_generics.split_for_impl();
     let event_ident = &ir.state_machine.event_ident;
@@ -388,44 +380,48 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 #[allow(unused)]
                 impl #impl_generics statig::awaitable::Superstate<#shared_storage_type> for #superstate_ident #superstate_generics #where_clause
                 {
-                    fn call_handler<'fut>(
-                        &'fut mut self,
-                        shared_storage: &'fut mut #shared_storage_type,
-                        #event_ident: &'fut <#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
-                        #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = statig::Response<<#shared_storage_type as statig::IntoStateMachine>::State>> + 'fut + Send>> {
-                        Box::pin(async move {
+                    #[allow(clippy::manual_async_fn)]
+                    fn call_handler(
+                        &mut self,
+                        shared_storage: &mut #shared_storage_type,
+                        #event_ident: &<#shared_storage_type as statig::IntoStateMachine>::Event<'_>,
+                        #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) -> impl core::future::Future<Output = statig::Response<<#shared_storage_type as statig::IntoStateMachine>::State>> {
+                        async move {
                             match self {
                                 #(#call_handler_arms),*
                             }
-                        })
+                        }
                     }
 
-                    fn call_entry_action<'fut>(
-                        &'fut mut self,
-                        shared_storage: &'fut mut #shared_storage_type,
-                        #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
-                        Box::pin(async move {
+                    #[allow(clippy::manual_async_fn)]
+                    fn call_entry_action(
+                        &mut self,
+                        shared_storage: &mut #shared_storage_type,
+                        #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) -> impl core::future::Future<Output = ()> {
+                        async move {
                             match self {
                                 #(#call_entry_action_arms),*
                             }
-                        })
+                        }
                     }
 
-                    fn call_exit_action<'fut>(
-                        &'fut mut self,
-                        shared_storage: &'fut mut #shared_storage_type,
-                        #context_ident: &'fut mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
-                    ) -> core::pin::Pin<std::boxed::Box<dyn core::future::Future<Output = ()> + 'fut + Send>> {
-                        Box::pin(async move {
+                    #[allow(clippy::manual_async_fn)]
+                    fn call_exit_action(
+                        &mut self,
+                        shared_storage: &mut #shared_storage_type,
+                        #context_ident: &mut <#shared_storage_type as statig::IntoStateMachine>::Context<'_>
+                    ) -> impl core::future::Future<Output = ()> {
+                        async move {
                             match self {
                                 #(#call_exit_action_arms),*
                             }
-                        })
+                        }
                     }
 
-                    fn superstate(&mut self) -> Option<<#shared_storage_type as statig::IntoStateMachine>::Superstate<'_>> {
+                    #[allow(clippy::manual_async_fn)]
+                    fn superstate(&mut self) -> Option<Self> {
                         match self {
                             #(#superstate_arms),*
                         }

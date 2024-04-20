@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn main() {
-        let mut state_machine = Blinky::default().uninitialized_state_machine().init();
+        let mut state_machine = Blinky.uninitialized_state_machine().init();
 
         for _ in 0..10 {
             state_machine.handle(&Event);

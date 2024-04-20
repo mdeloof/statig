@@ -50,6 +50,8 @@ pub struct StateMachine {
     pub state_derives: Vec<Path>,
     /// The generics associated with the state type.
     pub state_generics: Generics,
+    /// The generics associated with the state trait implementation
+    pub state_impl_generics: Generics,
     /// The type of the superstate enum (ex. `Superstate<'sub>`)
     pub superstate_ident: Ident,
     /// Derives that will be applied to the superstate type.
@@ -64,6 +66,8 @@ pub struct StateMachine {
     pub before_dispatch: Option<Path>,
     /// The path of the `after_dispatch` callback.
     pub after_dispatch: Option<Path>,
+    /// The generics associated with the superstate trait implementation
+    pub superstate_impl_generics: Generics,
     /// The visibility for the derived types,
     pub visibility: Visibility,
     /// The external input pattern.
@@ -391,6 +395,8 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
+    let state_impl_generics = shared_storage_generics.clone();
+
     let mut superstate_generics = Generics::default();
     for (param, predicates) in &shared_storage_generics_map {
         if superstate_generic_params.contains(param) {
@@ -407,11 +413,17 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
+    let mut superstate_impl_generics = shared_storage_generics.clone();
+
     // If a lifetime is required it must be part of the superstate generics.
     if let Some(lifetime) = superstate_lifetime {
-        superstate_generics
-            .params
-            .push(GenericParam::Lifetime(syn::LifetimeDef::new(lifetime)));
+        let lifetime_generic = GenericParam::Lifetime(syn::LifetimeDef::new(lifetime.clone()));
+        superstate_generics.params.push(lifetime_generic.clone());
+        superstate_impl_generics.params.push(lifetime_generic);
+        match &mut superstate_impl_generics.where_clause {
+            Some(clause) => clause.predicates.push(parse_quote!(Self: #lifetime)),
+            None => superstate_impl_generics.where_clause = parse_quote!(where Self: #lifetime),
+        }
     }
 
     let state_machine = StateMachine {
@@ -423,6 +435,7 @@ pub fn lower(model: &Model) -> Ir {
         state_ident,
         state_derives,
         state_generics,
+        state_impl_generics,
         superstate_ident,
         superstate_derives,
         superstate_generics,
@@ -430,6 +443,7 @@ pub fn lower(model: &Model) -> Ir {
         after_transition,
         before_dispatch,
         after_dispatch,
+        superstate_impl_generics,
         visibility,
         event_ident,
         context_ident,
@@ -729,6 +743,8 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
 fn create_lower_state_machine() -> StateMachine {
     let mut superstate_generics = Generics::default();
     superstate_generics.params.push(parse_quote!('sub));
+    let mut superstate_impl_generics = superstate_generics.clone();
+    superstate_impl_generics.where_clause = parse_quote!(where Self: 'sub);
     StateMachine {
         initial_state: parse_quote!(State::on()),
         shared_storage_type: parse_quote!(Blinky),
@@ -739,6 +755,7 @@ fn create_lower_state_machine() -> StateMachine {
         state_ident: parse_quote!(State),
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         state_generics: Generics::default(),
+        state_impl_generics: Generics::default(),
         superstate_ident: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_generics,
@@ -746,6 +763,7 @@ fn create_lower_state_machine() -> StateMachine {
         after_transition: None,
         before_dispatch: None,
         after_dispatch: None,
+        superstate_impl_generics,
         visibility: parse_quote!(pub),
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),
