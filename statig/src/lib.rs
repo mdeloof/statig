@@ -671,7 +671,6 @@
 //! I highly recommend it if you want to learn how to use state machines to design
 //! complex systems.
 
-#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(incomplete_features)]
 
 mod inner;
@@ -815,6 +814,9 @@ pub use statig_macro::action;
 
 /// Prelude containing the necessary imports for use with macro.
 pub mod prelude {
+    #![allow(ambiguous_glob_reexports)]
+    #![allow(unused_imports)]
+
     #[cfg(feature = "async")]
     pub use crate::awaitable::{IntoStateMachineExt as _, StateExt as _, *};
     pub use crate::blocking::{IntoStateMachineExt as _, StateExt as _, *};
