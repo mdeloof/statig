@@ -1,19 +1,15 @@
-use core::{fmt::Debug, future};
+use core::fmt::Debug;
 use std::future::Future;
 
-use super::{awaitable, into_state_machine};
+use super::{awaitable, into_state_machine, State, Superstate};
 use crate::{Inner, IntoStateMachine};
 
 /// A state machine where the shared storage is of type `Self`.
-pub trait IntoStateMachineExt: IntoStateMachine
-where
-    Self: Send,
-    for<'sub> Self::Superstate<'sub>: awaitable::Superstate<Self> + Send,
-    Self::State: awaitable::State<Self> + Send,
-    for<'sub> <Self as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<Self>,
-    for<'sub> <Self as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <Self as into_state_machine::IntoStateMachine>::State: awaitable::state::State<Self>,
+pub trait IntoStateMachineExt:
+    for<'sub> IntoStateMachine<
+        Superstate<'sub>: Superstate<Self> + Send,
+        State: State<Self> + Send + 'static,
+    > + Send
 {
     /// Create a state machine that will be lazily initialized.
     fn state_machine(self) -> StateMachine<Self>
@@ -241,17 +237,13 @@ where
 pub struct InitializedStateMachine<M>
 where
     M: IntoStateMachineExt,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     inner: Inner<M>,
 }
 
 impl<M> InitializedStateMachine<M>
 where
-    M: IntoStateMachineExt + Send,
+    M: IntoStateMachineExt,
     M::State: awaitable::State<M> + 'static + Send,
     for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
@@ -303,10 +295,6 @@ impl<M> Clone for InitializedStateMachine<M>
 where
     M: IntoStateMachineExt + Clone,
     M::State: Clone,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -319,10 +307,6 @@ impl<M> Debug for InitializedStateMachine<M>
 where
     M: IntoStateMachineExt + Debug,
     M::State: Debug,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("InitializedStateMachine")
@@ -336,10 +320,6 @@ impl<M> PartialEq for InitializedStateMachine<M>
 where
     M: IntoStateMachineExt + PartialEq,
     M::State: PartialEq,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
@@ -348,22 +328,14 @@ where
 
 impl<M> Eq for InitializedStateMachine<M>
 where
-    M: IntoStateMachineExt + PartialEq + Eq,
-    M::State: PartialEq + Eq,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
+    M: IntoStateMachineExt + Eq,
+    M::State: Eq,
 {
 }
 
 impl<M> core::ops::Deref for InitializedStateMachine<M>
 where
     M: IntoStateMachineExt,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     type Target = M;
 
@@ -411,23 +383,13 @@ where
 pub struct UninitializedStateMachine<M>
 where
     M: IntoStateMachineExt,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     inner: Inner<M>,
 }
 
 impl<M> UninitializedStateMachine<M>
 where
-    M: IntoStateMachineExt + Send,
-    M::State: awaitable::State<M> + 'static + Send,
-    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
+    M: IntoStateMachineExt,
 {
     /// Initialize the state machine by executing all entry actions towards
     /// the initial state.
@@ -503,9 +465,6 @@ impl<M> Clone for UninitializedStateMachine<M>
 where
     M: IntoStateMachineExt + Clone,
     M::State: Clone,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M> + Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -518,10 +477,6 @@ impl<M> Debug for UninitializedStateMachine<M>
 where
     M: IntoStateMachineExt + Debug,
     M::State: Debug,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("UnInitializedStateMachine")
@@ -535,10 +490,6 @@ impl<M> PartialEq for UninitializedStateMachine<M>
 where
     M: IntoStateMachineExt + PartialEq,
     M::State: PartialEq,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
@@ -548,21 +499,13 @@ where
 impl<M> Eq for UninitializedStateMachine<M>
 where
     M: IntoStateMachineExt + PartialEq + Eq,
-    M::State: PartialEq + Eq,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
+    M::State: State<M> + PartialEq + Eq,
 {
 }
 
 impl<M> core::ops::Deref for UninitializedStateMachine<M>
 where
     M: IntoStateMachineExt,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>:
-        awaitable::superstate::Superstate<M>,
-    for<'sub> <M as into_state_machine::IntoStateMachine>::Superstate<'sub>: Send,
-    <M as into_state_machine::IntoStateMachine>::State: awaitable::state::State<M>,
 {
     type Target = M;
 
