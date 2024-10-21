@@ -35,8 +35,17 @@ pub trait IntoStateMachineExt:
         };
         UninitializedStateMachine { inner }
     }
+}
 
-    #[cfg(feature = "async")]
+impl<T> IntoStateMachineExt for T
+where
+    T: IntoStateMachine + Send,
+    T::State: State<T> + 'static,
+    for<'sub> T::Superstate<'sub>: Superstate<T> + Send,
+{
+}
+
+pub trait AsyncIntoStateMachine: IntoStateMachineExt {
     fn on_transition(
         &mut self,
         _from: &Self::State,
@@ -58,7 +67,7 @@ where
 
 impl<M> StateMachine<M>
 where
-    M: IntoStateMachineExt + Send,
+    M: AsyncIntoStateMachine,
     M::State: awaitable::State<M> + 'static + Send,
     for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
@@ -243,7 +252,7 @@ where
 
 impl<M> InitializedStateMachine<M>
 where
-    M: IntoStateMachineExt,
+    M: AsyncIntoStateMachine,
     M::State: awaitable::State<M> + 'static + Send,
     for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
@@ -260,7 +269,7 @@ where
     /// Handle the given event.
     pub async fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
     where
-        M: IntoStateMachineExt,
+        M: AsyncIntoStateMachine,
         for<'evt> M::Event<'evt>: Send + Sync,
         for<'ctx> M::Context<'ctx>: Send + Sync,
     {
@@ -389,7 +398,7 @@ where
 
 impl<M> UninitializedStateMachine<M>
 where
-    M: IntoStateMachineExt,
+    M: AsyncIntoStateMachine,
 {
     /// Initialize the state machine by executing all entry actions towards
     /// the initial state.
@@ -417,7 +426,7 @@ where
     /// ```
     pub async fn init(self) -> InitializedStateMachine<M>
     where
-        for<'ctx> M: IntoStateMachineExt<Context<'ctx> = ()>,
+        for<'ctx> M: AsyncIntoStateMachine<Context<'ctx> = ()>,
         for<'evt> M::Event<'evt>: Send + Sync,
         for<'ctx> M::Context<'ctx>: Send + Sync,
     {

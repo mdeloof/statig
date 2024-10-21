@@ -86,6 +86,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
 
             #on_dispatch
         }
+        // use statig::#mode::State;
+        // impl #impl_generics  statig::#mode::IntoStateMachineExt for #shared_storage_type #where_clause {}
     )
 }
 
