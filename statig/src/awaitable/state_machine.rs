@@ -45,17 +45,6 @@ where
 {
 }
 
-pub trait AsyncIntoStateMachine: IntoStateMachineExt {
-    fn on_transition(
-        &mut self,
-        _from: &Self::State,
-        _to: &Self::State,
-    ) -> impl Future<Output = ()> + Send {
-        use std::task::Poll;
-        std::future::poll_fn(|_| Poll::Ready(()))
-    }
-}
-
 /// A state machine that will be lazily initialized.
 pub struct StateMachine<M>
 where
@@ -67,7 +56,7 @@ where
 
 impl<M> StateMachine<M>
 where
-    M: AsyncIntoStateMachine,
+    M: IntoStateMachineExt,
     M::State: awaitable::State<M> + 'static + Send,
     for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
@@ -252,7 +241,7 @@ where
 
 impl<M> InitializedStateMachine<M>
 where
-    M: AsyncIntoStateMachine,
+    M: IntoStateMachineExt,
     M::State: awaitable::State<M> + 'static + Send,
     for<'sub> M::Superstate<'sub>: awaitable::Superstate<M> + Send,
 {
@@ -269,7 +258,7 @@ where
     /// Handle the given event.
     pub async fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
     where
-        M: AsyncIntoStateMachine,
+        M: IntoStateMachineExt,
         for<'evt> M::Event<'evt>: Send + Sync,
         for<'ctx> M::Context<'ctx>: Send + Sync,
     {
@@ -398,7 +387,7 @@ where
 
 impl<M> UninitializedStateMachine<M>
 where
-    M: AsyncIntoStateMachine,
+    M: IntoStateMachineExt,
 {
     /// Initialize the state machine by executing all entry actions towards
     /// the initial state.
@@ -426,7 +415,7 @@ where
     /// ```
     pub async fn init(self) -> InitializedStateMachine<M>
     where
-        for<'ctx> M: AsyncIntoStateMachine<Context<'ctx> = ()>,
+        for<'ctx> M: IntoStateMachineExt<Context<'ctx> = ()>,
         for<'evt> M::Event<'evt>: Send + Sync,
         for<'ctx> M::Context<'ctx>: Send + Sync,
     {

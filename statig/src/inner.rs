@@ -2,7 +2,6 @@ use crate::awaitable::IntoStateMachineExt;
 #[cfg(feature = "async")]
 use crate::awaitable::{self, StateExt as _};
 use crate::blocking::{self, StateExt as _};
-use crate::prelude::AsyncIntoStateMachine;
 use crate::{IntoStateMachine, Response};
 
 /// Private internal representation of a state machine that is used for the public types.
@@ -60,7 +59,7 @@ where
 #[cfg(feature = "async")]
 impl<M> Inner<M>
 where
-    M: AsyncIntoStateMachine,
+    M: IntoStateMachineExt,
     for<'evt> M::Event<'evt>: Send + Sync,
     for<'ctx> M::Context<'ctx>: Send + Sync,
     M::State: awaitable::State<M> + Send + 'static,
@@ -108,7 +107,7 @@ where
             .await;
 
         M::ON_TRANSITION(&mut self.shared_storage, &target, &self.state);
-        M::on_transition(&mut self.shared_storage, &target, &self.state).await;
+        M::on_transition_async(&mut self.shared_storage, &target, &self.state).await;
     }
 }
 

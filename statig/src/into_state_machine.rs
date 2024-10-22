@@ -1,3 +1,5 @@
+use core::future::Future;
+
 use crate::StateOrSuperstate;
 
 /// Trait for transorming a type into a state machine.
@@ -29,4 +31,13 @@ where
 
     /// Method that is called *after* every transition.
     const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
+
+    fn on_transition_async(
+        &mut self,
+        _from: &Self::State,
+        _to: &Self::State,
+    ) -> impl Future<Output = ()> + Send {
+        use std::task::Poll;
+        std::future::poll_fn(|_| Poll::Ready(()))
+    }
 }

@@ -43,10 +43,8 @@ impl IntoStateMachine for Blinky {
 
     /// The initial state of the state machine.
     const INITIAL: State = State::LedOn;
-}
 
-impl AsyncIntoStateMachine for Blinky {
-    async fn on_transition(&mut self, from_state: &State, to_state: &State) {
+    async fn on_transition_async(&mut self, from_state: &State, to_state: &State) {
         println!("Transitioned to {:?}", to_state);
     }
 }
