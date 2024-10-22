@@ -1,7 +1,12 @@
 #![allow(unused)]
 
 use statig::awaitable::{self, *};
-use std::{future::Future, io::Write, pin::Pin};
+use std::{
+    future::{poll_fn, Future},
+    io::Write,
+    pin::Pin,
+    task::Poll,
+};
 
 #[derive(Default)]
 pub struct Blinky;
@@ -44,9 +49,19 @@ impl IntoStateMachine for Blinky {
     /// The initial state of the state machine.
     const INITIAL: State = State::LedOn;
 
-    async fn on_transition_async(&mut self, from_state: &State, to_state: &State) {
-        println!("Transitioned to {:?}", to_state);
-    }
+    const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
+        |_, _, _| {};
+
+    const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
+
+    const ON_TRANSITION_ASYNC: fn(
+        &mut Self,
+        _from: &Self::State,
+        _to: &Self::State,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> = |_blinky, from, to| {
+        println!("transitioned from {:?} to {:?}", from, to);
+        Box::pin(poll_fn(|_| Poll::Ready(())))
+    };
 }
 
 // Implement the `statig::State` trait for the state enum.

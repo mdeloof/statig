@@ -1,4 +1,4 @@
-use core::future::Future;
+use core::{future::Future, pin::Pin};
 
 use crate::StateOrSuperstate;
 
@@ -32,12 +32,12 @@ where
     /// Method that is called *after* every transition.
     const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 
-    fn on_transition_async(
-        &mut self,
-        _from: &Self::State,
-        _to: &Self::State,
-    ) -> impl Future<Output = ()> + Send {
+    const ON_TRANSITION_ASYNC: fn(
+        &mut Self,
+        from: &Self::State,
+        to: &Self::State,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> = |_, _, _| {
         use std::task::Poll;
-        std::future::poll_fn(|_| Poll::Ready(()))
-    }
+        Box::pin(std::future::poll_fn(|_| Poll::Ready(())))
+    };
 }

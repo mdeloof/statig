@@ -107,7 +107,7 @@ where
             .await;
 
         M::ON_TRANSITION(&mut self.shared_storage, &target, &self.state);
-        M::on_transition_async(&mut self.shared_storage, &target, &self.state).await;
+        M::ON_TRANSITION_ASYNC(&mut self.shared_storage, &target, &self.state).await;
     }
 }
 
