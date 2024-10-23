@@ -54,13 +54,13 @@ impl IntoStateMachine for Blinky {
 
     const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 
-    const ON_TRANSITION_ASYNC: fn(
-        &mut Self,
-        _from: &Self::State,
-        _to: &Self::State,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>> = |_blinky, from, to| {
+    const ON_TRANSITION_ASYNC: for<'a> fn(
+        &'a mut Self,
+        _from: &'a Self::State,
+        _to: &'a Self::State,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> = |_blinky, from, to| {
         println!("transitioned from {:?} to {:?}", from, to);
-        Box::pin(poll_fn(|_| Poll::Ready(())))
+        Box::pin(_blinky.transitioning(from, to))
     };
 }
 
@@ -103,6 +103,9 @@ impl awaitable::Superstate<Blinky> for Superstate {
 }
 
 impl Blinky {
+    async fn transitioning(&mut self, from: &State, to: &State) {
+        println!("transitioned from {:?} to {:?}", from, to);
+    }
     async fn led_on(event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed => Transition(State::LedOff),

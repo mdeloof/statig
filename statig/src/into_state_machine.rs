@@ -32,11 +32,11 @@ where
     /// Method that is called *after* every transition.
     const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 
-    const ON_TRANSITION_ASYNC: fn(
-        &mut Self,
-        from: &Self::State,
-        to: &Self::State,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>> = |_, _, _| {
+    const ON_TRANSITION_ASYNC: for<'a> fn(
+        &'a mut Self,
+        from: &'a Self::State,
+        to: &'a Self::State,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> = |_, _, _| {
         use std::task::Poll;
         Box::pin(std::future::poll_fn(|_| Poll::Ready(())))
     };

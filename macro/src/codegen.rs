@@ -37,7 +37,6 @@ pub fn codegen(ir: Ir) -> TokenStream {
         #superstate_impl
     )
 }
-
 fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let shared_storage_type = &ir.state_machine.shared_storage_type;
     let (impl_generics, _, where_clause) =
@@ -69,7 +68,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let on_transition_async = match &ir.state_machine.on_transition_async {
         None => quote!(),
         Some(on_transition_async) => quote!(
-            const ON_TRANSITION_ASYNC: fn(&mut Self, &Self::State, &Self::State) -> core::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> = #on_transition_async;
+            const ON_TRANSITION_ASYNC: for <'a> fn(&'a mut Self, &'a Self::State, &'a Self::State) -> core::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> = #on_transition_async;
         ),
     };
 

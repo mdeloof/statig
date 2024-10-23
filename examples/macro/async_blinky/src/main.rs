@@ -88,13 +88,17 @@ impl Blinky {
         println!("transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn on_transition_async(
-        &mut self,
-        source: &State,
-        target: &State,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> {
+    async fn transitioning(&mut self, from: &State, to: &State) {
+        println!("transitioning from {:?} to {:?}", from, to);
+    }
+
+    fn on_transition_async<'a>(
+        &'a mut self,
+        source: &'a State,
+        target: &'a State,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         println!("transitioned async from `{source:?}` to `{target:?}`");
-        Box::pin(poll_fn(|_| std::task::Poll::Ready(())))
+        Box::pin(self.transitioning(source, target))
     }
 
     fn on_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
