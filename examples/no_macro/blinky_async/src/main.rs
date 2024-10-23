@@ -9,7 +9,9 @@ use std::{
 };
 
 #[derive(Default)]
-pub struct Blinky;
+pub struct Blinky {
+    field: String,
+}
 
 // The event that will be handled by the state machine.
 pub enum Event {
@@ -49,18 +51,14 @@ impl IntoStateMachine for Blinky {
     /// The initial state of the state machine.
     const INITIAL: State = State::LedOn;
 
-    const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
-        |_, _, _| {};
-
-    const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
-
-    const ON_TRANSITION_ASYNC: for<'a> fn(
-        &'a mut Self,
-        _from: &'a Self::State,
-        _to: &'a Self::State,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> = |_blinky, from, to| {
+    const ON_TRANSITION_ASYNC: for<'fut> fn(
+        &'fut mut Self,
+        &'fut Self::State,
+        &'fut Self::State,
+    )
+        -> Pin<Box<dyn Future<Output = ()> + Send + 'fut>> = |blinky, from, to| {
         println!("transitioned from {:?} to {:?}", from, to);
-        Box::pin(_blinky.transitioning(from, to))
+        Box::pin(blinky.transition_and_print_internal_state(from, to))
     };
 }
 
@@ -73,9 +71,9 @@ impl awaitable::State<Blinky> for State {
         _: &'fut mut (),
     ) -> Pin<Box<(dyn Future<Output = statig::Response<State>> + Send + 'fut)>> {
         match self {
-            State::LedOn => Box::pin(Blinky::led_on(event)),
-            State::LedOff => Box::pin(Blinky::led_off(event)),
-            State::NotBlinking => Box::pin(Blinky::not_blinking(event)),
+            State::LedOn => Box::pin(Blinky::timer_elapsed_turn_off(event)),
+            State::LedOff => Box::pin(Blinky::timer_elapsed_turn_on(event)),
+            State::NotBlinking => Box::pin(Blinky::not_blinking_button_pressed(event)),
         }
     }
 
@@ -97,37 +95,40 @@ impl awaitable::Superstate<Blinky> for Superstate {
         _: &'fut mut (),
     ) -> Pin<Box<(dyn Future<Output = Response<State>> + Send + 'fut)>> {
         Box::pin(match self {
-            Superstate::Blinking => Blinky::blinking(event),
+            Superstate::Blinking => Blinky::blinking_button_pressed(event),
         })
     }
 }
 
 impl Blinky {
-    async fn transitioning(&mut self, from: &State, to: &State) {
-        println!("transitioned from {:?} to {:?}", from, to);
+    async fn transition_and_print_internal_state(&mut self, from: &State, to: &State) {
+        println!(
+            "transitioned (current test value is: {}) from {:?} to {:?}",
+            self.field, from, to
+        );
     }
-    async fn led_on(event: &Event) -> Response<State> {
+    async fn timer_elapsed_turn_off(event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed => Transition(State::LedOff),
             _ => Super,
         }
     }
 
-    async fn led_off(event: &Event) -> Response<State> {
+    async fn timer_elapsed_turn_on(event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed => Transition(State::LedOn),
             _ => Super,
         }
     }
 
-    async fn blinking(event: &Event) -> Response<State> {
+    async fn blinking_button_pressed(event: &Event) -> Response<State> {
         match event {
             Event::ButtonPressed => Transition(State::NotBlinking),
             _ => Super,
         }
     }
 
-    async fn not_blinking(event: &Event) -> Response<State> {
+    async fn not_blinking_button_pressed(event: &Event) -> Response<State> {
         match event {
             Event::ButtonPressed => Transition(State::LedOn),
             _ => Super,
@@ -137,7 +138,10 @@ impl Blinky {
 
 #[tokio::main]
 async fn main() {
-    let mut state_machine = Blinky::default().state_machine();
+    let mut state_machine = Blinky {
+        field: "test field value".to_string(),
+    }
+    .state_machine();
 
     state_machine.handle(&Event::TimerElapsed).await;
     state_machine.handle(&Event::ButtonPressed).await;
