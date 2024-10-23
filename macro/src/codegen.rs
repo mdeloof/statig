@@ -66,6 +66,13 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         ),
     };
 
+    let on_transition_async = match &ir.state_machine.on_transition_async {
+        None => quote!(),
+        Some(on_transition_async) => quote!(
+            const ON_TRANSITION_ASYNC: fn(&mut Self, &Self::State, &Self::State) -> core::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> = #on_transition_async;
+        ),
+    };
+
     let on_dispatch = match &ir.state_machine.on_dispatch {
         None => quote!(),
         Some(on_dispatch) => quote!(
@@ -83,6 +90,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             const INITIAL: #state_ident #state_generics = #initial_state;
 
             #on_transition
+
+            #on_transition_async
 
             #on_dispatch
         }
