@@ -672,7 +672,7 @@ fn valid_state_analyze() {
         superstate_ident,
         superstate_derives,
         on_transition,
-        on_transition_async,
+        on_transition_async: None,
         on_dispatch,
         event_ident,
         context_ident,

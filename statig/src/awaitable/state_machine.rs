@@ -1,15 +1,11 @@
 use core::fmt::Debug;
-use std::future::Future;
 
-use super::{awaitable, into_state_machine, State, Superstate};
+use super::{awaitable, State, Superstate};
 use crate::{Inner, IntoStateMachine};
 
 /// A state machine where the shared storage is of type `Self`.
 pub trait IntoStateMachineExt:
-    for<'sub> IntoStateMachine<
-        Superstate<'sub>: Superstate<Self> + Send,
-        State: State<Self> + Send + 'static,
-    > + Send
+    for<'sub> IntoStateMachine<Superstate<'sub>: Superstate<Self> + Send, State: State<Self>> + Send
 {
     /// Create a state machine that will be lazily initialized.
     fn state_machine(self) -> StateMachine<Self>
@@ -37,11 +33,8 @@ pub trait IntoStateMachineExt:
     }
 }
 
-impl<T> IntoStateMachineExt for T
-where
-    T: IntoStateMachine + Send,
-    T::State: State<T> + 'static,
-    for<'sub> T::Superstate<'sub>: Superstate<T> + Send,
+impl<T> IntoStateMachineExt for T where
+    T: for<'sub> IntoStateMachine<State: State<T>, Superstate<'sub>: Superstate<T> + Send>
 {
 }
 
@@ -418,6 +411,7 @@ where
         for<'ctx> M: IntoStateMachineExt<Context<'ctx> = ()>,
         for<'evt> M::Event<'evt>: Send + Sync,
         for<'ctx> M::Context<'ctx>: Send + Sync,
+        M::State: Send + 'static,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.async_init_with_context(&mut ()).await;
@@ -452,6 +446,7 @@ where
     where
         for<'evt> M::Event<'evt>: Send + Sync,
         for<'ctx> M::Context<'ctx>: Send + Sync,
+        M::State: Send + 'static,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.async_init_with_context(context).await;
