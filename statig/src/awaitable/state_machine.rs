@@ -34,7 +34,7 @@ pub trait IntoStateMachineExt:
 }
 
 impl<T> IntoStateMachineExt for T where
-    T: for<'sub> IntoStateMachine<State: State<T>, Superstate<'sub>: Superstate<T> + Send>
+    T: for<'sub> IntoStateMachine<State: State<T>, Superstate<'sub>: Superstate<T> + Send> + Send
 {
 }
 
