@@ -309,7 +309,7 @@ async fn main() {
 
 ## Implementation
 
-A lot of the implemenation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes. Furthermore, you'll see that the generated code is actually pretty straight-forward and could easily be written by hand, so if you prefer to avoid using macro's this is totally feasible.
+A lot of the implementation details are dealt with by the `#[state_machine]` macro, but it's always valuable to understand what's happening behind the scenes. Furthermore, you'll see that the generated code is actually pretty straight-forward and could easily be written by hand, so if you prefer to avoid using macro's this is totally feasible.
 
 The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be tought of as tree.
 
