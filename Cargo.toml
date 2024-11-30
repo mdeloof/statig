@@ -15,6 +15,7 @@ members = [
     "examples/macro/generics",
     "examples/macro/async_blinky",
     "examples/macro/async_io",
+    "examples/macro/mocking_demo",
 
     "examples/no_macro/basic",
     "examples/no_macro/blinky",
@@ -22,3 +23,5 @@ members = [
     "examples/no_macro/history",
     "examples/no_macro/calculator",
 ]
+
+resolver = "2"
