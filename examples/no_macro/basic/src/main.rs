@@ -30,7 +30,7 @@ impl IntoStateMachine for Blinky {
     type Context<'ctx> = ();
 
     /// The initial state of the state machine.
-    const INITIAL: State = State::Off;
+    const INITIAL: fn() -> Self::State = || State::Off;
 
     /// This method is called on every transition of the state machine.
     const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, source, target| {

@@ -49,7 +49,7 @@ impl IntoStateMachine for CdPlayer {
     type Context<'ctx> = ();
 
     /// The initial state of the state machine.
-    const INITIAL: State = State::Empty;
+    const INITIAL: fn() -> Self::State = || State::Empty;
 }
 
 impl blocking::State<CdPlayer> for State {

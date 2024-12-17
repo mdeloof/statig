@@ -71,6 +71,8 @@ pub struct State {
     pub exit_action: Option<Ident>,
     /// Local storage,
     pub local_storage: Vec<Field>,
+    /// Local storage default.
+    pub local_storage_default: Vec<Ident>,
     /// Inputs required by the state handler.
     pub inputs: Vec<FnArg>,
     /// Optional receiver input for the state handler (e.g. `&mut self`).
@@ -124,7 +126,7 @@ pub struct Action {
 }
 
 /// Analyze the impl block and create a model.
-pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
+pub fn analyze(attribute_args: AttributeArgs, mut item_impl: ItemImpl) -> Model {
     let state_machine = analyze_state_machine(&attribute_args, &item_impl);
 
     let mut states = HashMap::new();
@@ -132,14 +134,14 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
     let mut actions = HashMap::new();
 
     // Create an iterator over only the method items.
-    let methods = item_impl.items.iter().filter_map(|item| match item {
+    let methods = item_impl.items.iter_mut().filter_map(|item| match item {
         ImplItem::Method(method) => Some(method),
         _ => None,
     });
 
     // Iterator over the methods in the impl block.
     for method in methods {
-        for attr in method.attrs.iter() {
+        for attr in method.attrs.clone().iter() {
             match &attr.path {
                 path if path.is_ident("state") => {
                     let state = analyze_state(method, &state_machine);
@@ -372,7 +374,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 }
 
 /// Retrieve information regarding the state.
-pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> State {
+pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) -> State {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.iter().cloned().collect();
 
@@ -380,6 +382,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let mut entry_action = None;
     let mut exit_action = None;
     let mut local_storage = Vec::new();
+    let mut local_storage_default = Vec::new();
     let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
@@ -397,32 +400,46 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let is_async = method.sig.asyncness.is_some();
 
     // Iterate over the inputs of the state handler.
-    for input in &method.sig.inputs {
+    for input in &mut method.sig.inputs {
         match input {
             FnArg::Receiver(receiver) => shared_storage_input = Some(receiver.clone()),
-            FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
-                Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
-                    event_arg = Some(pat_type.clone());
-                }
-                Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
-                    context_arg = Some(pat_type.clone());
-                }
-                Pat::Ident(_) => {
-                    state_inputs.push(pat_type.clone());
-                }
-                Pat::Reference(_) => {
-                    state_inputs.push(pat_type.clone());
-                }
-                Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
-                Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
-                Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
-                Pat::Wild(_) => abort!(
-                    pat_type,
-                    "wildcard pattern is not supported";
-                    help = "consider giving the input a name"
-                ),
-                _ => abort!(pat_type, "patterns are not supported"),
-            },
+            FnArg::Typed(ref mut pat_type) => {
+                let pat = pat_type.pat.as_mut();
+                match pat {
+                    Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
+                        event_arg = Some(pat_type.clone());
+                    }
+                    Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
+                        context_arg = Some(pat_type.clone());
+                    }
+                    Pat::Ident(ref mut input) => {
+                        if let Some(index) = pat_type
+                            .attrs
+                            .iter()
+                            .position(|attr| attr.path.is_ident("default"))
+                        {
+                            pat_type.attrs.swap_remove(index);
+                            local_storage_default.push(input.ident.clone());
+                        }
+
+                        state_inputs.push(pat_type.clone());
+                    }
+                    Pat::Reference(_) => {
+                        state_inputs.push(pat_type.clone());
+                    }
+                    Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
+                    Pat::TupleStruct(_) => {
+                        abort!(pat_type, "tuple struct pattern is not supported")
+                    }
+                    Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
+                    Pat::Wild(_) => abort!(
+                        pat_type,
+                        "wildcard pattern is not supported";
+                        help = "consider giving the input a name"
+                    ),
+                    _ => abort!(pat_type, "patterns are not supported"),
+                };
+            }
         }
     }
 
@@ -452,6 +469,13 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
                     }
                 }
             }
+            Meta::List(list) if list.path.is_ident("default") => {
+                for item in list.nested {
+                    if let NestedMeta::Lit(Lit::Str(value)) = item {
+                        local_storage_default.push(Ident::new(&value.value(), value.span()));
+                    }
+                }
+            }
             _ => abort!(meta, "unknown attribute"),
         }
     }
@@ -462,6 +486,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         entry_action,
         exit_action,
         local_storage,
+        local_storage_default,
         inputs,
         shared_storage_input,
         state_inputs,
@@ -700,6 +725,7 @@ fn valid_state_analyze() {
         entry_action: parse_quote!(enter_on),
         exit_action: parse_quote!(enter_off),
         local_storage: vec![],
+        local_storage_default: vec![],
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
         shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],

@@ -5,10 +5,10 @@ use proc_macro2::Span;
 use proc_macro_error::abort;
 
 use syn::parse::Parser;
-use syn::parse_quote;
+use syn::{parse_quote, ExprClosure, FieldValue};
 use syn::{
-    Expr, ExprCall, Field, FnArg, GenericParam, Generics, Ident, ItemFn, ItemImpl, Lifetime, Pat,
-    PatType, Path, Type, Variant, Visibility, WhereClause, WherePredicate,
+    Expr, Field, FnArg, GenericParam, Generics, Ident, ItemFn, ItemImpl, Lifetime, Pat, PatType,
+    Path, Type, Variant, Visibility, WhereClause, WherePredicate,
 };
 
 use quote::format_ident;
@@ -35,7 +35,7 @@ pub struct Ir {
 /// General information regarding the state machine.
 pub struct StateMachine {
     /// Initial state.
-    pub initial_state: ExprCall,
+    pub initial_state: ExprClosure,
     /// The type on which the state machine is implemented.
     pub shared_storage_type: Type,
     /// The generics associated with the shared storage type.
@@ -151,6 +151,8 @@ pub fn lower(model: &Model) -> Ir {
     let state_derives = model.state_machine.state_derives.clone();
     let superstate_derives = model.state_machine.superstate_derives.clone();
     let visibility = model.state_machine.visibility.clone();
+
+    let initial_state = parse_quote!(|| #initial_state);
 
     let mut superstate_lifetime: Option<Lifetime> = None;
 
@@ -452,6 +454,8 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
         &state_machine.shared_storage_generics.split_for_impl();
     let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
     let state_name = &state_machine.state_ident;
+    let mut constructor_args = Vec::new();
+    let mut field_values: Vec<FieldValue> = Vec::new();
 
     let mut variant_fields: Vec<_> = state
         .state_inputs
@@ -468,15 +472,31 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
         }
     }
 
+    // Check if variant field should use default value.
+    for field in &variant_fields {
+        let field_name = &field.ident;
+        if state
+            .local_storage_default
+            .iter()
+            .any(|default| field.ident.as_ref().unwrap() == default)
+        {
+            field_values.push(parse_quote!(#field_name: core::default::Default::default()))
+        } else {
+            constructor_args.push(field.clone());
+            field_values.push(parse_quote!(#field_name));
+        }
+    }
+
     let pat_fields: Vec<Ident> = variant_fields
         .iter()
         .map(|field| field.ident.as_ref().unwrap().clone())
         .collect();
+
     let handler_inputs: Vec<Ident> = state.inputs.iter().map(fn_arg_to_ident).collect();
 
     let variant = parse_quote!(#variant_name { #(#variant_fields),* });
     let pat = parse_quote!(#state_name::#variant_name { #(#pat_fields),*});
-    let constructor = parse_quote!(const fn #state_handler_name ( #(#variant_fields),* ) -> Self { Self::#variant_name { #(#pat_fields),*} });
+    let constructor = parse_quote!(fn #state_handler_name ( #(#constructor_args),* ) -> Self { Self::#variant_name { #(#field_values),*} });
 
     let handler_call = match &state.is_async {
         true => {
@@ -730,7 +750,7 @@ fn create_lower_state_machine() -> StateMachine {
     let mut superstate_generics = Generics::default();
     superstate_generics.params.push(parse_quote!('sub));
     StateMachine {
-        initial_state: parse_quote!(State::on()),
+        initial_state: parse_quote!(|| State::on()),
         shared_storage_type: parse_quote!(Blinky),
         shared_storage_generics: parse_quote!(),
         event_type: parse_quote!(()),
@@ -761,6 +781,7 @@ fn create_analyze_state() -> analyze::State {
         entry_action: parse_quote!(enter_on),
         exit_action: None,
         local_storage: vec![],
+        local_storage_default: vec![],
         inputs: vec![
             parse_quote!(&mut self),
             parse_quote!(input: &Event),
@@ -805,7 +826,7 @@ fn create_lower_state() -> State {
         exit_action_call: parse_quote!({}),
         superstate_pat: parse_quote!(None),
         constructor: parse_quote!(
-            const fn on(led: bool, counter: usize) -> Self {
+            fn on(led: bool, counter: usize) -> Self {
                 Self::On { led, counter }
             }
         ),

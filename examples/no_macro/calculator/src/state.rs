@@ -66,7 +66,7 @@ impl blocking::IntoStateMachine for Calculator {
 
     type Context<'ctx> = ();
 
-    const INITIAL: State = State::Begin;
+    const INITIAL: fn() -> Self::State = || State::Begin;
 }
 
 impl blocking::State<Calculator> for State {
