@@ -27,6 +27,11 @@ where
     const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
         |_, _, _| {};
 
+    /// Method that is called *after* an event is dispatched to a state or
+    /// superstate handler.
+    const AFTER_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
+        |_, _, _| {};
+
     /// Method that is called *after* every transition.
     const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 }

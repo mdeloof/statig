@@ -72,6 +72,12 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #on_dispatch;
         ),
     };
+    let after_dispatch = match &ir.state_machine.after_dispatch {
+        None => quote!(),
+        Some(after_dispatch) => quote!(
+            const AFTER_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #after_dispatch;
+        ),
+    };
 
     parse_quote!(
         impl #impl_generics statig::#mode::IntoStateMachine for #shared_storage_type #where_clause
@@ -85,6 +91,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             #on_transition
 
             #on_dispatch
+            #after_dispatch
         }
     )
 }

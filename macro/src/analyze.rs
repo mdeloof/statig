@@ -52,6 +52,8 @@ pub struct StateMachine {
     pub on_transition: Option<Path>,
     /// Optional `on_dispatch` callback.
     pub on_dispatch: Option<Path>,
+    /// Optional `after_dispatch` callback.
+    pub after_dispatch: Option<Path>,
 }
 
 /// Information regarding a state.
@@ -181,6 +183,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 
     let mut on_transition = None;
     let mut on_dispatch = None;
+    let mut after_dispatch = None;
 
     let mut visibility = parse_quote!(pub);
     let mut event_ident = parse_quote!(event);
@@ -228,6 +231,14 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                 if name_value.path.is_ident("on_dispatch") =>
             {
                 on_dispatch = match &name_value.lit {
+                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("after_dispatch") =>
+            {
+                after_dispatch = match &name_value.lit {
                     Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
                     _ => abort!(name_value, "must be a string literal"),
                 }
@@ -340,6 +351,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         superstate_ident,
         superstate_derives,
         on_dispatch,
+        after_dispatch,
         on_transition,
         event_ident,
         context_ident,
@@ -661,6 +673,7 @@ fn valid_state_analyze() {
         superstate_derives,
         on_transition,
         on_dispatch,
+        after_dispatch,
         event_ident,
         context_ident,
         visibility,

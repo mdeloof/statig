@@ -30,7 +30,9 @@ pub enum Event {
     // Set the `on_transition` callback.
     on_transition = "Self::on_transition",
     // Set the `on_dispatch` callback.
-    on_dispatch = "Self::on_dispatch"
+    on_dispatch = "Self::on_dispatch",
+    // Set the `on_dispatch` callback.
+    after_dispatch = "Self::after_dispatch"
 )]
 impl Blinky {
     #[action]
@@ -85,6 +87,10 @@ impl Blinky {
 
     fn on_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
         println!("dispatching `{event:?}` to `{state:?}`");
+    }
+
+    fn after_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
+        println!("dispatched `{event:?}` to `{state:?}`");
     }
 }
 

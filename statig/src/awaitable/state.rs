@@ -115,6 +115,8 @@ where
 
             let response = self.call_handler(shared_storage, event, context).await;
 
+            M::AFTER_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
+
             match response {
                 Response::Handled => Response::Handled,
                 Response::Super => match self.superstate() {
@@ -125,7 +127,15 @@ where
                             event,
                         );
 
-                        superstate.handle(shared_storage, event, context).await
+                        let response = superstate.handle(shared_storage, event, context).await;
+
+                        M::AFTER_DISPATCH(
+                            shared_storage,
+                            StateOrSuperstate::Superstate(&superstate),
+                            event,
+                        );
+
+                        response
                     }
                     None => Response::Super,
                 },
