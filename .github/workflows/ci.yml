@@ -1,10 +1,6 @@
 name: Rust
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 env:
   CARGO_TERM_COLOR: always
@@ -21,6 +17,11 @@ jobs:
       with:
           toolchain: stable
           override: true
+    - name: Install package
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install fontconfig
+        sudo apt-get -y install libfontconfig-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
@@ -37,6 +38,11 @@ jobs:
       with:
           toolchain: nightly
           override: true
+    - name: Install package
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install fontconfig
+        sudo apt-get -y install libfontconfig-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
