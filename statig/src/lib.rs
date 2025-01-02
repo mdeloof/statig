@@ -13,18 +13,18 @@
 //!
 //! ## Statig in action
 //!
-//! A simple blinky state machine:
+//! A simple blinky state machine:#![cfg_attr(not(feature = "std"), no_std)]
 //!
 //! ```text
-//! ┌─────────────────────────┐                   
-//! │         Blinking        │◀─────────┐        
-//! │    ┌───────────────┐    │          │        
+//! ┌─────────────────────────┐
+//! │         Blinking        │◀─────────┐
+//! │    ┌───────────────┐    │          │
 //! │ ┌─▶│     LedOn     │──┐ │  ┌───────────────┐
 //! │ │  └───────────────┘  │ │  │  NotBlinking  │
 //! │ │  ┌───────────────┐  │ │  └───────────────┘
-//! │ └──│     LedOff    │◀─┘ │          ▲        
-//! │    └───────────────┘    │──────────┘        
-//! └─────────────────────────┘                   
+//! │ └──│     LedOff    │◀─┘ │          ▲
+//! │    └───────────────┘    │──────────┘
+//! └─────────────────────────┘
 //! ```
 //!
 //! ```rust
@@ -467,24 +467,24 @@
 //! The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be thought of as a tree.
 //!
 //! ```text
-//!                           ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐             
-//!                                     Top                       
-//!                           └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘             
-//!                                      │                        
-//!                         ┌────────────┴────────────┐           
-//!                         │                         │           
+//!                           ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+//!                                     Top
+//!                           └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
+//!                                      │
+//!                         ┌────────────┴────────────┐
+//!                         │                         │
 //!              ┌─────────────────────┐   ╔═════════════════════╗
 //!              │      Blinking       │   ║     NotBlinking     ║
 //!              │─────────────────────│   ╚═════════════════════╝
-//!              │ counter: &'a usize  │                          
-//!              └─────────────────────┘                          
-//!                         │                                     
-//!            ┌────────────┴────────────┐                        
-//!            │                         │                        
-//! ╔═════════════════════╗   ╔═════════════════════╗             
-//! ║        LedOn        ║   ║        LedOff       ║             
-//! ║─────────────────────║   ║─────────────────────║             
-//! ║ counter: usize      ║   ║ counter: usize      ║             
+//!              │ counter: &'a usize  │
+//!              └─────────────────────┘
+//!                         │
+//!            ┌────────────┴────────────┐
+//!            │                         │
+//! ╔═════════════════════╗   ╔═════════════════════╗
+//! ║        LedOn        ║   ║        LedOff       ║
+//! ║─────────────────────║   ║─────────────────────║
+//! ║ counter: usize      ║   ║ counter: usize      ║
 //! ╚═════════════════════╝   ╚═════════════════════╝
 //! ```
 //!
@@ -532,7 +532,7 @@
 //!
 //! ```ignore
 //! impl statig::State<Blinky> for State {
-//!     
+//!
 //!     ...
 //!
 //!     fn call_entry_action(&mut self, blinky: &mut Blinky) {
@@ -670,7 +670,9 @@
 //! [Practical UML Statecharts in C/C++](https://www.state-machine.com/doc/PSiCC2.pdf).
 //! I highly recommend it if you want to learn how to use state machines to design
 //! complex systems.
+//!
 
+#![no_std]
 #![allow(incomplete_features)]
 
 mod inner;
@@ -702,7 +704,7 @@ mod state_or_superstate;
 ///   Set the name of the superstate enum to a custom name.
 ///
 ///   _Default_: `Superstate`
-///   
+///
 ///   <br/>
 ///
 /// - `#[state_machine(state(derive(SomeTrait, AnotherTrait)))]`
