@@ -1,7 +1,7 @@
 use core::cmp::Ordering;
 use core::future::Future;
 
-use crate::IntoStateMachine;
+use crate::awaitable::IntoStateMachine;
 use crate::Response;
 
 /// An enum that represents the superstates of the state machine.

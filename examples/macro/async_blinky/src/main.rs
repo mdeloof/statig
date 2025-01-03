@@ -83,21 +83,43 @@ impl Blinky {
 
 impl Blinky {
     // The `after_transition` callback that will be called after every transition.
-    fn after_transition(&mut self, source: &State, target: &State) {
+    async fn after_transition(&mut self, source: &State, target: &State) {
         println!("after transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_transition(&mut self, source: &State, target: &State) {
+    async fn before_transition(&mut self, source: &State, target: &State) {
         println!("before transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
+    async fn before_dispatch(
+        &mut self,
+        state: StateOrSuperstate<'_, State, Superstate<'_>>,
+        event: &Event,
+    ) {
         println!("before dispatching `{event:?}` to `{state:?}`");
     }
 
-    fn after_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
+    async fn after_dispatch(
+        &mut self,
+        state: StateOrSuperstate<'_, State, Superstate<'_>>,
+        event: &Event,
+    ) {
         println!("after dispatched `{event:?}` to `{state:?}`");
     }
+
+    // // The `on_transition` callback that will be called after every transition.
+    // async fn on_transition(&mut self, source: &State, target: &State) {
+    //     println!("transitioned from `{source:?}` to `{target:?}`");
+    // }
+
+    // async fn on_dispatch(
+    //     &mut self,
+    //     state: StateOrSuperstate<'_, State, Superstate<'_>>,
+    //     event: &Event,
+    // ) {
+    //     println!("dispatching `{event:?}` to `{state:?}`");
+
+    // }
 }
 
 #[tokio::main]

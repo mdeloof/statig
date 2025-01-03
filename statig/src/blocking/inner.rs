@@ -1,7 +1,5 @@
-#[cfg(feature = "async")]
-use crate::awaitable::{self, StateExt as _};
-use crate::blocking::{self, StateExt as _};
-use crate::{IntoStateMachine, Response};
+use crate::blocking::{self, IntoStateMachine, StateExt as _};
+use crate::Response;
 
 /// Private internal representation of a state machine that is used for the public types.
 pub(crate) struct Inner<M>
@@ -51,59 +49,6 @@ where
         // Perform the entry actions from the common ancestor state into the new state.
         self.state
             .enter(&mut self.shared_storage, context, enter_levels);
-
-        M::AFTER_TRANSITION(&mut self.shared_storage, &target, &self.state);
-    }
-}
-
-#[cfg(feature = "async")]
-impl<M> Inner<M>
-where
-    M: IntoStateMachine,
-    M::State: awaitable::State<M> + 'static,
-    for<'sub> M::Superstate<'sub>: awaitable::Superstate<M>,
-{
-    pub async fn async_init_with_context(&mut self, context: &mut M::Context<'_>) {
-        let enter_levels = self.state.depth();
-        self.state
-            .enter(&mut self.shared_storage, context, enter_levels)
-            .await;
-    }
-
-    pub async fn async_handle_with_context(
-        &mut self,
-        event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
-    ) {
-        let response = self
-            .state
-            .handle(&mut self.shared_storage, event, context)
-            .await;
-        match response {
-            Response::Super => {}
-            Response::Handled => {}
-            Response::Transition(state) => self.async_transition(state, context).await,
-        }
-    }
-
-    /// Transition from the current state to the given target state.
-    pub async fn async_transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
-        M::BEFORE_TRANSITION(&mut self.shared_storage, &target, &self.state);
-        // Get the transition path we need to perform from one state to the next.
-        let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
-
-        // Perform the exit from the previous state towards the common ancestor state.
-        self.state
-            .exit(&mut self.shared_storage, context, exit_levels)
-            .await;
-
-        // Update the state.
-        core::mem::swap(&mut self.state, &mut target);
-
-        // Perform the entry actions from the common ancestor state into the new state.
-        self.state
-            .enter(&mut self.shared_storage, context, enter_levels)
-            .await;
 
         M::AFTER_TRANSITION(&mut self.shared_storage, &target, &self.state);
     }

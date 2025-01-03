@@ -1,4 +1,4 @@
-use statig::prelude::*;
+use statig::blocking::*;
 
 pub enum Event {
     StartProgram,

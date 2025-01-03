@@ -24,13 +24,19 @@ where
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.
-    const BEFORE_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
-        |_, _, _| {};
+    const BEFORE_DISPATCH: fn(
+        &mut Self,
+        StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
+        &Self::Event<'_>,
+    ) = |_, _, _| {};
 
     /// Method that is called *after* an event is dispatched to a state or
     /// superstate handler.
-    const AFTER_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
-        |_, _, _| {};
+    const AFTER_DISPATCH: fn(
+        &mut Self,
+        StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
+        &Self::Event<'_>,
+    ) = |_, _, _| {};
 
     /// Method that is called *before* every transition.
     const BEFORE_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
