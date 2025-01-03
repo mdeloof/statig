@@ -1,8 +1,7 @@
 use core::cmp::Ordering;
 
-use crate::IntoStateMachine;
-use crate::Response;
-use crate::StateOrSuperstate;
+use crate::blocking::IntoStateMachine;
+use crate::{Response, StateOrSuperstate};
 
 /// An enum that represents the superstates of the state machine.
 pub trait Superstate<M>

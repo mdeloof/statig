@@ -2,8 +2,6 @@
 #![no_std]
 #![allow(incomplete_features)]
 
-mod inner;
-mod into_state_machine;
 mod response;
 mod state_or_superstate;
 
@@ -160,8 +158,5 @@ pub mod blocking;
 #[cfg(feature = "async")]
 pub mod awaitable;
 
-pub(crate) use inner::*;
-
-pub use into_state_machine::*;
 pub use response::*;
 pub use state_or_superstate::*;

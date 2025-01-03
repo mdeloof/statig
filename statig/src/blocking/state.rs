@@ -1,8 +1,5 @@
-use crate::blocking::Superstate;
-use crate::blocking::SuperstateExt;
-use crate::IntoStateMachine;
-use crate::Response;
-use crate::StateOrSuperstate;
+use crate::blocking::{IntoStateMachine, Superstate, SuperstateExt};
+use crate::{Response, StateOrSuperstate};
 
 /// An enum that represents the leaf states of the state machine.
 pub trait State<M>
