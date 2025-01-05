@@ -48,6 +48,8 @@ pub struct StateMachine {
     pub context_ident: Ident,
     /// The visibility of the derived types.
     pub visibility: Visibility,
+    /// Optional `before_transition` callback.
+    pub before_transition: Option<Path>,
     /// Optional `after_transition` callback.
     pub after_transition: Option<Path>,
     /// Optional `before_dispatch` callback.
@@ -182,6 +184,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let mut superstate_derives = Vec::new();
 
     let mut after_transition = None;
+    let mut before_transition = None;
     let mut before_dispatch = None;
     let mut after_dispatch = None;
 
@@ -216,6 +219,14 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
             {
                 context_ident = match &name_value.lit {
                     Lit::Str(context_ident) => context_ident.parse().unwrap(),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("before_transition") =>
+            {
+                before_transition = match &name_value.lit {
+                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
@@ -352,6 +363,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         superstate_derives,
         before_dispatch,
         after_dispatch,
+        before_transition,
         after_transition,
         event_ident,
         context_ident,
@@ -656,6 +668,7 @@ fn valid_state_analyze() {
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let superstate_ident = parse_quote!(Superstate);
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
+    let before_transition = None;
     let after_transition = None;
     let before_dispatch = None;
     let after_dispatch = None;
@@ -672,6 +685,7 @@ fn valid_state_analyze() {
         state_derives,
         superstate_ident,
         superstate_derives,
+        before_transition,
         after_transition,
         before_dispatch,
         after_dispatch,

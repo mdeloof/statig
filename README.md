@@ -251,12 +251,16 @@ state_machine.handle_with_context(&Event::TimerElapsed, &mut context);
 For logging purposes you can define two callbacks that will be called at specific points during state machine execution.
 
 - `before_dispatch` is called before an event is dispatched to a specific state or superstate.
+- `after_dispatch` is called after an event is dispatched to a specific state or superstate.
+- `before_transition` is called before a transition has occured.
 - `after_transition` is called after a transition has occured.
 
 ```rust
 #[state_machine(
     initial = "State::on()",
     before_dispatch = "Self::before_dispatch",
+    after_dispatch = "Self::after_dispatch",
+    before_transition = "Self::before_transition",
     after_transition = "Self::after_transition",
     state(derive(Debug)),
     superstate(derive(Debug))
@@ -266,12 +270,20 @@ impl Blinky {
 }
 
 impl Blinky {
+    fn before_dispatch(&mut self, source: &State, target: &State) {
+        println!("before transitioned from `{:?}` to `{:?}`", source, target);
+    }
+
     fn after_transition(&mut self, source: &State, target: &State) {
-        println!("transitioned from `{:?}` to `{:?}`", source, target);
+        println!("after transitioned from `{:?}` to `{:?}`", source, target);
     }
 
     fn before_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
-        println!("dispatched `{:?}` to `{:?}`", event, state);
+        println!("before dispatched `{:?}` to `{:?}`", event, state);
+    }
+
+    fn after_transition(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
+        println!("after dispatched `{:?}` to `{:?}`", event, state);
     }
 }
 ```

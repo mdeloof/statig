@@ -32,6 +32,9 @@ where
     const AFTER_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
         |_, _, _| {};
 
+    /// Method that is called *before* every transition.
+    const before_transition: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
+
     /// Method that is called *after* every transition.
     const after_transition: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 }
