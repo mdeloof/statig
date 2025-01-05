@@ -27,8 +27,8 @@ pub enum Event {
     state(derive(Debug)),
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
-    // Set the `on_transition` callback.
-    on_transition = "Self::on_transition",
+    // Set the `after_transition` callback.
+    after_transition = "Self::after_transition",
     // Set the `before_dispatch` callback.
     before_dispatch = "Self::before_dispatch",
     // Set the `before_dispatch` callback.
@@ -80,8 +80,8 @@ impl Blinky {
 }
 
 impl Blinky {
-    // The `on_transition` callback that will be called after every transition.
-    fn on_transition(&mut self, source: &State, target: &State) {
+    // The `after_transition` callback that will be called after every transition.
+    fn after_transition(&mut self, source: &State, target: &State) {
         println!("transitioned from `{source:?}` to `{target:?}`");
     }
 

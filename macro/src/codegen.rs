@@ -59,10 +59,10 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         Mode::Awaitable => quote!(awaitable),
     };
 
-    let on_transition = match &ir.state_machine.on_transition {
+    let after_transition = match &ir.state_machine.after_transition {
         None => quote!(),
-        Some(on_transition) => quote!(
-            const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #on_transition;
+        Some(after_transition) => quote!(
+            const after_transition: fn(&mut Self, &Self::State, &Self::State) = #after_transition;
         ),
     };
 
@@ -88,7 +88,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             type Superstate<#superstate_lifetime> = #superstate_ident #superstate_generics ;
             const INITIAL: #state_ident #state_generics = #initial_state;
 
-            #on_transition
+            #after_transition
 
             #before_dispatch
             #after_dispatch

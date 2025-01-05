@@ -251,13 +251,13 @@ state_machine.handle_with_context(&Event::TimerElapsed, &mut context);
 For logging purposes you can define two callbacks that will be called at specific points during state machine execution.
 
 - `before_dispatch` is called before an event is dispatched to a specific state or superstate.
-- `on_transition` is called after a transition has occured.
+- `after_transition` is called after a transition has occured.
 
 ```rust
 #[state_machine(
     initial = "State::on()",
     before_dispatch = "Self::before_dispatch",
-    on_transition = "Self::on_transition",
+    after_transition = "Self::after_transition",
     state(derive(Debug)),
     superstate(derive(Debug))
 )]
@@ -266,7 +266,7 @@ impl Blinky {
 }
 
 impl Blinky {
-    fn on_transition(&mut self, source: &State, target: &State) {
+    fn after_transition(&mut self, source: &State, target: &State) {
         println!("transitioned from `{:?}` to `{:?}`", source, target);
     }
 

@@ -33,5 +33,5 @@ where
         |_, _, _| {};
 
     /// Method that is called *after* every transition.
-    const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
+    const after_transition: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
 }

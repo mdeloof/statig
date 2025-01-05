@@ -382,7 +382,7 @@
 //!
 //! - `before_dispatch` is called before an event is dispatched to a specific state or superstate.
 //! - `after_dispatch` is called after an event is dispatched to a specific state or superstate.
-//! - `on_transition` is called after a transition has occurred.
+//! - `after_transition` is called after a transition has occurred.
 //!
 //! ```
 //! # use statig::prelude::*;
@@ -397,7 +397,7 @@
 //!     initial = "State::on()",
 //!     before_dispatch = "Self::before_dispatch",
 //!     after_dispatch = "Self::after_dispatch",
-//!     on_transition = "Self::on_transition",
+//!     after_transition = "Self::after_transition",
 //!     state(derive(Debug)),
 //!     superstate(derive(Debug))
 //! )]
@@ -407,7 +407,7 @@
 //! }
 //!
 //! impl Blinky {
-//!     fn on_transition(&mut self, source: &State, target: &State) {
+//!     fn after_transition(&mut self, source: &State, target: &State) {
 //!         println!("transitioned from `{:?}` to `{:?}`", source, target);
 //!     }
 //!
