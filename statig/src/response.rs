@@ -10,6 +10,22 @@ pub enum Response<S> {
     Transition(S),
 }
 
+impl<S> PartialEq for Response<S>
+where
+    S: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Handled, Self::Handled) => true,
+            (Self::Super, Self::Super) => true,
+            (Self::Transition(s), Self::Transition(o)) => s == o,
+            _ => false,
+        }
+    }
+}
+
+impl<S> Eq for Response<S> where S: Eq {}
+
 impl<S> Debug for Response<S>
 where
     S: Debug,

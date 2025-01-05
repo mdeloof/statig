@@ -1,43 +1,45 @@
 name: Rust
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install latest stable
-      uses: actions-rs/toolchain@v1
-      with:
+      - uses: actions/checkout@v3
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
           toolchain: stable
           override: true
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose --features "bevy serde"
-    
-  nightly-build:
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libfontconfig-dev
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose --features "bevy serde"
 
+  nightly-build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install latest stable
-      uses: actions-rs/toolchain@v1
-      with:
+      - uses: actions/checkout@v3
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
           toolchain: nightly
           override: true
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose --features "bevy serde async"
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libfontconfig-dev
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose --features "bevy serde async"
