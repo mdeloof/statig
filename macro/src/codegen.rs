@@ -66,10 +66,10 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         ),
     };
 
-    let on_dispatch = match &ir.state_machine.on_dispatch {
+    let before_dispatch = match &ir.state_machine.before_dispatch {
         None => quote!(),
-        Some(on_dispatch) => quote!(
-            const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #on_dispatch;
+        Some(before_dispatch) => quote!(
+            const before_dispatch: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #before_dispatch;
         ),
     };
     let after_dispatch = match &ir.state_machine.after_dispatch {
@@ -90,7 +90,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
 
             #on_transition
 
-            #on_dispatch
+            #before_dispatch
             #after_dispatch
         }
     )

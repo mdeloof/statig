@@ -111,7 +111,7 @@ where
         context: &'fut mut M::Context<'_>,
     ) -> Pin<Box<dyn Future<Output = Response<Self>> + 'fut + Send>> {
         let future = async move {
-            M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
+            M::before_dispatch(shared_storage, StateOrSuperstate::State(self), event);
 
             let response = self.call_handler(shared_storage, event, context).await;
 
@@ -121,7 +121,7 @@ where
                 Response::Handled => Response::Handled,
                 Response::Super => match self.superstate() {
                     Some(mut superstate) => {
-                        M::ON_DISPATCH(
+                        M::before_dispatch(
                             shared_storage,
                             StateOrSuperstate::Superstate(&superstate),
                             event,

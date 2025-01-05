@@ -24,7 +24,7 @@ where
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.
-    const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
+    const before_dispatch: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
         |_, _, _| {};
 
     /// Method that is called *after* an event is dispatched to a state or

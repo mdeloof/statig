@@ -380,7 +380,7 @@
 //! For logging purposes you can define two callbacks that will be called at specific
 //! points during state machine execution.
 //!
-//! - `on_dispatch` is called before an event is dispatched to a specific state or superstate.
+//! - `before_dispatch` is called before an event is dispatched to a specific state or superstate.
 //! - `after_dispatch` is called after an event is dispatched to a specific state or superstate.
 //! - `on_transition` is called after a transition has occurred.
 //!
@@ -395,7 +395,7 @@
 //! #
 //! #[state_machine(
 //!     initial = "State::on()",
-//!     on_dispatch = "Self::on_dispatch",
+//!     before_dispatch = "Self::before_dispatch",
 //!     after_dispatch = "Self::after_dispatch",
 //!     on_transition = "Self::on_transition",
 //!     state(derive(Debug)),
@@ -411,7 +411,7 @@
 //!         println!("transitioned from `{:?}` to `{:?}`", source, target);
 //!     }
 //!
-//!     fn on_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
+//!     fn before_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
 //!         println!("dispatched `{:?}` to `{:?}`", event, state);
 //!     }
 //!     fn after_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
