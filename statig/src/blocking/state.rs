@@ -96,7 +96,7 @@ where
     where
         Self: Sized,
     {
-        M::before_dispatch(shared_storage, StateOrSuperstate::State(self), event);
+        M::BEFORE_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
         let response = self.call_handler(shared_storage, event, context);
 
@@ -106,7 +106,7 @@ where
             Response::Handled => Response::Handled,
             Response::Super => match self.superstate() {
                 Some(mut superstate) => {
-                    M::before_dispatch(
+                    M::BEFORE_DISPATCH(
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,

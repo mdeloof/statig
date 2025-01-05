@@ -62,21 +62,21 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let before_transition = match &ir.state_machine.before_transition {
         None => quote!(),
         Some(before_transition) => quote!(
-            const before_transition: fn(&mut Self, &Self::State, &Self::State) = #before_transition;
+            const BEFORE_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #before_transition;
         ),
     };
 
     let after_transition = match &ir.state_machine.after_transition {
         None => quote!(),
         Some(after_transition) => quote!(
-            const after_transition: fn(&mut Self, &Self::State, &Self::State) = #after_transition;
+            const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #after_transition;
         ),
     };
 
     let before_dispatch = match &ir.state_machine.before_dispatch {
         None => quote!(),
         Some(before_dispatch) => quote!(
-            const before_dispatch: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #before_dispatch;
+            const BEFORE_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #before_dispatch;
         ),
     };
     let after_dispatch = match &ir.state_machine.after_dispatch {

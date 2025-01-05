@@ -51,7 +51,7 @@ where
         self.state
             .enter(&mut self.shared_storage, context, enter_levels);
 
-        M::after_transition(&mut self.shared_storage, &target, &self.state);
+        M::AFTER_TRANSITION(&mut self.shared_storage, &target, &self.state);
     }
 }
 
@@ -105,7 +105,7 @@ where
             .enter(&mut self.shared_storage, context, enter_levels)
             .await;
 
-        M::after_transition(&mut self.shared_storage, &target, &self.state);
+        M::AFTER_TRANSITION(&mut self.shared_storage, &target, &self.state);
     }
 }
 

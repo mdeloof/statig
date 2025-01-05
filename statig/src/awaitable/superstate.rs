@@ -117,7 +117,7 @@ where
                 Response::Handled => Response::Handled,
                 Response::Super => match self.superstate() {
                     Some(mut superstate) => {
-                        M::before_dispatch(
+                        M::BEFORE_DISPATCH(
                             shared_storage,
                             StateOrSuperstate::Superstate(&superstate),
                             event,
