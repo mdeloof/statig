@@ -11,8 +11,13 @@ enum Event {
 
 #[state_machine(initial = "State::initializing()", state(derive(PartialEq, Eq, Debug)))]
 impl Foo {
-    #[state(superstate = "waiting_for_initialization", default("a", "b", "c"))]
-    fn initializing(a: &mut bool, b: &mut bool, c: &mut bool, event: &Event) -> Response<State> {
+    #[state(superstate = "waiting_for_initialization")]
+    fn initializing(
+        #[default] a: &mut bool,
+        #[default] b: &mut bool,
+        #[default] c: &mut bool,
+        event: &Event,
+    ) -> Response<State> {
         match event {
             Event::A => {
                 *a = true;

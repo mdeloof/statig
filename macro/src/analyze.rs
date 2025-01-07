@@ -469,13 +469,6 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
                     }
                 }
             }
-            Meta::List(list) if list.path.is_ident("default") => {
-                for item in list.nested {
-                    if let NestedMeta::Lit(Lit::Str(value)) = item {
-                        local_storage_default.push(Ident::new(&value.value(), value.span()));
-                    }
-                }
-            }
             _ => abort!(meta, "unknown attribute"),
         }
     }
