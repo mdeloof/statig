@@ -3,8 +3,8 @@ use crate::awaitable::{self, StateExt as _};
 use crate::blocking::{self, StateExt as _};
 use crate::{IntoStateMachine, Response};
 
-/// Private internal representation of a state machine that is used for the public types.
-pub(crate) struct Inner<M>
+/// Internal representation of a state machine that is used for the public types.
+pub struct Inner<M>
 where
     M: IntoStateMachine,
 {
