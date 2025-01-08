@@ -22,3 +22,5 @@ members = [
     "examples/no_macro/history",
     "examples/no_macro/calculator",
 ]
+
+resolver = "2"
