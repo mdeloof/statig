@@ -1,4 +1,4 @@
-#![doc = include_str!("../../README.md")]
+#![cfg_attr(not(doctest), doc = include_str!("../../README.md"))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(incomplete_features)]
 

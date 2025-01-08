@@ -41,16 +41,16 @@ Hierarchical state machines for designing event-driven systems.
 
 A simple blinky state machine:
 
-```
-┌─────────────────────────┐                   
-│         Blinking        │◀─────────┐        
-│    ┌───────────────┐    │          │        
+```text
+┌─────────────────────────┐
+│         Blinking        │◀─────────┐
+│    ┌───────────────┐    │          │
 │ ┌─▶│     LedOn     │──┐ │  ┌───────────────┐
 │ │  └───────────────┘  │ │  │  NotBlinking  │
 │ │  ┌───────────────┐  │ │  └───────────────┘
-│ └──│     LedOff    │◀─┘ │          ▲        
-│    └───────────────┘    │──────────┘        
-└─────────────────────────┘                   
+│ └──│     LedOff    │◀─┘ │          ▲
+│    └───────────────┘    │──────────┘
+└─────────────────────────┘
 ```
 
 ```rust
@@ -325,25 +325,25 @@ A lot of the implementation details are dealt with by the `#[state_machine]` mac
 
 The goal of `statig` is to represent a hierarchical state machine. Conceptually a hierarchical state machine can be thought of as a tree.
 
-```
-                          ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐             
-                                    Top                       
-                          └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘             
-                                     │                        
-                        ┌────────────┴────────────┐           
-                        │                         │           
+```text
+                          ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+                                    Top
+                          └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
+                                     │
+                        ┌────────────┴────────────┐
+                        │                         │
              ┌─────────────────────┐   ╔═════════════════════╗
              │      Blinking       │   ║     NotBlinking     ║
              │─────────────────────│   ╚═════════════════════╝
-             │ counter: &'a usize  │                          
-             └─────────────────────┘                          
-                        │                                     
-           ┌────────────┴────────────┐                        
-           │                         │                        
-╔═════════════════════╗   ╔═════════════════════╗             
-║        LedOn        ║   ║        LedOff       ║             
-║─────────────────────║   ║─────────────────────║             
-║ counter: usize      ║   ║ counter: usize      ║             
+             │ counter: &'a usize  │
+             └─────────────────────┘
+                        │
+           ┌────────────┴────────────┐
+           │                         │
+╔═════════════════════╗   ╔═════════════════════╗
+║        LedOn        ║   ║        LedOff       ║
+║─────────────────────║   ║─────────────────────║
+║ counter: usize      ║   ║ counter: usize      ║
 ╚═════════════════════╝   ╚═════════════════════╝
 ```
 
@@ -391,7 +391,7 @@ The association between states and their actions is expressed in a similar fashi
 
 ```rust
 impl statig::State<Blinky> for State {
-    
+
     ...
 
     fn call_entry_action(&mut self, blinky: &mut Blinky) {
