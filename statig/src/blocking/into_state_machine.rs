@@ -20,7 +20,7 @@ where
         Self::State: 'sub;
 
     /// Initial state of the state machine.
-    const INITIAL: fn() -> Self::State;
+    fn initial() -> Self::State;
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.

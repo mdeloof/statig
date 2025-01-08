@@ -144,7 +144,10 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             type Context<#context_lifetime> = #context_type;
             type State = #state_ident #state_generics;
             type Superstate<#superstate_lifetime> = #superstate_ident #superstate_generics ;
-            const INITIAL: fn() -> Self::State = #initial_state;
+
+            fn initial() -> #state_ident #state_generics {
+                #initial_state
+            }
 
             #before_transition
             #after_transition
