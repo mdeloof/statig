@@ -1,4 +1,5 @@
-use core::fmt::Debug;
+use core::fmt;
+use core::fmt::{Debug, Formatter};
 
 /// Holds a reference to either a state or superstate.
 pub enum StateOrSuperstate<'a, State, Superstate> {
@@ -8,12 +9,12 @@ pub enum StateOrSuperstate<'a, State, Superstate> {
     Superstate(&'a Superstate),
 }
 
-impl<'a, State, Superstate> core::fmt::Debug for StateOrSuperstate<'a, State, Superstate>
+impl<'a, State, Superstate> Debug for StateOrSuperstate<'a, State, Superstate>
 where
     State: Debug,
     Superstate: Debug,
 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::State(state) => f.debug_tuple("State").field(state as &dyn Debug).finish(),
             Self::Superstate(superstate) => f

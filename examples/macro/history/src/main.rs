@@ -79,7 +79,7 @@ impl Dishwasher {
 
 fn main() {
     let mut state_machine = Dishwasher {
-        previous_state: Dishwasher::INITIAL,
+        previous_state: Dishwasher::initial(),
     }
     .uninitialized_state_machine()
     .init();

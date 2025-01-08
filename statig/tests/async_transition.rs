@@ -58,7 +58,9 @@ mod tests {
 
         type Context<'ctx> = ();
 
-        const INITIAL: State = State::S11;
+        fn initial() -> Self::State {
+            State::S11
+        }
     }
 
     impl awaitable::State<Foo> for State {
