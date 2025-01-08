@@ -88,7 +88,7 @@ impl Blinky {
     }
 
     fn before_transition(&mut self, source: &State, target: &State) {
-        println!("after transitioned from `{source:?}` to `{target:?}`");
+        println!("before transitioned from `{source:?}` to `{target:?}`");
     }
 
     fn before_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
