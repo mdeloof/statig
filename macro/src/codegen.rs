@@ -61,11 +61,13 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(before_dispatch) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                const BEFORE_DISPATCH: fn(
-                    &mut Self,
-                    StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
-                    &Self::Event<'_>,
-                ) = #before_dispatch;
+                fn before_dispatch(
+                    &mut self,
+                    state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
+                    event: &Self::Event<'_>,
+                ) {
+                    #before_dispatch;
+                }
             ),
             Mode::Awaitable => quote!(
                 fn before_dispatch(
@@ -83,11 +85,13 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(after_dispatch) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                const AFTER_DISPATCH: fn(
-                    &mut Self,
-                    StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
-                    &Self::Event<'_>,
-                ) = #after_dispatch;
+                fn after_dispatch(
+                    &mut self,
+                    state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
+                    event: &Self::Event<'_>,
+                ) {
+                    #after_dispatch;
+                }
             ),
             Mode::Awaitable => quote!(
                 fn after_dispatch(
@@ -105,7 +109,13 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(before_transition) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                const BEFORE_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #before_transition;
+                fn before_transition(
+                    &mut self,
+                    source: &Self::State,
+                    target: &Self::State,
+                ) {
+                    #before_transition;
+                }
             ),
             Mode::Awaitable => quote!(
                 fn before_transition(
@@ -123,7 +133,13 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(after_transition) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #after_transition;
+                fn after_transition(
+                    &mut self,
+                    source: &Self::State,
+                    target: &Self::State,
+                ) {
+                    #after_transition;
+                }
             ),
             Mode::Awaitable => quote!(
                 fn after_transition(

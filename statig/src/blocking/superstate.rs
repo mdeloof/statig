@@ -102,7 +102,7 @@ where
             Response::Handled => Response::Handled,
             Response::Super => match self.superstate() {
                 Some(mut superstate) => {
-                    M::BEFORE_DISPATCH(
+                    M::before_dispatch(
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
@@ -110,7 +110,7 @@ where
 
                     let response = superstate.handle(shared_storage, event, context);
 
-                    M::AFTER_DISPATCH(
+                    M::after_dispatch(
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
