@@ -33,7 +33,7 @@ pub enum Event {
     before_dispatch = "Self::before_dispatch",
     // Set the `after_dispatch` callback.
     after_dispatch = "Self::after_dispatch",
-    // Set the `before_dispatch` callback.
+    // Set the `before_transition` callback.
     before_transition = "Self::before_transition"
 )]
 impl Blinky {
