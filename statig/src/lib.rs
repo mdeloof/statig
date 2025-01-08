@@ -408,15 +408,19 @@
 //! }
 //!
 //! impl Blinky {
+//!     fn before_transition(&mut self, source: &State, target: &State) {
+//!         println!("before transition from `{:?}` to `{:?}`", source, target);
+//!     }
+//!
 //!     fn after_transition(&mut self, source: &State, target: &State) {
-//!         println!("transitioned from `{:?}` to `{:?}`", source, target);
+//!         println!("after transition from `{:?}` to `{:?}`", source, target);
 //!     }
 //!
 //!     fn before_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
-//!         println!("dispatched `{:?}` to `{:?}`", event, state);
+//!         println!("before dispatched `{:?}` to `{:?}`", event, state);
 //!     }
 //!     fn after_dispatch(&mut self, state: StateOrSuperstate<Blinky>, event: &Event) {
-//!         println!("dispatched `{:?}` to `{:?}`", event, state);
+//!         println!("after dispatched `{:?}` to `{:?}`", event, state);
 //!     }
 //! }
 //! ```
