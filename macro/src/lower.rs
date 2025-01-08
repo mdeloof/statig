@@ -56,10 +56,14 @@ pub struct StateMachine {
     pub superstate_derives: Vec<Path>,
     /// The generics associated with the superstate type.
     pub superstate_generics: Generics,
-    /// The path of the `on_transition` callback.
-    pub on_transition: Option<Path>,
-    /// The path of the `on_dispatch` callback.
-    pub on_dispatch: Option<Path>,
+    /// The path of the `before_transition` callback.
+    pub before_transition: Option<Path>,
+    /// The path of the `after_transition` callback.
+    pub after_transition: Option<Path>,
+    /// The path of the `before_dispatch` callback.
+    pub before_dispatch: Option<Path>,
+    /// The path of the `after_dispatch` callback.
+    pub after_dispatch: Option<Path>,
     /// The visibility for the derived types,
     pub visibility: Visibility,
     /// The external input pattern.
@@ -136,8 +140,10 @@ pub fn lower(model: &Model) -> Ir {
     let initial_state = model.state_machine.initial_state.clone();
     let state_ident = model.state_machine.state_ident.clone();
     let superstate_ident = model.state_machine.superstate_ident.clone();
-    let on_transition = model.state_machine.on_transition.clone();
-    let on_dispatch = model.state_machine.on_dispatch.clone();
+    let before_transition = model.state_machine.before_transition.clone();
+    let after_transition = model.state_machine.after_transition.clone();
+    let before_dispatch = model.state_machine.before_dispatch.clone();
+    let after_dispatch = model.state_machine.after_dispatch.clone();
     let event_ident = model.state_machine.event_ident.clone();
     let context_ident = model.state_machine.context_ident.clone();
     let shared_storage_type = model.state_machine.shared_storage_type.clone();
@@ -420,8 +426,10 @@ pub fn lower(model: &Model) -> Ir {
         superstate_ident,
         superstate_derives,
         superstate_generics,
-        on_transition,
-        on_dispatch,
+        before_transition,
+        after_transition,
+        before_dispatch,
+        after_dispatch,
         visibility,
         event_ident,
         context_ident,
@@ -707,8 +715,10 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         state_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_ident: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
-        on_transition: None,
-        on_dispatch: None,
+        before_transition: None,
+        after_transition: None,
+        before_dispatch: None,
+        after_dispatch: None,
         visibility: parse_quote!(pub),
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),
@@ -732,8 +742,10 @@ fn create_lower_state_machine() -> StateMachine {
         superstate_ident: parse_quote!(Superstate),
         superstate_derives: vec![parse_quote!(Copy), parse_quote!(Clone)],
         superstate_generics,
-        on_transition: None,
-        on_dispatch: None,
+        before_transition: None,
+        after_transition: None,
+        before_dispatch: None,
+        after_dispatch: None,
         visibility: parse_quote!(pub),
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),

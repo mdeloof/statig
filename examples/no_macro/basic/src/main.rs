@@ -33,7 +33,7 @@ impl IntoStateMachine for Blinky {
     const INITIAL: State = State::Off;
 
     /// This method is called on every transition of the state machine.
-    const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, source, target| {
+    const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, source, target| {
         println!("transitioned from {source:?} to {target:?}");
     };
 }

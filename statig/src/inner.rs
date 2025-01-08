@@ -37,6 +37,7 @@ where
 
     /// Transition from the current state to the given target state.
     pub fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
+        M::BEFORE_TRANSITION(&mut self.shared_storage, &target, &self.state);
         // Get the transition path we need to perform from one state to the next.
         let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
 
@@ -51,7 +52,7 @@ where
         self.state
             .enter(&mut self.shared_storage, context, enter_levels);
 
-        M::ON_TRANSITION(&mut self.shared_storage, &target, &self.state);
+        M::AFTER_TRANSITION(&mut self.shared_storage, &target, &self.state);
     }
 }
 
@@ -89,6 +90,7 @@ where
 
     /// Transition from the current state to the given target state.
     pub async fn async_transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
+        M::BEFORE_TRANSITION(&mut self.shared_storage, &target, &self.state);
         // Get the transition path we need to perform from one state to the next.
         let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
 
@@ -105,7 +107,7 @@ where
             .enter(&mut self.shared_storage, context, enter_levels)
             .await;
 
-        M::ON_TRANSITION(&mut self.shared_storage, &target, &self.state);
+        M::AFTER_TRANSITION(&mut self.shared_storage, &target, &self.state);
     }
 }
 

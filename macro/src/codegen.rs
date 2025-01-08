@@ -59,17 +59,30 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         Mode::Awaitable => quote!(awaitable),
     };
 
-    let on_transition = match &ir.state_machine.on_transition {
+    let before_transition = match &ir.state_machine.before_transition {
         None => quote!(),
-        Some(on_transition) => quote!(
-            const ON_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #on_transition;
+        Some(before_transition) => quote!(
+            const BEFORE_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #before_transition;
         ),
     };
 
-    let on_dispatch = match &ir.state_machine.on_dispatch {
+    let after_transition = match &ir.state_machine.after_transition {
         None => quote!(),
-        Some(on_dispatch) => quote!(
-            const ON_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #on_dispatch;
+        Some(after_transition) => quote!(
+            const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = #after_transition;
+        ),
+    };
+
+    let before_dispatch = match &ir.state_machine.before_dispatch {
+        None => quote!(),
+        Some(before_dispatch) => quote!(
+            const BEFORE_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #before_dispatch;
+        ),
+    };
+    let after_dispatch = match &ir.state_machine.after_dispatch {
+        None => quote!(),
+        Some(after_dispatch) => quote!(
+            const AFTER_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) = #after_dispatch;
         ),
     };
 
@@ -82,9 +95,11 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             type Superstate<#superstate_lifetime> = #superstate_ident #superstate_generics ;
             const INITIAL: #state_ident #state_generics = #initial_state;
 
-            #on_transition
+            #before_transition
+            #after_transition
 
-            #on_dispatch
+            #before_dispatch
+            #after_dispatch
         }
     )
 }

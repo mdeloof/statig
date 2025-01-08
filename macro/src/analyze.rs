@@ -48,10 +48,14 @@ pub struct StateMachine {
     pub context_ident: Ident,
     /// The visibility of the derived types.
     pub visibility: Visibility,
-    /// Optional `on_transition` callback.
-    pub on_transition: Option<Path>,
-    /// Optional `on_dispatch` callback.
-    pub on_dispatch: Option<Path>,
+    /// Optional `before_transition` callback.
+    pub before_transition: Option<Path>,
+    /// Optional `after_transition` callback.
+    pub after_transition: Option<Path>,
+    /// Optional `before_dispatch` callback.
+    pub before_dispatch: Option<Path>,
+    /// Optional `after_dispatch` callback.
+    pub after_dispatch: Option<Path>,
 }
 
 /// Information regarding a state.
@@ -179,8 +183,10 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let mut superstate_ident = parse_quote!(Superstate);
     let mut superstate_derives = Vec::new();
 
-    let mut on_transition = None;
-    let mut on_dispatch = None;
+    let mut after_transition = None;
+    let mut before_transition = None;
+    let mut before_dispatch = None;
+    let mut after_dispatch = None;
 
     let mut visibility = parse_quote!(pub);
     let mut event_ident = parse_quote!(event);
@@ -217,17 +223,33 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
                 }
             }
             NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("on_transition") =>
+                if name_value.path.is_ident("before_transition") =>
             {
-                on_transition = match &name_value.lit {
+                before_transition = match &name_value.lit {
                     Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
                     _ => abort!(name_value, "must be a string literal"),
                 }
             }
             NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("on_dispatch") =>
+                if name_value.path.is_ident("after_transition") =>
             {
-                on_dispatch = match &name_value.lit {
+                after_transition = match &name_value.lit {
+                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("before_dispatch") =>
+            {
+                before_dispatch = match &name_value.lit {
+                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
+                    _ => abort!(name_value, "must be a string literal"),
+                }
+            }
+            NestedMeta::Meta(Meta::NameValue(name_value))
+                if name_value.path.is_ident("after_dispatch") =>
+            {
+                after_dispatch = match &name_value.lit {
                     Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
                     _ => abort!(name_value, "must be a string literal"),
                 }
@@ -339,8 +361,10 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
         state_derives,
         superstate_ident,
         superstate_derives,
-        on_dispatch,
-        on_transition,
+        before_dispatch,
+        after_dispatch,
+        before_transition,
+        after_transition,
         event_ident,
         context_ident,
         visibility,
@@ -644,8 +668,10 @@ fn valid_state_analyze() {
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let superstate_ident = parse_quote!(Superstate);
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
-    let on_transition = None;
-    let on_dispatch = None;
+    let before_transition = None;
+    let after_transition = None;
+    let before_dispatch = None;
+    let after_dispatch = None;
     let event_ident = parse_quote!(event);
     let context_ident = parse_quote!(context);
     let visibility = parse_quote!(pub);
@@ -659,8 +685,10 @@ fn valid_state_analyze() {
         state_derives,
         superstate_ident,
         superstate_derives,
-        on_transition,
-        on_dispatch,
+        before_transition,
+        after_transition,
+        before_dispatch,
+        after_dispatch,
         event_ident,
         context_ident,
         visibility,

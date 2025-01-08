@@ -96,21 +96,31 @@ where
     where
         Self: Sized,
     {
-        M::ON_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
+        M::BEFORE_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
         let response = self.call_handler(shared_storage, event, context);
+
+        M::AFTER_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
 
         match response {
             Response::Handled => Response::Handled,
             Response::Super => match self.superstate() {
                 Some(mut superstate) => {
-                    M::ON_DISPATCH(
+                    M::BEFORE_DISPATCH(
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
                     );
 
-                    superstate.handle(shared_storage, event, context)
+                    let response = superstate.handle(shared_storage, event, context);
+
+                    M::AFTER_DISPATCH(
+                        shared_storage,
+                        StateOrSuperstate::Superstate(&superstate),
+                        event,
+                    );
+
+                    response
                 }
                 None => Response::Super,
             },

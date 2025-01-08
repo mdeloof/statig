@@ -14,12 +14,12 @@ pub struct Dishwasher {
 
 #[state_machine(
     initial = "State::idle()",
-    on_transition = "Self::on_transition",
+    after_transition = "Self::after_transition",
     state(derive(Debug, Clone))
 )]
 impl Dishwasher {
     // On every transition we update the previous state, so we can transition back to it.
-    fn on_transition(&mut self, source: &State, _target: &State) {
+    fn after_transition(&mut self, source: &State, _target: &State) {
         // println!("transitioned from `{:?}` to `{:?}`", source, _target);
         self.previous_state = source.clone();
     }
