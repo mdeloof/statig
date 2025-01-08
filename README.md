@@ -248,7 +248,7 @@ state_machine.handle_with_context(&Event::TimerElapsed, &mut context);
 
 ### Introspection
 
-For logging purposes you can define two callbacks that will be called at specific points during state machine execution.
+For logging purposes you can define various callbacks that will be called at specific points during state machine execution.
 
 - `before_dispatch` is called before an event is dispatched to a specific state or superstate.
 - `after_dispatch` is called after an event is dispatched to a specific state or superstate.
@@ -476,7 +476,7 @@ We don't execute the exit or entry action of `Blinking` as this superstate is sh
 
 Entry and exit actions also have access to state-local storage, but note that exit actions operate on state-local storage of the source state and that entry actions operate on the state-local storage of the target state.
 
-For example chaning the value of `counter` in the exit action of `LedOn` will have no effect on the value of `counter` in the `LedOff` state.
+For example changing the value of `counter` in the exit action of `LedOn` will have no effect on the value of `counter` in the `LedOff` state.
 
 Finally, the `StateMachine` trait is implemented on the type that will be used for the shared storage.
 
