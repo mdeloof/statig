@@ -43,7 +43,7 @@ where
 
     /// Transition from the current state to the given target state.
     pub async fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
-        M::before_transition(&mut self.shared_storage, &self.state, &target);
+        M::before_transition(&mut self.shared_storage, &self.state, &target).await;
 
         // Get the transition path we need to perform from one state to the next.
         let (exit_levels, enter_levels) = self.state.transition_path(&mut target);

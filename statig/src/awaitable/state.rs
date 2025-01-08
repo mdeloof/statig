@@ -121,7 +121,8 @@ where
                             shared_storage,
                             StateOrSuperstate::Superstate(&superstate),
                             event,
-                        );
+                        )
+                        .await;
 
                         let response = superstate
                             .call_handler(shared_storage, event, context)
@@ -131,7 +132,8 @@ where
                             shared_storage,
                             StateOrSuperstate::Superstate(&superstate),
                             event,
-                        );
+                        )
+                        .await;
 
                         match response {
                             Response::Handled => break Response::Handled,
