@@ -382,6 +382,7 @@
 //!
 //! - `before_dispatch` is called before an event is dispatched to a specific state or superstate.
 //! - `after_dispatch` is called after an event is dispatched to a specific state or superstate.
+//! - `before_transition` is called before a transition has occurred.
 //! - `after_transition` is called after a transition has occurred.
 //!
 //! ```
