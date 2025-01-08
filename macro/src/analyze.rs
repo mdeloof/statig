@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use proc_macro_error::abort;
 use syn::parse::Parser;
 use syn::{
-    parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, Generics, Ident, ImplItem,
-    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatType, Path, Receiver, Type,
-    Visibility,
+    parse_quote, Attribute, AttributeArgs, Expr, Field, FnArg, Generics, Ident, ImplItem,
+    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatIdent, PatType, Path,
+    Receiver, Type, Visibility,
 };
 
 /// Model of the state machine.
@@ -27,7 +27,7 @@ pub struct Model {
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct StateMachine {
     /// The inital state of the state machine.
-    pub initial_state: ExprCall,
+    pub initial_state: Expr,
     /// The type on which the state machine is implemented.
     pub shared_storage_type: Type,
     /// The path of the shared storage.
@@ -72,7 +72,7 @@ pub struct State {
     /// Local storage,
     pub local_storage: Vec<Field>,
     /// Local storage default.
-    pub local_storage_default: Vec<Ident>,
+    pub local_storage_default: Vec<LocalStorageDefault>,
     /// Inputs required by the state handler.
     pub inputs: Vec<FnArg>,
     /// Optional receiver input for the state handler (e.g. `&mut self`).
@@ -123,6 +123,22 @@ pub struct Action {
     pub inputs: Vec<FnArg>,
     /// Whether the function is async or not.
     pub is_async: bool,
+}
+
+/// Information regarding a local storage default.
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
+pub enum LocalStorageDefault {
+    Empty { ident: Ident },
+    Value { ident: Ident, value: Expr },
+}
+
+impl LocalStorageDefault {
+    pub(crate) fn ident(&self) -> &Ident {
+        match self {
+            LocalStorageDefault::Empty { ident } => ident,
+            LocalStorageDefault::Value { ident, .. } => ident,
+        }
+    }
 }
 
 /// Analyze the impl block and create a model.
@@ -178,7 +194,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let shared_storage_generics = item_impl.generics.clone();
     let shared_storage_path = get_shared_storage_path(&shared_storage_type);
 
-    let mut initial_state: Option<ExprCall> = None;
+    let mut initial_state: Option<Expr> = None;
 
     let mut state_ident = parse_quote!(State);
     let mut state_derives = Vec::new();
@@ -418,8 +434,9 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
                             .iter()
                             .position(|attr| attr.path.is_ident("default"))
                         {
-                            pat_type.attrs.swap_remove(index);
-                            local_storage_default.push(input.ident.clone());
+                            let attr = pat_type.attrs.swap_remove(index);
+                            let default = analyze_local_storage_default(input, &attr);
+                            local_storage_default.push(default);
                         }
 
                         state_inputs.push(pat_type.clone());
@@ -608,6 +625,30 @@ pub fn analyze_action(method: &ImplItemMethod) -> Action {
         handler_name,
         inputs,
         is_async,
+    }
+}
+
+fn analyze_local_storage_default(input: &PatIdent, attribute: &Attribute) -> LocalStorageDefault {
+    let Ok(meta) = attribute.parse_meta() else {
+        abort!(attribute, "attribute must use meta syntax")
+    };
+    match meta {
+        Meta::Path(_) => LocalStorageDefault::Empty {
+            ident: input.ident.clone(),
+        },
+        Meta::NameValue(name_value) => {
+            let Lit::Str(literal) = name_value.lit else {
+                abort!(name_value.lit, "must be a string literal")
+            };
+            let Ok(expr) = literal.parse() else {
+                abort!(literal, "must be an expression")
+            };
+            LocalStorageDefault::Value {
+                ident: input.ident.clone(),
+                value: expr,
+            }
+        }
+        _ => abort!(attribute, "wrong attribute format"),
     }
 }
 

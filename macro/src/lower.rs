@@ -475,12 +475,19 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
     // Check if variant field should use default value.
     for field in &variant_fields {
         let field_name = &field.ident;
-        if state
+        if let Some(default) = state
             .local_storage_default
             .iter()
-            .any(|default| field.ident.as_ref().unwrap() == default)
+            .find(|default| field.ident.as_ref().unwrap() == default.ident())
         {
-            field_values.push(parse_quote!(#field_name: core::default::Default::default()))
+            match default {
+                analyze::LocalStorageDefault::Empty { ident } => {
+                    field_values.push(parse_quote!(#ident: core::default::Default::default()))
+                }
+                analyze::LocalStorageDefault::Value { ident, value } => {
+                    field_values.push(parse_quote!(#ident: #value))
+                }
+            }
         } else {
             constructor_args.push(field.clone());
             field_values.push(parse_quote!(#field_name));

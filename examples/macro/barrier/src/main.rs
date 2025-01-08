@@ -13,7 +13,7 @@ enum Event {
 impl Foo {
     #[state(superstate = "waiting_for_initialization")]
     fn initializing(
-        #[default] a: &mut bool,
+        #[default = "true"] a: &mut bool,
         #[default] b: &mut bool,
         #[default] c: &mut bool,
         event: &Event,
@@ -50,6 +50,8 @@ impl Foo {
 
 fn main() {
     let mut state_machine = Foo::default().uninitialized_state_machine().init();
+
+    dbg!(state_machine.state());
 
     state_machine.handle(&Event::A);
     state_machine.handle(&Event::B);
