@@ -31,9 +31,9 @@ pub enum Event {
     after_transition = "Self::after_transition",
     // Set the `before_dispatch` callback.
     before_dispatch = "Self::before_dispatch",
-    // Set the `before_dispatch` callback.
+    // Set the `after_dispatch` callback.
     after_dispatch = "Self::after_dispatch",
-    // Set the `before_dispatch` callback.
+    // Set the `before_transition` callback.
     before_transition = "Self::before_transition"
 )]
 impl Blinky {
@@ -88,7 +88,7 @@ impl Blinky {
     }
 
     fn before_transition(&mut self, source: &State, target: &State) {
-        println!("after transitioned from `{source:?}` to `{target:?}`");
+        println!("before transitioned from `{source:?}` to `{target:?}`");
     }
 
     fn before_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
