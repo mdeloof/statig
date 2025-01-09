@@ -1,4 +1,4 @@
-use crate::blocking::{self, IntoStateMachine, StateExt as _};
+use crate::blocking::{IntoStateMachine, State, StateExt, Superstate};
 use crate::Response;
 
 /// Private internal representation of a state machine that is used for the public types.
@@ -13,18 +13,22 @@ where
 impl<M> Inner<M>
 where
     M: IntoStateMachine,
-    M::State: blocking::State<M>,
-    for<'sub> M::Superstate<'sub>: blocking::Superstate<M>,
+    M::State: State<M>,
+    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Initialize the state machine by executing all entry actions towards the initial state.
-    pub fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub(crate) fn init_with_context(&mut self, context: &mut M::Context<'_>) {
         let enter_levels = self.state.depth();
         self.state
             .enter(&mut self.shared_storage, context, enter_levels);
     }
 
     /// Handle the given event.
-    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) {
+    pub(crate) fn handle_with_context(
+        &mut self,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'_>,
+    ) {
         let response = self.state.handle(&mut self.shared_storage, event, context);
         match response {
             Response::Super => {}
@@ -34,7 +38,7 @@ where
     }
 
     /// Transition from the current state to the given target state.
-    pub fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
+    pub(crate) fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
         M::before_transition(&mut self.shared_storage, &target, &self.state);
 
         // Get the transition path we need to perform from one state to the next.

@@ -1,6 +1,4 @@
-use crate::awaitable::IntoStateMachine;
-#[cfg(feature = "async")]
-use crate::awaitable::{State, StateExt as _, Superstate};
+use crate::awaitable::{IntoStateMachine, State, StateExt, Superstate};
 use crate::Response;
 
 /// Private internal representation of a state machine that is used for the public types.
@@ -18,14 +16,14 @@ where
     M::State: State<M> + 'static,
     for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
-    pub async fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub(crate) async fn init_with_context(&mut self, context: &mut M::Context<'_>) {
         let enter_levels = self.state.depth();
         self.state
             .enter(&mut self.shared_storage, context, enter_levels)
             .await;
     }
 
-    pub async fn handle_with_context(
+    pub(crate) async fn handle_with_context(
         &mut self,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
@@ -42,7 +40,7 @@ where
     }
 
     /// Transition from the current state to the given target state.
-    pub async fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
+    pub(crate) async fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
         M::before_transition(&mut self.shared_storage, &self.state, &target).await;
 
         // Get the transition path we need to perform from one state to the next.
