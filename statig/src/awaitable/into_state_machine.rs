@@ -21,7 +21,7 @@ where
     where
         Self::State: 'sub;
 
-    /// Initial state of the state machine.
+    /// Constructor for the initial state of the state machine.
     fn initial() -> Self::State;
 
     /// Method that is called *before* an event is dispatched to a state or

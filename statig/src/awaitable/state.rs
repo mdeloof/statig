@@ -138,7 +138,9 @@ where
                         match response {
                             Response::Handled => break Response::Handled,
                             Response::Super => match superstate.superstate() {
-                                Some(s) => superstate = s,
+                                Some(superstate_of_superstate) => {
+                                    superstate = superstate_of_superstate
+                                }
                                 None => break Response::Handled,
                             },
                             Response::Transition(state) => break Response::Transition(state),
@@ -160,6 +162,11 @@ where
         mut levels: usize,
     ) -> impl Future<Output = ()> {
         async move {
+            // For each level we need to enter, climb that number of levels and excecute
+            // the superstate's entry action. We then decrement `levels` and again climb
+            // up the tree and execute the next entry action. We keep doing this until
+            // `levels` is equal to 1, which means the only entry action left to excecute
+            // is the state's own.
             while levels > 1 {
                 if let Some(mut superstate) = self.superstate() {
                     for _ in 2..levels {
@@ -188,10 +195,15 @@ where
         mut levels: usize,
     ) -> impl Future<Output = ()> {
         async move {
+            // First we need to excucute that state's own exit action.
             if levels >= 1 {
                 self.call_exit_action(shared_storage, context).await;
             }
 
+            // For each level we need to exit, climb up one level in the tree and
+            // execute the superstate's exit action, then decrement `levels`. As long as
+            // `levels` is greater then 1, we keep climbing up the three and excecute
+            // that superstate exit action.
             if let Some(mut superstate) = self.superstate() {
                 while levels > 1 {
                     superstate.call_exit_action(shared_storage, context).await;
