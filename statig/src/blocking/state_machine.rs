@@ -111,67 +111,6 @@ where
     pub fn state(&self) -> &M::State {
         &self.inner.state
     }
-
-    /// Get a reference to the [StateMachine]'s [Inner] storage.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(
-    /// #     initial = "State::on()",
-    /// #     state(derive(Debug, PartialEq, Eq))
-    /// # )]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
-    /// # }
-    /// #
-    /// let state_machine = Blinky::default().state_machine();
-    /// assert_eq!(state_machine.inner().shared_storage.led, false);
-    /// assert_eq!(state_machine.inner().state, State::on());
-    /// ```
-    pub fn inner(&self) -> &Inner<M> {
-        &self.inner
-    }
-
-    /// Get a mutable reference to the [StateMachine]'s [Inner] storage.
-    ///
-    /// # Safety
-    ///
-    /// - The user is responsible for validating that mutating a
-    ///   [StateMachine] does not break any invariants.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(initial = "State::on()")]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
-    /// # }
-    /// #
-    /// let mut state_machine = Blinky::default().state_machine();
-    ///
-    /// unsafe {
-    ///     state_machine.inner_mut().shared_storage.led = true;
-    ///     state_machine.inner_mut().state = State::on();
-    /// }
-    /// ```
-    pub unsafe fn inner_mut(&mut self) -> &mut Inner<M> {
-        &mut self.inner
-    }
 }
 
 impl<M> Clone for StateMachine<M>
@@ -325,67 +264,6 @@ where
     /// Get an immutable reference to the current state of the state machine.
     pub fn state(&self) -> &M::State {
         &self.inner.state
-    }
-
-    /// Get a reference to the [InitializedStateMachine]'s [Inner] storage.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(
-    /// #     initial = "State::on()",
-    /// #     state(derive(Debug, PartialEq, Eq))
-    /// # )]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
-    /// # }
-    /// #
-    /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let initialized_state_machine = uninitialized_state_machine.init();
-    /// assert_eq!(initialized_state_machine.inner().shared_storage.led, false);
-    /// assert_eq!(initialized_state_machine.inner().state, State::on());
-    /// ```
-    pub fn inner(&self) -> &Inner<M> {
-        &self.inner
-    }
-
-    /// Get a mutable reference to the [InitializedStateMachine]'s [Inner] storage.
-    /// 
-    /// # Safety
-    ///
-    /// - The user is responsible for validating that mutating a
-    ///   [InitializedStateMachine] does not break any invariants.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(initial = "State::on()")]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
-    /// # }
-    /// #
-    /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init();
-    /// unsafe {
-    ///     initialized_state_machine.inner_mut().shared_storage.led = true;
-    /// }
-    /// ```
-    pub unsafe fn inner_mut(&mut self) -> &mut Inner<M> {
-        &mut self.inner
     }
 }
 
@@ -555,61 +433,6 @@ where
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.init_with_context(context);
         state_machine
-    }
-
-    /// Get a reference to the [UninitializedStateMachine]'s [Inner] storage.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(
-    /// #     initial = "State::on()",
-    /// #     state(derive(Debug, PartialEq, Eq))
-    /// # )]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
-    /// # }
-    /// #
-    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    ///
-    /// assert_eq!(uninitialized_state_machine.inner().shared_storage.led, false);
-    /// assert_eq!(uninitialized_state_machine.inner().state, State::on());
-    /// ```
-    pub fn inner(&self) -> &Inner<M> {
-        &self.inner
-    }
-
-    /// Get a mutable reference to the [UninitializedStateMachine]'s [Inner] storage.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(initial = "State::on()")]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
-    /// # }
-    /// #
-    /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    ///
-    /// uninitialized_state_machine.inner_mut().shared_storage.led = true;
-    /// uninitialized_state_machine.inner_mut().state = State::on();
-    /// ```
-    pub fn inner_mut(&mut self) -> &mut Inner<M> {
-        &mut self.inner
     }
 }
 
