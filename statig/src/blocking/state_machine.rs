@@ -111,6 +111,97 @@ where
     pub fn state(&self) -> &M::State {
         &self.inner.state
     }
+
+    /// Get a reference to the [StateMachine]'s underlying type.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(
+    /// #     initial = "State::on()",
+    /// #     state(derive(Debug, PartialEq, Eq))
+    /// # )]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let state_machine = Blinky::default().state_machine();
+    /// assert_eq!(state_machine.inner().led, false);
+    /// ```
+    pub fn inner(&self) -> &M {
+        &self.inner.shared_storage
+    }
+
+    /// Get a mutable reference to the [StateMachine]'s underlying type.
+    ///
+    /// # Safety
+    ///
+    /// - The user is responsible for validating that mutating a
+    ///   [StateMachine] does not break any invariants.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let mut state_machine = Blinky::default().state_machine();
+    ///
+    /// unsafe {
+    ///     state_machine.inner_mut().led = true;
+    /// }
+    /// ```
+    pub unsafe fn inner_mut(&mut self) -> &mut M {
+        &mut self.inner.shared_storage
+    }
+
+    /// Get a mutable reference to the [StateMachine]'s current state.
+    ///
+    /// # Safety
+    ///
+    /// - The user is responsible for validating that mutating a
+    ///   [StateMachine] does not break any invariants.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let mut state_machine = Blinky::default().state_machine();
+    ///
+    /// unsafe {
+    ///     *state_machine.state_mut() = State::on();
+    /// }
+    /// ```
+    pub unsafe fn state_mut(&mut self) -> &mut M::State {
+        &mut self.inner.state
+    }
 }
 
 impl<M> Clone for StateMachine<M>
@@ -264,6 +355,99 @@ where
     /// Get an immutable reference to the current state of the state machine.
     pub fn state(&self) -> &M::State {
         &self.inner.state
+    }
+
+    /// Get a reference to the [InitializedStateMachine]'s underlying type.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(
+    /// #     initial = "State::on()",
+    /// #     state(derive(Debug, PartialEq, Eq))
+    /// # )]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// assert_eq!(initialized_state_machine.inner().led, false);
+    /// ```
+    pub fn inner(&self) -> &M {
+        &self.inner.shared_storage
+    }
+
+    /// Get a mutable reference to the [InitializedStateMachine]'s underlying type.
+    ///
+    /// # Safety
+    ///
+    /// - The user is responsible for validating that mutating a
+    ///   [InitializedStateMachine] does not break any invariants.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    /// unsafe {
+    ///     initialized_state_machine.inner_mut().led = true;
+    /// }
+    /// ```
+    pub unsafe fn inner_mut(&mut self) -> &mut M {
+        &mut self.inner.shared_storage
+    }
+
+    /// Get a mutable reference to the [InitializedStateMachine]'s current state.
+    ///
+    /// # Safety
+    ///
+    /// - The user is responsible for validating that mutating a
+    ///   [StateMachine] does not break any invariants.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    ///
+    /// unsafe {
+    ///     *initialized_state_machine.state_mut() = State::on();
+    /// }
+    /// ```
+    pub unsafe fn state_mut(&mut self) -> &mut M::State {
+        &mut self.inner.state
     }
 }
 
@@ -433,6 +617,89 @@ where
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.init_with_context(context);
         state_machine
+    }
+
+    /// Get a reference to the [UninitializedStateMachine]'s underlying type.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(
+    /// #     initial = "State::on()",
+    /// #     state(derive(Debug, PartialEq, Eq))
+    /// # )]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    ///
+    /// assert_eq!(uninitialized_state_machine.inner().led, false);
+    /// ```
+    pub fn inner(&self) -> &M {
+        &self.inner.shared_storage
+    }
+
+    /// Get a mutable reference to the [UninitializedStateMachine]'s underlying type.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    ///
+    /// uninitialized_state_machine.inner_mut().led = true;
+    /// ```
+    pub fn inner_mut(&mut self) -> &mut M {
+        &mut self.inner.shared_storage
+    }
+
+    /// Get a mutable reference to the [StateMachine]'s current state.
+    ///
+    /// # Safety
+    ///
+    /// - The user is responsible for validating that mutating a
+    ///   [StateMachine] does not break any invariants.
+    ///
+    /// ```
+    /// # use statig::prelude::*;
+    /// # #[derive(Default)]
+    /// # pub struct Blinky {
+    /// #     led: bool,
+    /// # }
+    /// #
+    /// # pub struct Event;
+    /// #
+    /// # #[state_machine(initial = "State::on()")]
+    /// # impl Blinky {
+    /// #     #[state]
+    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// # }
+    /// #
+    /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
+    ///
+    /// *uninitialized_state_machine.state_mut() = State::on();
+    /// ```
+    pub fn state_mut(&mut self) -> &mut M::State {
+        &mut self.inner.state
     }
 }
 
