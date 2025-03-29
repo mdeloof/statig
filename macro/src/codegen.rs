@@ -66,7 +66,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
                 ) {
-                    #before_dispatch;
+                    #before_dispatch(self, state_or_superstate, event);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -90,7 +90,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
                 ) {
-                    #after_dispatch;
+                    #after_dispatch(self, state_or_superstate, event);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -114,7 +114,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     source: &Self::State,
                     target: &Self::State,
                 ) {
-                    #before_transition;
+                    #before_transition(self, source, target);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -138,7 +138,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     source: &Self::State,
                     target: &Self::State,
                 ) {
-                    #after_transition;
+                    #after_transition(self, source, target);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -162,7 +162,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
             type Superstate<#superstate_lifetime> = #superstate_ident #superstate_generics ;
 
             fn initial() -> #state_ident #state_generics {
-                #initial_state
+                (#initial_state)()
             }
 
             #before_transition
