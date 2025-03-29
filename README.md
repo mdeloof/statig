@@ -4,6 +4,7 @@
 [![Documentation](https://docs.rs/statig/badge.svg)](https://docs.rs/statig)
 [![Rust version](https://img.shields.io/badge/Rust-1.65.0-blue)](https://releases.rs/docs/released/1.65.0)
 [![CI](https://github.com/mdeloof/statig/actions/workflows/ci.yml/badge.svg)](https://github.com/mdeloof/statig/actions/workflows/ci.yml)
+[![libs.tech recommends](https://libs.tech/project/398071324/badge.svg)](https://libs.tech/project/398071324/statig)
 
 
 Hierarchical state machines for designing event-driven systems.
