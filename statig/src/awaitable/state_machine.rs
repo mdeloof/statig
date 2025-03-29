@@ -17,7 +17,7 @@ where
     {
         let inner = Inner {
             shared_storage: self,
-            state: Self::INITIAL,
+            state: Self::INITIAL(),
         };
         StateMachine {
             inner,
@@ -30,7 +30,7 @@ where
     fn uninitialized_state_machine(self) -> UninitializedStateMachine<Self> {
         let inner = Inner {
             shared_storage: self,
-            state: Self::INITIAL,
+            state: Self::INITIAL(),
         };
         UninitializedStateMachine { inner }
     }
@@ -258,7 +258,7 @@ where
     fn default() -> Self {
         let inner = Inner {
             shared_storage: M::default(),
-            state: M::INITIAL,
+            state: M::INITIAL(),
         };
         Self {
             inner,

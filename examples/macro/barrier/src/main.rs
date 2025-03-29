@@ -9,13 +9,15 @@ enum Event {
     C,
 }
 
-#[state_machine(
-    initial = "State::initializing(false, false, false)",
-    state(derive(PartialEq, Eq, Debug))
-)]
+#[state_machine(initial = "State::initializing()", state(derive(PartialEq, Eq, Debug)))]
 impl Foo {
     #[state(superstate = "waiting_for_initialization")]
-    fn initializing(a: &mut bool, b: &mut bool, c: &mut bool, event: &Event) -> Response<State> {
+    fn initializing(
+        #[default = "true"] a: &mut bool,
+        #[default] b: &mut bool,
+        #[default] c: &mut bool,
+        event: &Event,
+    ) -> Response<State> {
         match event {
             Event::A => {
                 *a = true;
@@ -48,6 +50,8 @@ impl Foo {
 
 fn main() {
     let mut state_machine = Foo::default().uninitialized_state_machine().init();
+
+    dbg!(state_machine.state());
 
     state_machine.handle(&Event::A);
     state_machine.handle(&Event::B);

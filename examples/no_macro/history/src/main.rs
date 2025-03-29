@@ -36,7 +36,7 @@ impl IntoStateMachine for Dishwasher {
 
     type Context<'ctx> = ();
 
-    const INITIAL: State = State::Idle;
+    const INITIAL: fn() -> Self::State = || State::Idle;
 
     // On every transition we update the previous state, so we can
     // transition back to it.
@@ -135,7 +135,7 @@ impl Dishwasher {
 
 fn main() {
     let mut state_machine = Dishwasher {
-        previous_state: Dishwasher::INITIAL,
+        previous_state: Dishwasher::INITIAL(),
     }
     .uninitialized_state_machine()
     .init();

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use proc_macro_error::abort;
 use syn::parse::Parser;
 use syn::{
-    parse_quote, Attribute, AttributeArgs, ExprCall, Field, FnArg, Generics, Ident, ImplItem,
-    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatType, Path, Receiver, Type,
-    Visibility,
+    parse_quote, Attribute, AttributeArgs, Expr, Field, FnArg, Generics, Ident, ImplItem,
+    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatIdent, PatType, Path,
+    Receiver, Type, Visibility,
 };
 
 /// Model of the state machine.
@@ -27,7 +27,7 @@ pub struct Model {
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct StateMachine {
     /// The inital state of the state machine.
-    pub initial_state: ExprCall,
+    pub initial_state: Expr,
     /// The type on which the state machine is implemented.
     pub shared_storage_type: Type,
     /// The path of the shared storage.
@@ -71,6 +71,8 @@ pub struct State {
     pub exit_action: Option<Ident>,
     /// Local storage,
     pub local_storage: Vec<Field>,
+    /// Local storage default.
+    pub local_storage_default: Vec<LocalStorageDefault>,
     /// Inputs required by the state handler.
     pub inputs: Vec<FnArg>,
     /// Optional receiver input for the state handler (e.g. `&mut self`).
@@ -123,8 +125,24 @@ pub struct Action {
     pub is_async: bool,
 }
 
+/// Information regarding a local storage default.
+#[cfg_attr(test, derive(Debug, Eq, PartialEq))]
+pub enum LocalStorageDefault {
+    Empty { ident: Ident },
+    Value { ident: Ident, value: Expr },
+}
+
+impl LocalStorageDefault {
+    pub(crate) fn ident(&self) -> &Ident {
+        match self {
+            LocalStorageDefault::Empty { ident } => ident,
+            LocalStorageDefault::Value { ident, .. } => ident,
+        }
+    }
+}
+
 /// Analyze the impl block and create a model.
-pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
+pub fn analyze(attribute_args: AttributeArgs, mut item_impl: ItemImpl) -> Model {
     let state_machine = analyze_state_machine(&attribute_args, &item_impl);
 
     let mut states = HashMap::new();
@@ -132,14 +150,14 @@ pub fn analyze(attribute_args: AttributeArgs, item_impl: ItemImpl) -> Model {
     let mut actions = HashMap::new();
 
     // Create an iterator over only the method items.
-    let methods = item_impl.items.iter().filter_map(|item| match item {
+    let methods = item_impl.items.iter_mut().filter_map(|item| match item {
         ImplItem::Method(method) => Some(method),
         _ => None,
     });
 
     // Iterator over the methods in the impl block.
     for method in methods {
-        for attr in method.attrs.iter() {
+        for attr in method.attrs.clone().iter() {
             match &attr.path {
                 path if path.is_ident("state") => {
                     let state = analyze_state(method, &state_machine);
@@ -176,7 +194,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let shared_storage_generics = item_impl.generics.clone();
     let shared_storage_path = get_shared_storage_path(&shared_storage_type);
 
-    let mut initial_state: Option<ExprCall> = None;
+    let mut initial_state: Option<Expr> = None;
 
     let mut state_ident = parse_quote!(State);
     let mut state_derives = Vec::new();
@@ -372,7 +390,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 }
 
 /// Retrieve information regarding the state.
-pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> State {
+pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) -> State {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.iter().cloned().collect();
 
@@ -380,6 +398,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let mut entry_action = None;
     let mut exit_action = None;
     let mut local_storage = Vec::new();
+    let mut local_storage_default = Vec::new();
     let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
@@ -397,32 +416,47 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
     let is_async = method.sig.asyncness.is_some();
 
     // Iterate over the inputs of the state handler.
-    for input in &method.sig.inputs {
+    for input in &mut method.sig.inputs {
         match input {
             FnArg::Receiver(receiver) => shared_storage_input = Some(receiver.clone()),
-            FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
-                Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
-                    event_arg = Some(pat_type.clone());
-                }
-                Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
-                    context_arg = Some(pat_type.clone());
-                }
-                Pat::Ident(_) => {
-                    state_inputs.push(pat_type.clone());
-                }
-                Pat::Reference(_) => {
-                    state_inputs.push(pat_type.clone());
-                }
-                Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
-                Pat::TupleStruct(_) => abort!(pat_type, "tuple struct pattern is not supported"),
-                Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
-                Pat::Wild(_) => abort!(
-                    pat_type,
-                    "wildcard pattern is not supported";
-                    help = "consider giving the input a name"
-                ),
-                _ => abort!(pat_type, "patterns are not supported"),
-            },
+            FnArg::Typed(ref mut pat_type) => {
+                let pat = pat_type.pat.as_mut();
+                match pat {
+                    Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
+                        event_arg = Some(pat_type.clone());
+                    }
+                    Pat::Ident(pat) if state_machine.context_ident.eq(&pat.ident) => {
+                        context_arg = Some(pat_type.clone());
+                    }
+                    Pat::Ident(ref mut input) => {
+                        if let Some(index) = pat_type
+                            .attrs
+                            .iter()
+                            .position(|attr| attr.path.is_ident("default"))
+                        {
+                            let attr = pat_type.attrs.swap_remove(index);
+                            let default = analyze_local_storage_default(input, &attr);
+                            local_storage_default.push(default);
+                        }
+
+                        state_inputs.push(pat_type.clone());
+                    }
+                    Pat::Reference(_) => {
+                        state_inputs.push(pat_type.clone());
+                    }
+                    Pat::Tuple(_) => abort!(pat_type, "tuple pattern is not supported"),
+                    Pat::TupleStruct(_) => {
+                        abort!(pat_type, "tuple struct pattern is not supported")
+                    }
+                    Pat::Struct(_) => abort!(pat_type, "struct pattern is not supported"),
+                    Pat::Wild(_) => abort!(
+                        pat_type,
+                        "wildcard pattern is not supported";
+                        help = "consider giving the input a name"
+                    ),
+                    _ => abort!(pat_type, "patterns are not supported"),
+                };
+            }
         }
     }
 
@@ -462,6 +496,7 @@ pub fn analyze_state(method: &ImplItemMethod, state_machine: &StateMachine) -> S
         entry_action,
         exit_action,
         local_storage,
+        local_storage_default,
         inputs,
         shared_storage_input,
         state_inputs,
@@ -593,6 +628,30 @@ pub fn analyze_action(method: &ImplItemMethod) -> Action {
     }
 }
 
+fn analyze_local_storage_default(input: &PatIdent, attribute: &Attribute) -> LocalStorageDefault {
+    let Ok(meta) = attribute.parse_meta() else {
+        abort!(attribute, "attribute must use meta syntax")
+    };
+    match meta {
+        Meta::Path(_) => LocalStorageDefault::Empty {
+            ident: input.ident.clone(),
+        },
+        Meta::NameValue(name_value) => {
+            let Lit::Str(literal) = name_value.lit else {
+                abort!(name_value.lit, "must be a string literal")
+            };
+            let Ok(expr) = literal.parse() else {
+                abort!(literal, "must be an expression")
+            };
+            LocalStorageDefault::Value {
+                ident: input.ident.clone(),
+                value: expr,
+            }
+        }
+        _ => abort!(attribute, "wrong attribute format"),
+    }
+}
+
 /// Parse the attributes as a meta item.
 pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
     attrs
@@ -700,6 +759,7 @@ fn valid_state_analyze() {
         entry_action: parse_quote!(enter_on),
         exit_action: parse_quote!(enter_off),
         local_storage: vec![],
+        local_storage_default: vec![],
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
         shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],

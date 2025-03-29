@@ -24,7 +24,7 @@ mod tests {
         type Context<'ctx> = ();
 
         /// The initial state of the state machine.
-        const INITIAL: StateEnum = StateEnum::On {
+        const INITIAL: fn() -> Self::State = || StateEnum::On {
             led: false,
             counter: 23,
         };
@@ -32,7 +32,7 @@ mod tests {
 
     impl Default for StateEnum {
         fn default() -> Self {
-            Blinky::INITIAL
+            Blinky::INITIAL()
         }
     }
 

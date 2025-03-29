@@ -490,7 +490,7 @@ impl IntoStateMachine for Blinky {
 
     type Context<'ctx> = Context;
 
-    const INITIAL: State = State::off(10);
+    const INITIAL: fn() -> State = || State::off(10);
 }
 ```
 

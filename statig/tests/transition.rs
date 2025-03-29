@@ -55,7 +55,7 @@ mod tests {
 
         type Context<'ctx> = ();
 
-        const INITIAL: State = State::S11;
+        const INITIAL: fn() -> Self::State = || State::S11;
     }
 
     impl blocking::State<Foo> for State {
