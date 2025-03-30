@@ -26,7 +26,7 @@ pub struct Model {
 /// General information regarding the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct StateMachine {
-    /// The inital state of the state machine.
+    /// The initial state of the state machine.
     pub initial_state: Expr,
     /// The type on which the state machine is implemented.
     pub shared_storage_type: Type,
@@ -213,7 +213,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let mut state_meta: MetaList = parse_quote!(state());
     let mut superstate_meta: MetaList = parse_quote!(superstate());
 
-    // Iterate over the meta attribites on the `#[state_machine]` macro.
+    // Iterate over the meta attributes on the `#[state_machine]` macro.
     for arg in attribute_args {
         match arg {
             NestedMeta::Meta(Meta::NameValue(name_value))
