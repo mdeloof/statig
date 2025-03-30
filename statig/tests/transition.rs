@@ -55,7 +55,9 @@ mod tests {
 
         type Context<'ctx> = ();
 
-        const INITIAL: fn() -> Self::State = || State::S11;
+        fn initial() -> Self::State {
+            State::S11
+        }
     }
 
     impl blocking::State<Foo> for State {
@@ -97,7 +99,10 @@ mod tests {
         }
     }
 
-    impl blocking::Superstate<Foo> for Superstate {
+    impl<'sub> blocking::Superstate<Foo> for Superstate
+    where
+        Self: 'sub,
+    {
         fn call_handler(
             &mut self,
             shared_storage: &mut Foo,

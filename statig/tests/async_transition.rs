@@ -1,8 +1,9 @@
+#![allow(clippy::manual_async_fn)]
+
 #[cfg(test)]
 #[cfg(feature = "async")]
 mod tests {
     use core::future::Future;
-    use core::pin::Pin;
     use statig::awaitable::{self, *};
     use std::fmt;
 
@@ -57,51 +58,53 @@ mod tests {
 
         type Context<'ctx> = ();
 
-        const INITIAL: fn() -> Self::State = || State::S11;
+        fn initial() -> Self::State {
+            State::S11
+        }
     }
 
     impl awaitable::State<Foo> for State {
-        fn call_handler<'fut>(
-            &'fut mut self,
-            shared_storage: &'fut mut Foo,
-            event: &'fut <Foo as IntoStateMachine>::Event<'_>,
-            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = statig::Response<Self>> + 'fut + Send>> {
-            Box::pin(async move {
+        fn call_handler(
+            &mut self,
+            shared_storage: &mut Foo,
+            event: &<Foo as IntoStateMachine>::Event<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> impl Future<Output = statig::Response<Self>> {
+            async move {
                 match self {
                     State::S211 {} => Foo::s211(shared_storage, event).await,
                     State::S11 {} => Foo::s11(shared_storage, event).await,
                     State::S12 {} => Foo::s12(shared_storage, event).await,
                 }
-            })
+            }
         }
 
-        fn call_entry_action<'fut>(
-            &'fut mut self,
-            shared_storage: &'fut mut Foo,
-            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
-            Box::pin(async move {
+        fn call_entry_action(
+            &mut self,
+            shared_storage: &mut Foo,
+            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> impl Future<Output = ()> {
+            async move {
                 match self {
                     State::S211 {} => Foo::enter_s211(shared_storage).await,
                     State::S11 {} => Foo::enter_s11(shared_storage).await,
                     State::S12 {} => Foo::enter_s12(shared_storage).await,
                 }
-            })
+            }
         }
 
-        fn call_exit_action<'fut>(
-            &'fut mut self,
-            shared_storage: &'fut mut Foo,
-            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
-            Box::pin(async move {
+        fn call_exit_action(
+            &mut self,
+            shared_storage: &mut Foo,
+            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> impl Future<Output = ()> {
+            async move {
                 match self {
                     State::S211 {} => Foo::exit_s211(shared_storage).await,
                     State::S11 {} => Foo::exit_s11(shared_storage).await,
                     State::S12 {} => Foo::exit_s12(shared_storage).await,
                 }
-            })
+            }
         }
 
         fn superstate(&mut self) -> Option<Superstate> {
@@ -114,53 +117,53 @@ mod tests {
     }
 
     impl awaitable::Superstate<Foo> for Superstate {
-        fn call_handler<'fut>(
-            &'fut mut self,
-            shared_storage: &'fut mut Foo,
-            event: &'fut <Foo as IntoStateMachine>::Event<'_>,
-            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = statig::Response<State>> + 'fut + Send>>
+        fn call_handler(
+            &mut self,
+            shared_storage: &mut Foo,
+            event: &<Foo as IntoStateMachine>::Event<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> impl Future<Output = statig::Response<State>>
         where
             Self: Sized,
         {
-            Box::pin(async move {
+            async move {
                 match self {
                     Superstate::S21 {} => Foo::s21(shared_storage, event).await,
                     Superstate::S {} => Foo::s(shared_storage, event).await,
                     Superstate::S2 {} => Foo::s2(shared_storage, event).await,
                     Superstate::S1 {} => Foo::s1(shared_storage, event).await,
                 }
-            })
+            }
         }
 
-        fn call_entry_action<'fut>(
-            &'fut mut self,
-            shared_storage: &'fut mut Foo,
-            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
-            Box::pin(async move {
+        fn call_entry_action(
+            &mut self,
+            shared_storage: &mut Foo,
+            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> impl Future<Output = ()> {
+            async move {
                 match self {
                     Superstate::S21 {} => Foo::enter_s21(shared_storage).await,
                     Superstate::S {} => Foo::enter_s(shared_storage).await,
                     Superstate::S2 {} => Foo::enter_s2(shared_storage).await,
                     Superstate::S1 {} => Foo::enter_s1(shared_storage).await,
                 }
-            })
+            }
         }
 
-        fn call_exit_action<'fut>(
-            &'fut mut self,
-            shared_storage: &'fut mut Foo,
-            _: &'fut mut <Foo as IntoStateMachine>::Context<'_>,
-        ) -> Pin<Box<dyn Future<Output = ()> + 'fut + Send>> {
-            Box::pin(async move {
+        fn call_exit_action(
+            &mut self,
+            shared_storage: &mut Foo,
+            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+        ) -> impl Future<Output = ()> {
+            async move {
                 match self {
                     Superstate::S21 {} => Foo::exit_s21(shared_storage).await,
                     Superstate::S {} => Foo::exit_s(shared_storage).await,
                     Superstate::S2 {} => Foo::exit_s2(shared_storage).await,
                     Superstate::S1 {} => Foo::exit_s1(shared_storage).await,
                 }
-            })
+            }
         }
 
         fn superstate(&mut self) -> Option<Superstate> {

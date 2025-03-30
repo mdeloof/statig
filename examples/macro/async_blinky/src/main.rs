@@ -83,27 +83,37 @@ impl Blinky {
 
 impl Blinky {
     // The `after_transition` callback that will be called after every transition.
-    fn after_transition(&mut self, source: &State, target: &State) {
+    async fn after_transition(&mut self, source: &State, target: &State) {
         println!("after transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_transition(&mut self, source: &State, target: &State) {
+    async fn before_transition(&mut self, source: &State, target: &State) {
         println!("before transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
+    async fn before_dispatch(
+        &mut self,
+        state: StateOrSuperstate<'_, State, Superstate>,
+        event: &Event,
+    ) {
         println!("before dispatching `{event:?}` to `{state:?}`");
     }
 
-    fn after_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
+    async fn after_dispatch(
+        &mut self,
+        state: StateOrSuperstate<'_, State, Superstate>,
+        event: &Event,
+    ) {
         println!("after dispatched `{event:?}` to `{state:?}`");
     }
 }
 
 #[tokio::main]
 async fn main() {
-    let future = async {
-        let mut state_machine = Blinky::default().uninitialized_state_machine().init().await;
+    use tokio::task;
+
+    let future = async move {
+        let mut state_machine = Blinky.state_machine();
 
         state_machine.handle(&Event::TimerElapsed).await;
         state_machine.handle(&Event::ButtonPressed).await;
@@ -111,7 +121,9 @@ async fn main() {
         state_machine.handle(&Event::ButtonPressed).await;
     };
 
-    let handle = tokio::spawn(future);
+    let local = task::LocalSet::new();
+
+    let handle = local.run_until(future);
 
     handle.await;
 }

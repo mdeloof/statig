@@ -30,12 +30,14 @@ impl IntoStateMachine for Blinky {
     type Context<'ctx> = ();
 
     /// The initial state of the state machine.
-    const INITIAL: fn() -> Self::State = || State::Off;
+    fn initial() -> Self::State {
+        State::Off
+    }
 
     /// This method is called on every transition of the state machine.
-    const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, source, target| {
+    fn after_transition(&mut self, source: &Self::State, target: &Self::State) {
         println!("transitioned from {source:?} to {target:?}");
-    };
+    }
 }
 
 impl blocking::State<Blinky> for State {

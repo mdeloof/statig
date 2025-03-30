@@ -29,7 +29,7 @@ pub struct CdPlayer;
 #[state_machine(initial = "State::empty()", state(derive(Debug)))]
 impl CdPlayer {
     #[state]
-    fn empty(event: &Event) -> Response<State> {
+    async fn empty(event: &Event) -> Response<State> {
         match event {
             Event::CdDetected => Transition(State::stopped()),
             Event::OpenClose => Transition(State::open()),
@@ -38,7 +38,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn open(event: &Event) -> Response<State> {
+    async fn open(event: &Event) -> Response<State> {
         match event {
             Event::OpenClose => Transition(State::empty()),
             _ => Super,
@@ -46,7 +46,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn stopped(event: &Event) -> Response<State> {
+    async fn stopped(event: &Event) -> Response<State> {
         match event {
             Event::Play => Transition(State::playing()),
             Event::OpenClose => Transition(State::open()),
@@ -56,7 +56,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn playing(event: &Event) -> Response<State> {
+    async fn playing(event: &Event) -> Response<State> {
         match event {
             Event::OpenClose => Transition(State::open()),
             Event::Pause2 => Transition(State::pause()),
@@ -66,7 +66,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn pause(event: &Event) -> Response<State> {
+    async fn pause(event: &Event) -> Response<State> {
         match event {
             Event::EndPause => Transition(State::playing()),
             Event::Stop => Transition(State::stopped()),
@@ -75,29 +75,31 @@ impl CdPlayer {
     }
 }
 
-fn main() {
-    let mut state_machine = CdPlayer.uninitialized_state_machine().init();
+async fn future_main() {
+    let mut state_machine = CdPlayer.uninitialized_state_machine().init().await;
 
-    let loops: u32 = rand::random();
+    let loops: u32 = 1_000_000;
 
     println!("Loop count: {loops}");
 
     let instant = Instant::now();
 
     for _ in 0..loops {
-        state_machine.handle(&Event::OpenClose);
-        state_machine.handle(&Event::OpenClose);
-        state_machine.handle(&Event::CdDetected);
-        state_machine.handle(&Event::Play);
-        state_machine.handle(&Event::Pause2);
+        let flag: bool = rand::random();
 
-        state_machine.handle(&Event::EndPause);
-        state_machine.handle(&Event::Pause2);
-        state_machine.handle(&Event::Stop);
+        state_machine.handle(&Event::OpenClose).await;
+        state_machine.handle(&Event::OpenClose).await;
+        state_machine.handle(&Event::CdDetected).await;
+        state_machine.handle(&Event::Play).await;
+        state_machine.handle(&Event::Pause2).await;
 
-        state_machine.handle(&Event::Stop);
-        state_machine.handle(&Event::OpenClose);
-        state_machine.handle(&Event::OpenClose);
+        state_machine.handle(&Event::EndPause).await;
+        state_machine.handle(&Event::Pause2).await;
+        state_machine.handle(&Event::Stop).await;
+
+        state_machine.handle(&Event::Stop).await;
+        state_machine.handle(&Event::OpenClose).await;
+        state_machine.handle(&Event::OpenClose).await;
     }
 
     let total_duration = instant.elapsed();
@@ -109,4 +111,8 @@ fn main() {
     println!("Duration 1M loops: {million_loop_duration:?}");
 
     println!("Final state: {:?}", state_machine.state());
+}
+
+fn main() {
+    futures::executor::block_on(future_main());
 }

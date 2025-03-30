@@ -49,7 +49,9 @@ impl IntoStateMachine for CdPlayer {
     type Context<'ctx> = ();
 
     /// The initial state of the state machine.
-    const INITIAL: fn() -> Self::State = || State::Empty;
+    fn initial() -> Self::State {
+        State::Empty
+    }
 }
 
 impl blocking::State<CdPlayer> for State {
@@ -113,7 +115,7 @@ impl CdPlayer {
 }
 
 fn main() {
-    let mut state_machine = CdPlayer::default().uninitialized_state_machine().init();
+    let mut state_machine = CdPlayer.uninitialized_state_machine().init();
 
     let loops: u32 = rand::random();
 

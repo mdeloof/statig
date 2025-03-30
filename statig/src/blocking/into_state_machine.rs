@@ -19,22 +19,30 @@ where
     where
         Self::State: 'sub;
 
-    /// Initial state of the state machine.
-    const INITIAL: fn() -> Self::State;
+    /// Constructor for the initial state of the state machine.
+    fn initial() -> Self::State;
 
     /// Method that is called *before* an event is dispatched to a state or
     /// superstate handler.
-    const BEFORE_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
-        |_, _, _| {};
+    fn before_dispatch(
+        &mut self,
+        _state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
+        _event: &Self::Event<'_>,
+    ) {
+    }
 
     /// Method that is called *after* an event is dispatched to a state or
     /// superstate handler.
-    const AFTER_DISPATCH: fn(&mut Self, StateOrSuperstate<'_, '_, Self>, &Self::Event<'_>) =
-        |_, _, _| {};
+    fn after_dispatch(
+        &mut self,
+        _state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
+        _event: &Self::Event<'_>,
+    ) {
+    }
 
     /// Method that is called *before* every transition.
-    const BEFORE_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
+    fn before_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
 
     /// Method that is called *after* every transition.
-    const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |_, _, _| {};
+    fn after_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
 }

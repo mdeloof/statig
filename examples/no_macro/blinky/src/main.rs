@@ -41,7 +41,9 @@ impl IntoStateMachine for Blinky {
     type Context<'ctx> = ();
 
     /// The initial state of the state machine.
-    const INITIAL: fn() -> Self::State = || State::LedOn;
+    fn initial() -> State {
+        State::LedOn
+    }
 }
 
 // Implement the `statig::State` trait for the state enum.
@@ -103,7 +105,7 @@ impl Blinky {
 }
 
 fn main() {
-    let mut state_machine = Blinky::default().state_machine();
+    let mut state_machine = Blinky.state_machine();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);

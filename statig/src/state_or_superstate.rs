@@ -1,24 +1,20 @@
-use core::fmt::Debug;
-
-use crate::IntoStateMachine;
+use core::fmt;
+use core::fmt::{Debug, Formatter};
 
 /// Holds a reference to either a state or superstate.
-pub enum StateOrSuperstate<'a, 'b, M: IntoStateMachine>
-where
-    M::State: 'b,
-{
+pub enum StateOrSuperstate<'a, State, Superstate> {
     /// Reference to a state.
-    State(&'a M::State),
+    State(&'a State),
     /// Reference to a superstate.
-    Superstate(&'a M::Superstate<'b>),
+    Superstate(&'a Superstate),
 }
 
-impl<'a, 'b, M: IntoStateMachine> core::fmt::Debug for StateOrSuperstate<'a, 'b, M>
+impl<'a, State, Superstate> Debug for StateOrSuperstate<'a, State, Superstate>
 where
-    M::State: Debug,
-    M::Superstate<'b>: Debug,
+    State: Debug,
+    Superstate: Debug,
 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::State(state) => f.debug_tuple("State").field(state as &dyn Debug).finish(),
             Self::Superstate(superstate) => f
@@ -29,11 +25,10 @@ where
     }
 }
 
-impl<'a, 'b, M> PartialEq for StateOrSuperstate<'a, 'b, M>
+impl<'a, State, Superstate> PartialEq for StateOrSuperstate<'a, State, Superstate>
 where
-    M: IntoStateMachine,
-    M::State: 'b + PartialEq,
-    M::Superstate<'b>: PartialEq,
+    State: PartialEq,
+    Superstate: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -44,10 +39,9 @@ where
     }
 }
 
-impl<'a, 'b, M> Eq for StateOrSuperstate<'a, 'b, M>
+impl<'a, State, Superstate> Eq for StateOrSuperstate<'a, State, Superstate>
 where
-    M: IntoStateMachine + PartialEq + Eq,
-    M::State: 'b + PartialEq + Eq,
-    M::Superstate<'b>: PartialEq + Eq,
+    State: Eq,
+    Superstate: Eq,
 {
 }

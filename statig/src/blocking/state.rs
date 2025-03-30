@@ -1,8 +1,5 @@
-use crate::blocking::Superstate;
-use crate::blocking::SuperstateExt;
-use crate::IntoStateMachine;
-use crate::Response;
-use crate::StateOrSuperstate;
+use crate::blocking::{IntoStateMachine, Superstate, SuperstateExt};
+use crate::{Response, StateOrSuperstate};
 
 /// An enum that represents the leaf states of the state machine.
 pub trait State<M>
@@ -96,17 +93,17 @@ where
     where
         Self: Sized,
     {
-        M::BEFORE_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
+        M::before_dispatch(shared_storage, StateOrSuperstate::State(self), event);
 
         let response = self.call_handler(shared_storage, event, context);
 
-        M::AFTER_DISPATCH(shared_storage, StateOrSuperstate::State(self), event);
+        M::after_dispatch(shared_storage, StateOrSuperstate::State(self), event);
 
         match response {
             Response::Handled => Response::Handled,
             Response::Super => match self.superstate() {
                 Some(mut superstate) => {
-                    M::BEFORE_DISPATCH(
+                    M::before_dispatch(
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
@@ -114,7 +111,7 @@ where
 
                     let response = superstate.handle(shared_storage, event, context);
 
-                    M::AFTER_DISPATCH(
+                    M::after_dispatch(
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,

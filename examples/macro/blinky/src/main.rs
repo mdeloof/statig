@@ -78,7 +78,7 @@ impl Blinky {
         println!("transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_dispatch(&mut self, state: StateOrSuperstate<Self>, event: &Event) {
+    fn before_dispatch(&mut self, state: StateOrSuperstate<'_, State, Superstate>, event: &Event) {
         println!("dispatching `{event:?}` to `{state:?}`");
     }
 }
@@ -86,7 +86,7 @@ impl Blinky {
 fn main() {
     let start = std::time::Instant::now();
 
-    let mut state_machine = Blinky::default().state_machine();
+    let mut state_machine = Blinky.state_machine();
 
     state_machine.handle(&Event::TimerElapsed);
     state_machine.handle(&Event::ButtonPressed);

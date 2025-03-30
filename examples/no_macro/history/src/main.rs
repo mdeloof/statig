@@ -36,13 +36,15 @@ impl IntoStateMachine for Dishwasher {
 
     type Context<'ctx> = ();
 
-    const INITIAL: fn() -> Self::State = || State::Idle;
+    fn initial() -> Self::State {
+        State::Idle
+    }
 
     // On every transition we update the previous state, so we can
     // transition back to it.
-    const AFTER_TRANSITION: fn(&mut Self, &Self::State, &Self::State) = |shared, source, target| {
-        shared.previous_state = source.clone();
-    };
+    fn after_transition(&mut self, source: &Self::State, _target: &Self::State) {
+        self.previous_state = source.clone();
+    }
 }
 
 impl blocking::State<Dishwasher> for State {
@@ -135,7 +137,7 @@ impl Dishwasher {
 
 fn main() {
     let mut state_machine = Dishwasher {
-        previous_state: Dishwasher::INITIAL(),
+        previous_state: Dishwasher::initial(),
     }
     .uninitialized_state_machine()
     .init();
