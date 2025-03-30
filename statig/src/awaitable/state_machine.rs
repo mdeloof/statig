@@ -134,7 +134,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
     /// let state_machine = Blinky::default().state_machine();
@@ -163,7 +163,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
     /// let mut state_machine = Blinky::default().state_machine();
@@ -195,7 +195,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
     /// let mut state_machine = Blinky::default().state_machine();
@@ -363,6 +363,7 @@ where
     ///
     /// ```
     /// # use statig::prelude::*;
+    /// # use futures::executor;
     /// # #[derive(Default)]
     /// # pub struct Blinky {
     /// #     led: bool,
@@ -376,12 +377,14 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
+    /// # executor::block_on(async {
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// let initialized_state_machine = uninitialized_state_machine.init().await;
     /// assert_eq!(initialized_state_machine.inner().led, false);
+    /// # })
     /// ```
     pub fn inner(&self) -> &M {
         &self.inner.shared_storage
@@ -396,6 +399,7 @@ where
     ///
     /// ```
     /// # use statig::prelude::*;
+    /// # use futures::executor;
     /// # #[derive(Default)]
     /// # pub struct Blinky {
     /// #     led: bool,
@@ -406,14 +410,16 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
+    /// # executor::block_on(async {
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init().await;
     /// unsafe {
     ///     initialized_state_machine.inner_mut().led = true;
     /// }
+    /// # })
     /// ```
     pub unsafe fn inner_mut(&mut self) -> &mut M {
         &mut self.inner.shared_storage
@@ -428,6 +434,7 @@ where
     ///
     /// ```
     /// # use statig::prelude::*;
+    /// # use futures::executor;
     /// # #[derive(Default)]
     /// # pub struct Blinky {
     /// #     led: bool,
@@ -438,15 +445,17 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
+    /// # executor::block_on(async {
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init().await;
     ///
     /// unsafe {
     ///     *initialized_state_machine.state_mut() = State::on();
     /// }
+    /// # })
     /// ```
     pub unsafe fn state_mut(&mut self) -> &mut M::State {
         &mut self.inner.state
@@ -560,6 +569,7 @@ where
     ///
     /// ```
     /// # use statig::prelude::*;
+    /// # use futures::executor;
     /// # #[derive(Default)]
     /// # pub struct Blinky {
     /// #     led: bool,
@@ -570,14 +580,16 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
+    /// # executor::block_on(async {
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
     ///
     /// // The uninitialized state machine is consumed to create the initialized
     /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// let initialized_state_machine = uninitialized_state_machine.init().await;
+    /// # })
     /// ```
     pub async fn init(self) -> InitializedStateMachine<M>
     where
@@ -593,6 +605,7 @@ where
     ///
     /// ```
     /// # use statig::prelude::*;
+    /// # use futures::executor;
     /// # #[derive(Default)]
     /// # pub struct Blinky {
     /// #     led: bool,
@@ -603,14 +616,16 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
+    /// # executor::block_on(async {
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
     ///
     /// // The uninitialized state machine is consumed to create the initialized
     /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// let initialized_state_machine = uninitialized_state_machine.init().await;
+    /// # })
     /// ```
     pub async fn init_with_context(
         self,
@@ -638,7 +653,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -663,7 +678,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
     /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -693,7 +708,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Response<State> { Handled }
+    /// #     async fn on(event: &Event) -> Response<State> { Handled }
     /// # }
     /// #
     /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();

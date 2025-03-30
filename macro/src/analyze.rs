@@ -4,8 +4,8 @@ use proc_macro_error::abort;
 use syn::parse::Parser;
 use syn::{
     parse_quote, Attribute, AttributeArgs, Expr, Field, FnArg, Generics, Ident, ImplItem,
-    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatIdent, PatType, Path,
-    Receiver, Type, Visibility,
+    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatIdent, PatType, Path, Type,
+    Visibility,
 };
 
 /// Model of the state machine.
@@ -75,8 +75,6 @@ pub struct State {
     pub local_storage_default: Vec<LocalStorageDefault>,
     /// Inputs required by the state handler.
     pub inputs: Vec<FnArg>,
-    /// Optional receiver input for the state handler (e.g. `&mut self`).
-    pub shared_storage_input: Option<Receiver>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<PatType>,
     /// Event that is submitted to the state machine.
@@ -102,8 +100,6 @@ pub struct Superstate {
     pub local_storage: Vec<Field>,
     /// Inputs required by the superstate handler.
     pub inputs: Vec<FnArg>,
-    /// Optional receiver input for the state handler (e.g. `&mut self`).
-    pub shared_storage_input: Option<Receiver>,
     /// Inputs provided by the state-local storage.
     pub state_inputs: Vec<PatType>,
     /// Event that is submitted to the state machine.
@@ -399,7 +395,6 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
     let mut exit_action = None;
     let mut local_storage = Vec::new();
     let mut local_storage_default = Vec::new();
-    let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
     let mut context_arg = None;
@@ -418,7 +413,7 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
     // Iterate over the inputs of the state handler.
     for input in &mut method.sig.inputs {
         match input {
-            FnArg::Receiver(receiver) => shared_storage_input = Some(receiver.clone()),
+            FnArg::Receiver(_) => (),
             FnArg::Typed(ref mut pat_type) => {
                 let pat = pat_type.pat.as_mut();
                 match pat {
@@ -498,7 +493,6 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
         local_storage,
         local_storage_default,
         inputs,
-        shared_storage_input,
         state_inputs,
         event_arg,
         context_arg,
@@ -515,7 +509,6 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     let mut entry_action = None;
     let mut exit_action = None;
     let mut local_storage = Vec::new();
-    let mut shared_storage_input = None;
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
     let mut context_arg = None;
@@ -534,7 +527,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
     // Iterate over the inputs of the superstate handler.
     for input in &method.sig.inputs {
         match input {
-            FnArg::Receiver(receiver) => shared_storage_input = Some(receiver.clone()),
+            FnArg::Receiver(_) => (),
             FnArg::Typed(pat_type) => match *pat_type.pat.clone() {
                 Pat::Ident(pat) if state_machine.event_ident.eq(&pat.ident) => {
                     event_arg = Some(pat_type.clone());
@@ -598,7 +591,6 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
         exit_action,
         local_storage,
         inputs,
-        shared_storage_input,
         state_inputs,
         event_arg,
         context_arg,
@@ -761,7 +753,6 @@ fn valid_state_analyze() {
         local_storage: vec![],
         local_storage_default: vec![],
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
-        shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
         event_arg: Some(if let FnArg::Typed(event) = parse_quote!(event: &Event) {
             event
@@ -779,7 +770,6 @@ fn valid_state_analyze() {
         exit_action: None,
         local_storage: vec![],
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
-        shared_storage_input: Some(parse_quote!(&mut self)),
         state_inputs: vec![],
         event_arg: Some(if let FnArg::Typed(event) = parse_quote!(event: &Event) {
             event
