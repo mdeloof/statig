@@ -14,13 +14,12 @@ keywords = ["fsm", "hsm", "statechart", "state-machine", "embedded"]
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0.107", features = [
+syn = { version = "2", features = [
     "full",
-    "quote",
     "extra-traits",
     "visit",
     "visit-mut",
 ] }
 quote = "1.0.23"
 proc-macro2 = "1.0.78"
-proc-macro-error = "1.0.4"
+proc-macro-error2 = { version = "2.0.1", features = ["syn-error"] }

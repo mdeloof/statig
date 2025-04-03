@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 use proc_macro2::Span;
-use proc_macro_error::abort;
+use proc_macro_error2::abort;
 
 use syn::parse::Parser;
 use syn::{parse_quote, ExprClosure, FieldValue};
@@ -419,7 +419,7 @@ pub fn lower(model: &Model) -> Ir {
 
     // If a lifetime is required it must be part of the superstate generics.
     if let Some(lifetime) = superstate_lifetime {
-        let lifetime_generic = GenericParam::Lifetime(syn::LifetimeDef::new(lifetime.clone()));
+        let lifetime_generic = GenericParam::Lifetime(syn::LifetimeParam::new(lifetime.clone()));
         superstate_generics.params.push(lifetime_generic.clone());
         superstate_impl_generics.params.push(lifetime_generic);
         match &mut superstate_impl_generics.where_clause {

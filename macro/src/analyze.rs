@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use proc_macro_error::abort;
+use proc_macro_error2::abort;
 use syn::parse::Parser;
+use syn::parse_quote;
+use syn::punctuated::Punctuated;
 use syn::{
-    parse_quote, Attribute, AttributeArgs, Expr, Field, FnArg, Generics, Ident, ImplItem,
-    ImplItemMethod, ItemImpl, Lit, Meta, MetaList, NestedMeta, Pat, PatIdent, PatType, Path, Type,
-    Visibility,
+    Attribute, Expr, ExprLit, Field, FnArg, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Lit,
+    LitStr, Meta, MetaList, Pat, PatIdent, PatType, Path, Token, Type, Visibility,
 };
 
 /// Model of the state machine.
@@ -138,8 +139,8 @@ impl LocalStorageDefault {
 }
 
 /// Analyze the impl block and create a model.
-pub fn analyze(attribute_args: AttributeArgs, mut item_impl: ItemImpl) -> Model {
-    let state_machine = analyze_state_machine(&attribute_args, &item_impl);
+pub fn analyze(attribute_args: Vec<Meta>, mut item_impl: ItemImpl) -> Model {
+    let state_machine = analyze_state_machine(&attribute_args[..], &item_impl);
 
     let mut states = HashMap::new();
     let mut superstates = HashMap::new();
@@ -147,30 +148,28 @@ pub fn analyze(attribute_args: AttributeArgs, mut item_impl: ItemImpl) -> Model 
 
     // Create an iterator over only the method items.
     let methods = item_impl.items.iter_mut().filter_map(|item| match item {
-        ImplItem::Method(method) => Some(method),
+        ImplItem::Fn(method) => Some(method),
         _ => None,
     });
 
-    // Iterator over the methods in the impl block.
+    // Iterator over the methods in the impl block and check if they are marked
+    // as a `#[state]`, `#[superstate]` or `#[action]`.
     for method in methods {
-        for attr in method.attrs.clone().iter() {
-            match &attr.path {
-                path if path.is_ident("state") => {
-                    let state = analyze_state(method, &state_machine);
-                    states.insert(state.handler_name.clone(), state);
-                }
-
-                path if path.is_ident("superstate") => {
-                    let superstate = analyze_superstate(method, &state_machine);
-                    superstates.insert(superstate.handler_name.clone(), superstate);
-                }
-
-                path if path.is_ident("action") => {
-                    let action = analyze_action(method);
-                    actions.insert(action.handler_name.clone(), action);
-                }
-
-                _ => (),
+        let paths: Vec<_> = method
+            .attrs
+            .iter()
+            .map(|attr| attr.meta.path().clone())
+            .collect();
+        for path in paths {
+            if path.is_ident("state") {
+                let state = analyze_state(method, &state_machine);
+                states.insert(state.handler_name.clone(), state);
+            } else if path.is_ident("superstate") {
+                let superstate = analyze_superstate(method, &state_machine);
+                superstates.insert(superstate.handler_name.clone(), superstate);
+            } else if path.is_ident("action") {
+                let action = analyze_action(method);
+                actions.insert(action.handler_name.clone(), action);
             }
         }
     }
@@ -185,7 +184,7 @@ pub fn analyze(attribute_args: AttributeArgs, mut item_impl: ItemImpl) -> Model 
 }
 
 /// Retrieve the top level settings of the state machine.
-pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImpl) -> StateMachine {
+pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> StateMachine {
     let shared_storage_type = item_impl.self_ty.as_ref().clone();
     let shared_storage_generics = item_impl.generics.clone();
     let shared_storage_path = get_shared_storage_path(&shared_storage_type);
@@ -210,80 +209,59 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     let mut superstate_meta: MetaList = parse_quote!(superstate());
 
     // Iterate over the meta attributes on the `#[state_machine]` macro.
-    for arg in attribute_args {
-        match arg {
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("initial") =>
-            {
-                initial_state = match &name_value.lit {
-                    Lit::Str(input_pat) => input_pat.parse().ok(),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+    for meta in attribute_args {
+        if meta.path().is_ident("initial") {
+            initial_state = match meta_require_name_lit_str(meta).parse() {
+                Ok(initial_state) => Some(initial_state),
+                Err(_) => abort!(meta, "initial state must be an expression"),
             }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("event_identifier") =>
-            {
-                event_ident = match &name_value.lit {
-                    Lit::Str(event_ident) => event_ident.parse().unwrap(),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+        } else if meta.path().is_ident("event_identifier") {
+            event_ident = match meta_require_name_lit_str(meta).parse() {
+                Ok(event_ident) => event_ident,
+                Err(_) => abort!(meta, "event identifier must be an ident"),
             }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("context_identifier") =>
-            {
-                context_ident = match &name_value.lit {
-                    Lit::Str(context_ident) => context_ident.parse().unwrap(),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+        } else if meta.path().is_ident("context_identifier") {
+            context_ident = match meta_require_name_lit_str(meta).parse() {
+                Ok(context_ident) => context_ident,
+                Err(_) => abort!(meta, "context identifier must be an ident"),
             }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("before_transition") =>
-            {
-                before_transition = match &name_value.lit {
-                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+        } else if meta.path().is_ident("before_transition") {
+            before_transition = match meta_require_name_lit_str(meta).parse() {
+                Ok(before_transition) => Some(before_transition),
+                Err(_) => abort!(meta, "before transition hook must be a function pointer"),
             }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("after_transition") =>
-            {
-                after_transition = match &name_value.lit {
-                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+        } else if meta.path().is_ident("after_transition") {
+            after_transition = match meta_require_name_lit_str(meta).parse() {
+                Ok(after_transition) => Some(after_transition),
+                Err(_) => abort!(meta, "after transition hook must be a function pointer"),
             }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("before_dispatch") =>
-            {
-                before_dispatch = match &name_value.lit {
-                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+        } else if meta.path().is_ident("before_dispatch") {
+            before_dispatch = match meta_require_name_lit_str(meta).parse() {
+                Ok(before_transition) => Some(before_transition),
+                Err(_) => abort!(meta, "before dispatch hook must be a function pointer"),
             }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("after_dispatch") =>
-            {
-                after_dispatch = match &name_value.lit {
-                    Lit::Str(input_pat) => Some(input_pat.parse().unwrap()),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+        } else if meta.path().is_ident("after_dispatch") {
+            after_dispatch = match meta_require_name_lit_str(meta).parse() {
+                Ok(after_dispatch) => Some(after_dispatch),
+                Err(_) => abort!(meta, "after dispatch hook must be a function pointer"),
             }
-            NestedMeta::Meta(Meta::NameValue(name_value))
-                if name_value.path.is_ident("visibility") =>
-            {
-                visibility = match &name_value.lit {
-                    Lit::Str(input_pat) => input_pat.parse().unwrap(),
-                    _ => abort!(name_value, "must be a string literal"),
-                }
+        } else if meta.path().is_ident("visibility") {
+            visibility = match meta_require_name_lit_str(meta).parse() {
+                Ok(visibility) => visibility,
+                Err(_) => abort!(meta, "visibility must be a visibility keyword"),
             }
-            NestedMeta::Meta(Meta::List(list)) if list.path.is_ident("state") => {
-                state_meta = list.clone();
+        } else if meta.path().is_ident("state") {
+            state_meta = match meta.require_list() {
+                Ok(list) => list.clone(),
+                Err(_) => abort!(meta, "state must contain a list of meta items"),
             }
-            NestedMeta::Meta(Meta::List(list)) if list.path.is_ident("superstate") => {
-                superstate_meta = list.clone();
+        } else if meta.path().is_ident("superstate") {
+            superstate_meta = match meta.require_list() {
+                Ok(list) => list.clone(),
+                Err(_) => abort!(meta, "superstate must contain a list of meta items"),
             }
-
-            _ => abort!(arg, "argument not recognized"),
+        } else {
+            abort!(meta, "unknown argument for `state_machine` attribute")
         }
     }
 
@@ -297,72 +275,59 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
     };
 
     // Iterate over the meta attributes for the state enum.
-    for meta in state_meta
-        .nested
-        .iter()
-        .filter_map(|nested_meta| match nested_meta {
-            NestedMeta::Meta(meta) => Some(meta),
-            NestedMeta::Lit(_) => None,
-        })
-    {
-        match meta {
-            // Get the custom name for the state enum.
-            Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
-                state_ident = match &name_value.lit {
-                    Lit::Str(str_lit) => str_lit.parse().unwrap(),
-                    _ => abort!(name_value, "expected string literal"),
-                }
-            }
+    let state_meta =
+        match Punctuated::<Meta, Token![,]>::parse_terminated.parse2(state_meta.tokens.clone()) {
+            Ok(state_meta) => state_meta,
+            Err(_) => abort!(state_meta, "state meta must be a list of meta items"),
+        };
 
-            // Get the derives for the state enum.
-            Meta::List(meta_list) if meta_list.path.is_ident("derive") => {
-                for nested_meta in &meta_list.nested {
-                    match nested_meta {
-                        NestedMeta::Meta(meta) => {
-                            state_derives.push(meta.path().clone());
-                        }
-                        _ => abort!(nested_meta, "expected list of traits"),
-                    }
-                }
+    for meta in state_meta.iter() {
+        if meta.path().is_ident("name") {
+            state_ident = match meta_require_name_lit_str(meta).parse() {
+                Ok(state_ident) => state_ident,
+                Err(_) => abort!(meta, "state type name must be an ident"),
             }
-
-            // Other attributes are not recognized.
-            _ => abort!(meta, "unknown attribute"),
+        } else if meta.path().is_ident("derive") {
+            match meta.require_list().and_then(|list| {
+                Punctuated::<Path, Token![,]>::parse_terminated.parse2(list.tokens.clone())
+            }) {
+                Ok(derives) => state_derives.extend(derives),
+                Err(_) => abort!(meta, "derive must be a list of paths"),
+            }
+        } else {
+            abort!(state_meta, "unknown argument for `state` attribute");
         }
     }
 
     // Iterate over the meta attributes for the superstate enum.
-    for meta in superstate_meta
-        .nested
-        .iter()
-        .filter_map(|nested_meta| match nested_meta {
-            NestedMeta::Meta(meta) => Some(meta),
-            NestedMeta::Lit(_) => None,
-        })
+    let superstate_meta = match Punctuated::<Meta, Token![,]>::parse_terminated
+        .parse2(superstate_meta.tokens.clone())
     {
-        match meta {
-            // Get the custom name for the superstate enum.
-            Meta::NameValue(name_value) if name_value.path.is_ident("name") => {
-                superstate_ident = match &name_value.lit {
-                    Lit::Str(str_lit) => str_lit.parse().unwrap(),
-                    _ => abort!(name_value, "expected string literal"),
-                }
-            }
+        Ok(superstate_meta) => superstate_meta,
+        Err(_) => abort!(
+            superstate_meta,
+            "superstate meta must be a list of meta items"
+        ),
+    };
 
-            // Get the derives of the superstate enum.
-            Meta::List(meta_list) if meta_list.path.is_ident("derive") => {
-                for nested_meta in &meta_list.nested {
-                    match nested_meta {
-                        NestedMeta::Meta(meta) => {
-                            superstate_derives.push(meta.path().clone());
-                        }
-                        _ => abort!(nested_meta, "expected list of traits"),
-                    }
-                }
+    for meta in superstate_meta.iter() {
+        if meta.path().is_ident("name") {
+            superstate_ident = match meta_require_name_lit_str(meta).parse() {
+                Ok(superstate_ident) => superstate_ident,
+                Err(_) => abort!(meta, "superstate type name must be an ident"),
             }
-
-            // Other attributes are not recognized.
-            _ => abort!(meta, "unknown attribute"),
+        } else if meta.path().is_ident("derive") {
+            match meta.require_list().and_then(|list| {
+                Punctuated::<Path, Token![,]>::parse_terminated.parse2(list.tokens.clone())
+            }) {
+                Ok(derives) => superstate_derives.extend(derives),
+                Err(_) => abort!(meta, "derive must be a list of paths"),
+            }
+        } else {
+            abort!(
+                superstate_meta,
+                "unknown argument for `superstate` attribute"
+            );
         }
     }
 
@@ -386,7 +351,7 @@ pub fn analyze_state_machine(attribute_args: &AttributeArgs, item_impl: &ItemImp
 }
 
 /// Retrieve information regarding the state.
-pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) -> State {
+pub fn analyze_state(method: &mut ImplItemFn, state_machine: &StateMachine) -> State {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.iter().cloned().collect();
 
@@ -427,7 +392,7 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
                         if let Some(index) = pat_type
                             .attrs
                             .iter()
-                            .position(|attr| attr.path.is_ident("default"))
+                            .position(|attr| attr.path().is_ident("default"))
                         {
                             let attr = pat_type.attrs.swap_remove(index);
                             let default = analyze_local_storage_default(input, &attr);
@@ -457,31 +422,36 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
 
     // Iterate over the meta attributes on the state handler.
     for meta in get_meta(&method.attrs, "state") {
-        match meta {
-            Meta::NameValue(name_value) if name_value.path.is_ident("superstate") => {
-                if let Lit::Str(value) = name_value.lit {
-                    superstate = Some(Ident::new(&value.value(), value.span()));
-                }
+        if meta.path().is_ident("superstate") {
+            superstate = match meta_require_name_lit_str(&meta).parse() {
+                Ok(superstate) => Some(superstate),
+                Err(_) => abort!(meta, "superstate must be an ident"),
             }
-            Meta::NameValue(name_value) if name_value.path.is_ident("entry_action") => {
-                if let Lit::Str(value) = name_value.lit {
-                    entry_action = Some(Ident::new(&value.value(), value.span()));
-                }
+        } else if meta.path().is_ident("entry_action") {
+            entry_action = match meta_require_name_lit_str(&meta).parse() {
+                Ok(entry_action) => Some(entry_action),
+                Err(_) => abort!(meta, "entry action must be an ident"),
             }
-            Meta::NameValue(name_value) if name_value.path.is_ident("exit_action") => {
-                if let Lit::Str(value) = name_value.lit {
-                    exit_action = Some(Ident::new(&value.value(), value.span()));
-                }
+        } else if meta.path().is_ident("exit_action") {
+            exit_action = match meta_require_name_lit_str(&meta).parse() {
+                Ok(exit_action) => Some(exit_action),
+                Err(_) => abort!(meta, "exit action must be an ident"),
             }
-            Meta::List(list) if list.path.is_ident("local_storage") => {
-                for item in list.nested {
-                    if let NestedMeta::Lit(Lit::Str(value)) = item {
-                        let field = value.value();
-                        local_storage.push(Field::parse_named.parse_str(&field).unwrap());
+        } else if meta.path().is_ident("local_storage") {
+            match meta.require_list().and_then(|list| {
+                Punctuated::<LitStr, Token![,]>::parse_terminated.parse2(list.tokens.clone())
+            }) {
+                Ok(fields) => {
+                    for field in fields {
+                        let field = match field.parse_with(Field::parse_named) {
+                            Ok(field) => field,
+                            Err(_) => abort!(field, "local storage entry must be a named field"),
+                        };
+                        local_storage.push(field);
                     }
                 }
+                Err(_) => abort!(meta, "local storage must be a list of string literals"),
             }
-            _ => abort!(meta, "unknown attribute"),
         }
     }
 
@@ -501,7 +471,7 @@ pub fn analyze_state(method: &mut ImplItemMethod, state_machine: &StateMachine) 
 }
 
 /// Retrieve the information regarding the superstate.
-pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine) -> Superstate {
+pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> Superstate {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.iter().cloned().collect();
 
@@ -556,31 +526,36 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
 
     // Iterate over the meta attributes on the superstate handler.
     for meta in get_meta(&method.attrs, "superstate") {
-        match meta {
-            Meta::NameValue(name_value) if name_value.path.is_ident("superstate") => {
-                if let Lit::Str(value) = name_value.lit {
-                    superstate = Some(Ident::new(&value.value(), value.span()));
-                }
+        if meta.path().is_ident("superstate") {
+            superstate = match meta_require_name_lit_str(&meta).parse() {
+                Ok(superstate) => Some(superstate),
+                Err(_) => abort!(meta, "superstate must be an ident"),
             }
-            Meta::NameValue(name_value) if name_value.path.is_ident("entry_action") => {
-                if let Lit::Str(value) = name_value.lit {
-                    entry_action = Some(Ident::new(&value.value(), value.span()));
-                }
+        } else if meta.path().is_ident("entry_action") {
+            entry_action = match meta_require_name_lit_str(&meta).parse() {
+                Ok(entry_action) => Some(entry_action),
+                Err(_) => abort!(meta, "entry action must be an ident"),
             }
-            Meta::NameValue(name_value) if name_value.path.is_ident("exit_action") => {
-                if let Lit::Str(value) = name_value.lit {
-                    exit_action = Some(Ident::new(&value.value(), value.span()));
-                }
+        } else if meta.path().is_ident("exit_action") {
+            exit_action = match meta_require_name_lit_str(&meta).parse() {
+                Ok(exit_action) => Some(exit_action),
+                Err(_) => abort!(meta, "exit action must be an ident"),
             }
-            Meta::List(list) if list.path.is_ident("local_storage") => {
-                for item in list.nested {
-                    if let NestedMeta::Lit(Lit::Str(value)) = item {
-                        let field = value.value();
-                        local_storage.push(Field::parse_named.parse_str(&field).unwrap());
+        } else if meta.path().is_ident("local_storage") {
+            match meta.require_list().and_then(|list| {
+                Punctuated::<LitStr, Token![,]>::parse_terminated.parse2(list.tokens.clone())
+            }) {
+                Ok(fields) => {
+                    for field in fields {
+                        let field = match field.parse_with(Field::parse_named) {
+                            Ok(field) => field,
+                            Err(_) => abort!(field, "local storage entry must be a named field"),
+                        };
+                        local_storage.push(field);
                     }
                 }
+                Err(_) => abort!(meta, "local storage must be a list of string literals"),
             }
-            _ => abort!(meta, "unknown attribute"),
         }
     }
 
@@ -599,7 +574,7 @@ pub fn analyze_superstate(method: &ImplItemMethod, state_machine: &StateMachine)
 }
 
 /// Retrieve the information regarding the action.
-pub fn analyze_action(method: &ImplItemMethod) -> Action {
+pub fn analyze_action(method: &ImplItemFn) -> Action {
     let handler_name = method.sig.ident.clone();
     let inputs = method.sig.inputs.clone().into_iter().collect();
     let is_async = method.sig.asyncness.is_some();
@@ -621,26 +596,29 @@ pub fn analyze_action(method: &ImplItemMethod) -> Action {
 }
 
 fn analyze_local_storage_default(input: &PatIdent, attribute: &Attribute) -> LocalStorageDefault {
-    let Ok(meta) = attribute.parse_meta() else {
-        abort!(attribute, "attribute must use meta syntax")
-    };
-    match meta {
-        Meta::Path(_) => LocalStorageDefault::Empty {
+    if let Ok(_) = attribute.meta.require_path_only() {
+        LocalStorageDefault::Empty {
             ident: input.ident.clone(),
-        },
-        Meta::NameValue(name_value) => {
-            let Lit::Str(literal) = name_value.lit else {
-                abort!(name_value.lit, "must be a string literal")
-            };
-            let Ok(expr) = literal.parse() else {
-                abort!(literal, "must be an expression")
+        }
+    } else if let Ok(name_value) = attribute.meta.require_name_value() {
+        if let Expr::Lit(ExprLit {
+            lit: Lit::Str(string),
+            ..
+        }) = &name_value.value
+        {
+            let value = match string.parse() {
+                Ok(value) => value,
+                Err(_) => abort!(string, "value must be an expression"),
             };
             LocalStorageDefault::Value {
                 ident: input.ident.clone(),
-                value: expr,
+                value,
             }
+        } else {
+            abort!(name_value, "must be string literal")
         }
-        _ => abort!(attribute, "wrong attribute format"),
+    } else {
+        abort!(attribute, "wrong attribute format")
     }
 }
 
@@ -648,17 +626,14 @@ fn analyze_local_storage_default(input: &PatIdent, attribute: &Attribute) -> Loc
 pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
     attrs
         .iter()
-        .filter(|attr| attr.path.is_ident(name))
-        .filter_map(|attr| attr.parse_meta().ok())
-        .filter_map(|meta| match meta {
-            Meta::List(list_meta) => Some(list_meta.nested),
-            _ => None,
+        .filter(|attr| attr.path().is_ident(name))
+        .filter_map(|attr| {
+            let meta = attr
+                .parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+                .ok()?;
+            Some(meta)
         })
         .flatten()
-        .filter_map(|nested| match nested {
-            NestedMeta::Meta(meta) => Some(meta),
-            _ => None,
-        })
         .collect()
 }
 
@@ -673,15 +648,31 @@ pub fn get_shared_storage_path(ty: &Type) -> Path {
     }
 }
 
+/// Require that the meta item be a name-value pair, where the value
+/// is a string literal (ex. `initial = "State::initial_state"`).
+fn meta_require_name_lit_str(meta: &Meta) -> &LitStr {
+    match meta {
+        Meta::NameValue(name_value) => match &name_value.value {
+            Expr::Lit(ExprLit {
+                lit: Lit::Str(lit_str),
+                ..
+            }) => lit_str,
+            _ => abort!(name_value.value, "expected string literal"),
+        },
+        _ => abort!(meta, "expected name-value pair"),
+    }
+}
+
 #[test]
 fn valid_state_analyze() {
     use syn::parse_quote;
 
-    let init_arg: NestedMeta = parse_quote!(initial = "State::on()");
-    let input_arg: NestedMeta = parse_quote!(event_identifier = "event");
-    let state_arg: NestedMeta = parse_quote!(state(derive(Copy, Clone)));
-    let superstate_arg: NestedMeta = parse_quote!(superstate(derive(Copy, Clone)));
-    let attribute_args = vec![init_arg, input_arg, state_arg, superstate_arg];
+    let attribute_args: Punctuated<Meta, Token![,]> = parse_quote!(
+        initial = "State::on()",
+        event_identifier = "event",
+        state(derive(Copy, Clone)),
+        superstate(derive(Copy, Clone))
+    );
 
     let item_impl: ItemImpl = parse_quote!(
         impl Blinky {
@@ -707,7 +698,7 @@ fn valid_state_analyze() {
         }
     );
 
-    let actual = analyze(attribute_args, item_impl.clone());
+    let actual = analyze(attribute_args.into_iter().collect(), item_impl.clone());
 
     let initial_state = parse_quote!(State::on());
 
@@ -808,6 +799,9 @@ fn valid_state_analyze() {
         superstates,
         actions,
     };
+
+    dbg!(&actual);
+    dbg!(&expected);
 
     assert_eq!(actual, expected);
 }
