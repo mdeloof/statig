@@ -813,7 +813,6 @@ fn create_analyze_state() -> analyze::State {
             parse_quote!(led: &mut bool),
             parse_quote!(counter: &mut usize),
         ],
-        shared_storage_input: Some(parse_quote!(&mut self)),
         event_arg: Some(
             if let FnArg::Typed(pat_type) = parse_quote!(event: &Event) {
                 pat_type
@@ -880,7 +879,6 @@ fn create_analyze_superstate() -> analyze::Superstate {
             parse_quote!(led: &mut bool),
             parse_quote!(counter: &mut usize),
         ],
-        shared_storage_input: Some(parse_quote!(&mut self)),
         event_arg: Some(
             if let FnArg::Typed(pat_type) = parse_quote!(event: &Event) {
                 pat_type
