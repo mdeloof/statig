@@ -144,7 +144,8 @@ pub mod prelude {
     #![allow(ambiguous_glob_reexports)]
     #![allow(unused_imports)]
 
-    #[cfg(any(feature = "async", doc))]
+    #[cfg(feature = "async")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "async")))]
     pub use crate::awaitable::{IntoStateMachineExt as _, StateExt as _, *};
     pub use crate::blocking::{IntoStateMachineExt as _, StateExt as _, *};
     pub use crate::Response::{self, *};
@@ -155,7 +156,8 @@ pub mod prelude {
 
 pub mod blocking;
 
-#[cfg(any(feature = "async", doc))]
+#[cfg(feature = "async")]
+#[cfg_attr(docsrs, doc(cfg(feature = "async")))]
 pub mod awaitable;
 
 pub use response::*;

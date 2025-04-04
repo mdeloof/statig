@@ -29,3 +29,6 @@ macro = ["statig_macro"]
 serde = ["dep:serde"]
 bevy = ["dep:bevy_ecs"]
 async = []
+
+[package.metadata.docs.rs]
+all-features = true
