@@ -266,6 +266,7 @@ where
 }
 
 #[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<M> serde::Serialize for StateMachine<M>
 where
     M: IntoStateMachine + serde::Serialize,
@@ -280,6 +281,7 @@ where
 }
 
 #[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
 /// then be initialized with [`init`](UnInitializedStateMachine::init).
 impl<'de, M> serde::Deserialize<'de> for StateMachine<M>
@@ -300,6 +302,7 @@ where
 }
 
 #[cfg(feature = "bevy")]
+#[cfg_attr(docsrs, doc(cfg(feature = "bevy")))]
 impl<M> bevy_ecs::component::Component for StateMachine<M>
 where
     Self: 'static + Send + Sync,
@@ -516,6 +519,7 @@ where
 }
 
 #[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// Once an [`InitializedStateMachine`] is serialized, it can only be deserialized into
 /// an [`UnInitializedStateMachine`] which can then be re-initialized with the
 /// [`init`](UnInitializedStateMachine::init) method.
@@ -538,6 +542,7 @@ where
 }
 
 #[cfg(feature = "bevy")]
+#[cfg_attr(docsrs, doc(cfg(feature = "bevy")))]
 impl<M> bevy_ecs::component::Component for InitializedStateMachine<M>
 where
     Self: 'static + Send + Sync,
@@ -774,6 +779,7 @@ where
 }
 
 #[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<M> serde::Serialize for UninitializedStateMachine<M>
 where
     M: IntoStateMachine + serde::Serialize,
@@ -788,6 +794,7 @@ where
 }
 
 #[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
 /// then be initialized with [`init`](UnInitializedStateMachine::init).
 impl<'de, M> serde::Deserialize<'de> for UninitializedStateMachine<M>
