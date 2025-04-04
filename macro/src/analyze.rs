@@ -800,8 +800,5 @@ fn valid_state_analyze() {
         actions,
     };
 
-    dbg!(&actual);
-    dbg!(&expected);
-
     assert_eq!(actual, expected);
 }
