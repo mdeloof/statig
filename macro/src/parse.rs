@@ -1,10 +1,9 @@
 use proc_macro2::TokenStream;
-use proc_macro_error::abort;
-use syn::{parse::Parser, punctuated::Punctuated, AttributeArgs, Item, ItemImpl, NestedMeta};
+use proc_macro_error2::abort;
+use syn::{parse::Parser, punctuated::Punctuated, Item, ItemImpl, Meta, Token};
 
-pub fn parse_args(args: TokenStream) -> AttributeArgs {
-    let result: Result<Punctuated<NestedMeta, _>, _> =
-        Punctuated::<syn::NestedMeta, syn::Token![,]>::parse_terminated.parse2(args);
+pub fn parse_args(args: TokenStream) -> Vec<Meta> {
+    let result = Punctuated::<Meta, Token![,]>::parse_terminated.parse2(args);
     match result {
         Ok(args) => args.into_iter().collect(),
         Err(error) => abort!(error),
@@ -57,4 +56,13 @@ fn invalid_input() {
     );
 
     parse_input(token_stream);
+}
+
+#[test]
+fn valid_args() {
+    use quote::quote;
+
+    let token_stream = quote!(initial = "State::foo()");
+
+    parse_args(token_stream);
 }

@@ -10,7 +10,7 @@ mod tests {
     struct Blinky;
 
     // The `statig` trait needs to be implemented on the type that will
-    // imlement the state machine.
+    // implement the state machine.
     impl IntoStateMachine for Blinky {
         /// The enum that represents the state, this type is derived by the
         /// `#[state_machine]` macro.

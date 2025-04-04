@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use syn::visit::{self, Visit};
-use syn::{GenericParam, Generics, LifetimeDef, PatType};
+use syn::{GenericParam, Generics, LifetimeParam, PatType};
 
 /// Visitor to find all the generic parameters in a function signature.
 #[derive(Debug)]
@@ -46,7 +46,7 @@ impl<'ast> Visit<'ast> for GenericParamVisitor<'ast> {
     }
 
     fn visit_lifetime(&mut self, lifetime: &'ast syn::Lifetime) {
-        let lifetime = LifetimeDef::new(lifetime.clone());
+        let lifetime = LifetimeParam::new(lifetime.clone());
         self.found.insert(GenericParam::Lifetime(lifetime));
     }
 }
