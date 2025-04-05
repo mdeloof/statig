@@ -48,6 +48,7 @@ mod state_or_superstate;
 ///
 ///   <br/>
 #[cfg(feature = "macro")]
+#[cfg_attr(docsrs, doc(cfg(feature = "macro")))]
 pub use statig_macro::state_machine;
 
 /// Attribute for tagging a state.
@@ -87,6 +88,7 @@ pub use statig_macro::state_machine;
 ///
 ///   <br/>
 #[cfg(feature = "macro")]
+#[cfg_attr(docsrs, doc(cfg(feature = "macro")))]
 pub use statig_macro::state;
 
 /// Attribute for tagging a superstate.
@@ -130,6 +132,7 @@ pub use statig_macro::state;
 ///
 ///   <br/>
 #[cfg(feature = "macro")]
+#[cfg_attr(docsrs, doc(cfg(feature = "macro")))]
 pub use statig_macro::superstate;
 
 /// Attribute for tagging an action.
@@ -137,6 +140,7 @@ pub use statig_macro::superstate;
 /// This macro does nothing on its own but is detected by the `state_machine`
 /// macro when added to a method.
 #[cfg(feature = "macro")]
+#[cfg_attr(docsrs, doc(cfg(feature = "macro")))]
 pub use statig_macro::action;
 
 /// Prelude containing the necessary imports for use with macro.
@@ -144,18 +148,21 @@ pub mod prelude {
     #![allow(ambiguous_glob_reexports)]
     #![allow(unused_imports)]
 
-    #[cfg(any(feature = "async", doc))]
+    #[cfg(feature = "async")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "async")))]
     pub use crate::awaitable::{IntoStateMachineExt as _, StateExt as _, *};
     pub use crate::blocking::{IntoStateMachineExt as _, StateExt as _, *};
     pub use crate::Response::{self, *};
     pub use crate::StateOrSuperstate;
     #[cfg(feature = "macro")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "macro")))]
     pub use statig_macro::state_machine;
 }
 
 pub mod blocking;
 
-#[cfg(any(feature = "async", doc))]
+#[cfg(feature = "async")]
+#[cfg_attr(docsrs, doc(cfg(feature = "async")))]
 pub mod awaitable;
 
 pub use response::*;
