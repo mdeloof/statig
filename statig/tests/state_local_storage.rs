@@ -14,7 +14,7 @@ mod tests {
     impl IntoStateMachine for Blinky {
         /// The enum that represents the state, this type is derived by the
         /// `#[state_machine]` macro.
-        type State = StateEnum;
+        type State = State;
 
         type Superstate<'sub> = Superstate<'sub>;
 
@@ -25,14 +25,11 @@ mod tests {
 
         /// The initial state of the state machine.
         fn initial() -> Self::State {
-            StateEnum::On {
-                led: false,
-                counter: 23,
-            }
+            Superstate::playing()
         }
     }
 
-    impl Default for StateEnum {
+    impl Default for State {
         fn default() -> Self {
             Blinky::initial()
         }
@@ -41,13 +38,8 @@ mod tests {
     struct Event;
 
     impl Blinky {
-        fn on(
-            &mut self,
-            led: &mut bool,
-            counter: &mut isize,
-            event: &Event,
-        ) -> Response<StateEnum> {
-            Transition(StateEnum::off(false))
+        fn on(&mut self, led: &mut bool, counter: &mut isize, event: &Event) -> Response<State> {
+            Transition(State::off(false))
         }
 
         fn enter_off(&mut self, led: &mut bool) {
@@ -55,21 +47,21 @@ mod tests {
             *led = false;
         }
 
-        fn off(&mut self, led: &mut bool, event: &Event) -> Response<StateEnum> {
-            Transition(StateEnum::on(true, 34))
+        fn off(&mut self, led: &mut bool, event: &Event) -> Response<State> {
+            Transition(State::on(true, 34))
         }
 
-        fn playing(&mut self, led: &mut bool) -> Response<StateEnum> {
+        fn playing(&mut self, led: &mut bool) -> Response<State> {
             Handled
         }
     }
 
-    enum StateEnum {
+    enum State {
         On { led: bool, counter: isize },
         Off { led: bool },
     }
 
-    impl StateEnum {
+    impl State {
         fn on(led: bool, counter: isize) -> Self {
             Self::On { led, counter }
         }
@@ -79,40 +71,40 @@ mod tests {
         }
     }
 
-    impl blocking::State<Blinky> for StateEnum {
+    impl blocking::State<Blinky> for State {
         fn call_handler(
             &mut self,
             shared_storage: &mut Blinky,
             event: &Event,
             _: &mut (),
-        ) -> Response<StateEnum>
+        ) -> Response<State>
         where
             Self: Sized,
         {
             match self {
-                StateEnum::On { led, counter } => Blinky::on(shared_storage, led, counter, event),
-                StateEnum::Off { led } => Blinky::off(shared_storage, led, event),
+                State::On { led, counter } => Blinky::on(shared_storage, led, counter, event),
+                State::Off { led } => Blinky::off(shared_storage, led, event),
             }
         }
 
         fn call_entry_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
-                StateEnum::On { led, counter } => {}
-                StateEnum::Off { led } => Blinky::enter_off(shared_storage, led),
+                State::On { led, counter } => {}
+                State::Off { led } => Blinky::enter_off(shared_storage, led),
             }
         }
 
         fn call_exit_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
-                StateEnum::On { led, counter } => {}
-                StateEnum::Off { led } => {}
+                State::On { led, counter } => {}
+                State::Off { led } => {}
             }
         }
 
         fn superstate(&mut self) -> Option<Superstate> {
             match self {
-                StateEnum::On { led, counter } => Some(Superstate::Playing { led }),
-                StateEnum::Off { led } => Some(Superstate::Playing { led }),
+                State::On { led, counter } => Some(Superstate::Playing { led }),
+                State::Off { led } => Some(Superstate::Playing { led }),
             }
         }
     }
@@ -121,13 +113,19 @@ mod tests {
         Playing { led: &'sub mut bool },
     }
 
+    impl<'sub> Superstate<'sub> {
+        fn playing() -> State {
+            State::on(false, 23)
+        }
+    }
+
     impl<'sub> blocking::Superstate<Blinky> for Superstate<'sub> {
         fn call_handler(
             &mut self,
             shared_storage: &mut Blinky,
             event: &Event,
             _: &mut (),
-        ) -> Response<StateEnum> {
+        ) -> Response<State> {
             match self {
                 Superstate::Playing { led } => Blinky::playing(shared_storage, led),
             }

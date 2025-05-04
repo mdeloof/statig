@@ -100,7 +100,7 @@ pub struct State {
     /// (e.g. `Some(Superstate::Playing { led })`, `None`, ..).
     pub superstate_pat: Pat,
     /// The constructor to create the state
-    /// (e.g. `const fn on(led: bool) -> Self { Self::On { led }}`).
+    /// (e.g. `fn on(led: bool) -> Self { Self::On { led }}`).
     pub constructor: ItemFn,
 }
 
@@ -124,6 +124,8 @@ pub struct Superstate {
     /// The pattern to create the superstate variant.
     /// (e.g. `Some(Superstate::Playing { led })`, `None`, ..).
     pub superstate_pat: Expr,
+    /// The optional constructor to create the superstate.
+    pub constructor: Option<ItemFn>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -571,6 +573,7 @@ pub fn lower_superstate(
     let (_, shared_storage_type_generics, _) =
         &state_machine.shared_storage_generics.split_for_impl();
     let shared_storage_turbofish = shared_storage_type_generics.as_turbofish();
+    let state_type = &state_machine.state_ident;
     let superstate_type = &state_machine.superstate_ident;
 
     let mut variant_fields: Vec<_> = superstate
@@ -606,6 +609,15 @@ pub fn lower_superstate(
         }
     };
 
+    let state_type = state_type.as_ident();
+
+    let constructor = match &superstate.initial_state {
+        Some(initial) => {
+            Some(parse_quote!(fn #superstate_handler_name () -> #state_type { #initial }))
+        }
+        None => None,
+    };
+
     let entry_action_call = parse_quote!({});
     let exit_action_call = parse_quote!({});
     let superstate_pat = parse_quote!(None);
@@ -617,6 +629,7 @@ pub fn lower_superstate(
         entry_action_call,
         exit_action_call,
         superstate_pat,
+        constructor,
     }
 }
 
@@ -918,6 +931,7 @@ fn create_analyze_superstate() -> analyze::Superstate {
             },
         ],
         is_async: false,
+        initial_state: None,
     }
 }
 
@@ -933,6 +947,7 @@ fn create_lower_superstate() -> Superstate {
         entry_action_call: parse_quote!({}),
         exit_action_call: parse_quote!({}),
         superstate_pat: parse_quote!(None),
+        constructor: None,
     }
 }
 
