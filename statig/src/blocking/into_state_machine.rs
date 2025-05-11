@@ -28,6 +28,7 @@ where
         &mut self,
         _state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
         _event: &Self::Event<'_>,
+        _context: &mut Self::Context<'_>,
     ) {
     }
 
@@ -37,12 +38,25 @@ where
         &mut self,
         _state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
         _event: &Self::Event<'_>,
+        _context: &mut Self::Context<'_>,
     ) {
     }
 
     /// Method that is called *before* every transition.
-    fn before_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
+    fn before_transition(
+        &mut self,
+        _source: &Self::State,
+        _target: &Self::State,
+        _context: &mut Self::Context<'_>,
+    ) {
+    }
 
     /// Method that is called *after* every transition.
-    fn after_transition(&mut self, _source: &Self::State, _target: &Self::State) {}
+    fn after_transition(
+        &mut self,
+        _source: &Self::State,
+        _target: &Self::State,
+        _context: &mut Self::Context<'_>,
+    ) {
+    }
 }

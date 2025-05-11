@@ -83,11 +83,11 @@ impl Blinky {
 
 impl Blinky {
     // The `after_transition` callback that will be called after every transition.
-    async fn after_transition(&mut self, source: &State, target: &State) {
+    async fn after_transition(&mut self, source: &State, target: &State, _context: &mut ()) {
         println!("after transitioned from `{source:?}` to `{target:?}`");
     }
 
-    async fn before_transition(&mut self, source: &State, target: &State) {
+    async fn before_transition(&mut self, source: &State, target: &State, _context: &mut ()) {
         println!("before transitioned from `{source:?}` to `{target:?}`");
     }
 
@@ -95,6 +95,7 @@ impl Blinky {
         &mut self,
         state: StateOrSuperstate<'_, State, Superstate>,
         event: &Event,
+        _context: &mut (),
     ) {
         println!("before dispatching `{event:?}` to `{state:?}`");
     }
@@ -103,6 +104,7 @@ impl Blinky {
         &mut self,
         state: StateOrSuperstate<'_, State, Superstate>,
         event: &Event,
+        _context: &mut (),
     ) {
         println!("after dispatched `{event:?}` to `{state:?}`");
     }
