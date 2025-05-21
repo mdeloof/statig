@@ -23,3 +23,6 @@ syn = { version = "2", features = [
 quote = "1.0.23"
 proc-macro2 = { version = "1.0.91", default-features = false }
 proc-macro-error2 = { version = "2.0.1", features = ["syn-error"] }
+
+[dev-dependencies]
+trybuild = "1.0.90"

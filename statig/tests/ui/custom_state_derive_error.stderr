@@ -1,0 +1,42 @@
+error: Can not use `custom` with derives
+  --> tests/ui/custom_state_derive_error.rs:34:11
+   |
+34 |     state(custom, name = "CustomState", derive(Debug))
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: the method `state_machine` exists for struct `Blinky`, but its trait bounds were not satisfied
+  --> tests/ui/custom_state_derive_error.rs:51:47
+   |
+6  | pub struct Blinky {}
+   | ----------------- method `state_machine` not found for this struct because it doesn't satisfy `Blinky: statig::awaitable::IntoStateMachineExt`, `Blinky: statig::awaitable::IntoStateMachine`, `Blinky: statig::blocking::IntoStateMachineExt` or `Blinky: statig::blocking::IntoStateMachine`
+...
+51 |     let mut state_machine = Blinky::default().state_machine();
+   |                                               ^^^^^^^^^^^^^ method cannot be called on `Blinky` due to unsatisfied trait bounds
+   |
+   = note: the following trait bounds were not satisfied:
+           `Blinky: statig::awaitable::IntoStateMachine`
+           which is required by `Blinky: statig::awaitable::IntoStateMachineExt`
+           `Blinky: statig::blocking::IntoStateMachine`
+           which is required by `Blinky: statig::blocking::IntoStateMachineExt`
+           `&Blinky: statig::awaitable::IntoStateMachine`
+           which is required by `&Blinky: statig::awaitable::IntoStateMachineExt`
+           `&Blinky: statig::blocking::IntoStateMachine`
+           which is required by `&Blinky: statig::blocking::IntoStateMachineExt`
+           `&mut Blinky: statig::awaitable::IntoStateMachine`
+           which is required by `&mut Blinky: statig::awaitable::IntoStateMachineExt`
+           `&mut Blinky: statig::blocking::IntoStateMachine`
+           which is required by `&mut Blinky: statig::blocking::IntoStateMachineExt`
+note: the traits `statig::awaitable::IntoStateMachine` and `statig::blocking::IntoStateMachine` must be implemented
+  --> src/awaitable/into_state_machine.rs
+   |
+   | pub trait IntoStateMachine
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+  ::: src/blocking/into_state_machine.rs
+   |
+   | pub trait IntoStateMachine
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following traits define an item `state_machine`, perhaps you need to implement one of them:
+           candidate #1: `statig::awaitable::IntoStateMachineExt`
+           candidate #2: `statig::blocking::IntoStateMachineExt`

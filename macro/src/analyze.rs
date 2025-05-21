@@ -9,6 +9,8 @@ use syn::{
     LitStr, Meta, MetaList, Pat, PatIdent, PatType, Path, Token, Type, Visibility,
 };
 
+use crate::lower::StateIdent;
+
 /// Model of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
 pub struct Model {
@@ -36,7 +38,7 @@ pub struct StateMachine {
     /// The generics associated with the shared storage type.
     pub shared_storage_generics: Generics,
     /// The name for the state type.
-    pub state_ident: Ident,
+    pub state_ident: StateIdent,
     /// Derives that will be applied on the state type.
     pub state_derives: Vec<Path>,
     /// The name of the superstate type.
@@ -191,7 +193,6 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
 
     let mut initial_state: Option<Expr> = None;
 
-    let mut state_ident = parse_quote!(State);
     let mut state_derives = Vec::new();
     let mut superstate_ident = parse_quote!(Superstate);
     let mut superstate_derives = Vec::new();
@@ -206,6 +207,7 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
     let mut context_ident = parse_quote!(context);
 
     let mut state_meta: MetaList = parse_quote!(state());
+
     let mut superstate_meta: MetaList = parse_quote!(superstate());
 
     // Iterate over the meta attributes on the `#[state_machine]` macro.
@@ -274,6 +276,9 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
         );
     };
 
+    let mut custom = false;
+    let mut state_name: Option<Ident> = None;
+
     // Iterate over the meta attributes for the state enum.
     let state_meta =
         match Punctuated::<Meta, Token![,]>::parse_terminated.parse2(state_meta.tokens.clone()) {
@@ -283,10 +288,12 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
 
     for meta in state_meta.iter() {
         if meta.path().is_ident("name") {
-            state_ident = match meta_require_name_lit_str(meta).parse() {
-                Ok(state_ident) => state_ident,
+            state_name = match meta_require_name_lit_str(meta).parse() {
+                Ok(state_ident) => Some(state_ident),
                 Err(_) => abort!(meta, "state type name must be an ident"),
             }
+        } else if meta.path().is_ident("custom") {
+            custom = true;
         } else if meta.path().is_ident("derive") {
             match meta.require_list().and_then(|list| {
                 Punctuated::<Path, Token![,]>::parse_terminated.parse2(list.tokens.clone())
@@ -296,6 +303,20 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
             }
         } else {
             abort!(state_meta, "unknown argument for `state` attribute");
+        }
+    }
+
+    let state_ident = state_name.map_or_else(
+        || StateIdent::StatigState(parse_quote!(State)),
+        |state_name| match custom {
+            true => StateIdent::CustomState(state_name),
+            false => StateIdent::StatigState(state_name),
+        },
+    );
+
+    if let StateIdent::CustomState(_) = state_ident {
+        if !state_derives.is_empty() {
+            abort!(state_meta, "Can not use `custom` with derives");
         }
     }
 
@@ -706,7 +727,7 @@ fn valid_state_analyze() {
     let shared_storage_path = parse_quote!(Blinky);
     let shared_storage_generics = parse_quote!();
 
-    let state_ident = parse_quote!(State);
+    let state_ident = StateIdent::StatigState(parse_quote!(State));
     let state_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
     let superstate_ident = parse_quote!(Superstate);
     let superstate_derives = vec![parse_quote!(Copy), parse_quote!(Clone)];
