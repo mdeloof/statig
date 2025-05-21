@@ -99,6 +99,8 @@ pub struct Superstate {
     pub entry_action: Option<Ident>,
     /// Optional exit action.
     pub exit_action: Option<Ident>,
+    /// Optional initial state of the superstate.
+    pub initial_state: Option<Expr>,
     /// Local storage,
     pub local_storage: Vec<Field>,
     /// Inputs required by the superstate handler.
@@ -499,6 +501,7 @@ pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> 
     let mut superstate = None;
     let mut entry_action = None;
     let mut exit_action = None;
+    let mut initial_state = None;
     let mut local_storage = Vec::new();
     let mut state_inputs = Vec::new();
     let mut event_arg = None;
@@ -562,6 +565,11 @@ pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> 
                 Ok(exit_action) => Some(exit_action),
                 Err(_) => abort!(meta, "exit action must be an ident"),
             }
+        } else if meta.path().is_ident("initial") {
+            initial_state = match meta_require_name_lit_str(&meta).parse() {
+                Ok(initial) => Some(initial),
+                Err(_) => abort!(meta, "initial state must be an expression"),
+            }
         } else if meta.path().is_ident("local_storage") {
             match meta.require_list().and_then(|list| {
                 Punctuated::<LitStr, Token![,]>::parse_terminated.parse2(list.tokens.clone())
@@ -585,6 +593,7 @@ pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> 
         superstate,
         entry_action,
         exit_action,
+        initial_state,
         local_storage,
         inputs,
         state_inputs,
@@ -780,6 +789,7 @@ fn valid_state_analyze() {
         superstate: None,
         entry_action: None,
         exit_action: None,
+        initial_state: None,
         local_storage: vec![],
         inputs: vec![parse_quote!(&mut self), parse_quote!(event: &Event)],
         state_inputs: vec![],

@@ -13,7 +13,8 @@ pub fn codegen(ir: Ir) -> TokenStream {
     let state_impl = codegen_state_impl(&ir);
     let state_impl_state = codegen_state_impl_state(&ir);
     let superstate_enum = codegen_superstate(&ir);
-    let superstate_impl = codegen_superstate_impl_superstate(&ir);
+    let superstate_impl = codegen_superstate_impl(&ir);
+    let superstate_impl_superstate = codegen_superstate_impl_superstate(&ir);
 
     quote!(
         // Import the proc_macro attributes so they can be used to tag functions.
@@ -32,6 +33,8 @@ pub fn codegen(ir: Ir) -> TokenStream {
         #superstate_enum
 
         #superstate_impl
+
+        #superstate_impl_superstate
     )
 }
 
@@ -366,6 +369,25 @@ fn codegen_superstate(ir: &Ir) -> ItemEnum {
         #[derive(#(#superstate_derives),*)]
         #visibility enum #superstate_ident #superstate_generics {
             #(#variants),*
+        }
+    )
+}
+
+fn codegen_superstate_impl(ir: &Ir) -> ItemImpl {
+    let superstate_ident = &ir.state_machine.superstate_ident;
+    let (impl_generics, superstate_generics, _) =
+        &ir.state_machine.superstate_generics.split_for_impl();
+
+    let constructors: Vec<ItemFn> = ir
+        .superstates
+        .values()
+        .filter_map(|superstate| superstate.constructor.as_ref())
+        .cloned()
+        .collect();
+
+    parse_quote!(
+        impl #impl_generics #superstate_ident #superstate_generics {
+            #(#constructors)*
         }
     )
 }
