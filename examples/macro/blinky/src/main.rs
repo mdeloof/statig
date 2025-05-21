@@ -74,11 +74,11 @@ impl Blinky {
 
 impl Blinky {
     // The `after_transition` callback that will be called after every transition.
-    fn after_transition(&mut self, source: &State, target: &State) {
+    fn after_transition(&mut self, source: &State, target: &State, _context: &mut ()) {
         println!("transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_dispatch(&mut self, state: StateOrSuperstate<'_, State, Superstate>, event: &Event) {
+    fn before_dispatch(&mut self, state: StateOrSuperstate<'_, State, Superstate>, event: &Event,  _context: &mut ()) {
         println!("dispatching `{event:?}` to `{state:?}`");
     }
 }
