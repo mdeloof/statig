@@ -17,7 +17,7 @@ impl Foo {
         #[default] b: &mut bool,
         #[default] c: &mut bool,
         event: &Event,
-    ) -> Response<State> {
+    ) -> Outcome<State> {
         match event {
             Event::A => {
                 *a = true;
@@ -35,7 +35,7 @@ impl Foo {
     }
 
     #[superstate]
-    fn waiting_for_initialization(a: &bool, b: &bool, c: &bool) -> Response<State> {
+    fn waiting_for_initialization(a: &bool, b: &bool, c: &bool) -> Outcome<State> {
         match (a, b, c) {
             (true, true, true) => Transition(State::initialized()),
             _ => Handled,
@@ -43,7 +43,7 @@ impl Foo {
     }
 
     #[state]
-    fn initialized() -> Response<State> {
+    fn initialized() -> Outcome<State> {
         Handled
     }
 }

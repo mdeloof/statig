@@ -5,7 +5,7 @@ mod tests {
     use statig::prelude::*;
     use std::fmt;
 
-    type Response = statig::Response<State>;
+    type Outcome = statig::Outcome<State>;
 
     #[derive(Clone, Debug)]
     enum Event {
@@ -45,7 +45,7 @@ mod tests {
             entry_action = "enter_s11",
             exit_action = "exit_s11"
         )]
-        pub async fn s11(&mut self, event: &Event) -> Response {
+        pub async fn s11(&mut self, event: &Event) -> Outcome {
             match event {
                 Event::A => Transition(State::s11()),
                 Event::B => Transition(State::s12()),
@@ -71,7 +71,7 @@ mod tests {
             entry_action = "enter_s12",
             exit_action = "exit_s12"
         )]
-        pub async fn s12(&mut self, event: &Event) -> Response {
+        pub async fn s12(&mut self, event: &Event) -> Outcome {
             match event {
                 Event::C => Transition(State::s211()),
                 _ => Super,
@@ -93,7 +93,7 @@ mod tests {
         /// s1
         #[allow(unused)]
         #[superstate(superstate = "s", entry_action = "enter_s1", exit_action = "exit_s1")]
-        pub async fn s1(&mut self, event: &Event) -> Response {
+        pub async fn s1(&mut self, event: &Event) -> Outcome {
             Super
         }
 
@@ -116,7 +116,7 @@ mod tests {
             entry_action = "enter_s211",
             exit_action = "exit_s211"
         )]
-        pub async fn s211(&mut self, event: &Event) -> Response {
+        pub async fn s211(&mut self, event: &Event) -> Outcome {
             Super
         }
 
@@ -139,7 +139,7 @@ mod tests {
             entry_action = "enter_s21",
             exit_action = "exit_s21"
         )]
-        pub async fn s21(&mut self, event: &Event) -> Response {
+        pub async fn s21(&mut self, event: &Event) -> Outcome {
             Super
         }
 
@@ -157,7 +157,7 @@ mod tests {
 
         /// s2
         #[superstate(superstate = "s", entry_action = "enter_s2", exit_action = "exit_s2")]
-        pub async fn s2(&mut self, event: &Event) -> Response {
+        pub async fn s2(&mut self, event: &Event) -> Outcome {
             match event {
                 Event::D => Transition(State::s11()),
                 _ => Super,
@@ -179,7 +179,7 @@ mod tests {
         /// s
         #[allow(unused)]
         #[superstate(entry_action = "enter_s", exit_action = "exit_s")]
-        pub async fn s(&mut self, event: &Event) -> Response {
+        pub async fn s(&mut self, event: &Event) -> Outcome {
             Handled
         }
 

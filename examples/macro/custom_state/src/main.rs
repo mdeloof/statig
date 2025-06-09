@@ -44,9 +44,9 @@ impl CustomState {
 impl Blinky {
     /// The `#[state]` attibute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
-    /// Every state must return a `Response<CustomState>`.
+    /// Every state must return a `Outcome<CustomState>`.
     #[state(superstate = "blinking")]
-    fn led_on(event: &Event) -> Response<CustomState> {
+    fn led_on(event: &Event) -> Outcome<CustomState> {
         match event {
             // When we receive a `TimerElapsed` event we transition to the `led_off` state.
             Event::TimerElapsed => Transition(CustomState::LedOff),
@@ -56,7 +56,7 @@ impl Blinky {
     }
 
     #[state(superstate = "blinking")]
-    fn led_off(event: &Event) -> Response<CustomState> {
+    fn led_off(event: &Event) -> Outcome<CustomState> {
         match event {
             Event::TimerElapsed => Transition(CustomState::LedOn),
             _ => Super,
@@ -65,7 +65,7 @@ impl Blinky {
 
     /// The `#[superstate]` attribute marks this as a superstate handler.
     #[superstate]
-    fn blinking(event: &Event) -> Response<CustomState> {
+    fn blinking(event: &Event) -> Outcome<CustomState> {
         match event {
             Event::ButtonPressed => Transition(CustomState::NotBlinking),
             _ => Super,
@@ -73,7 +73,7 @@ impl Blinky {
     }
 
     #[state]
-    fn not_blinking(event: &Event) -> Response<CustomState> {
+    fn not_blinking(event: &Event) -> Outcome<CustomState> {
         match event {
             Event::ButtonPressed => Transition(CustomState::LedOn),
             // Altough this state has no superstate, we can still defer the event which

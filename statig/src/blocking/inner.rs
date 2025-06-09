@@ -1,5 +1,5 @@
 use crate::blocking::{IntoStateMachine, State, StateExt, Superstate};
-use crate::Response;
+use crate::Outcome;
 
 /// Private internal representation of a state machine that is used for the public types.
 pub(crate) struct Inner<M>
@@ -31,9 +31,9 @@ where
     ) {
         let response = self.state.handle(&mut self.shared_storage, event, context);
         match response {
-            Response::Super => {}
-            Response::Handled => {}
-            Response::Transition(state) => self.transition(state, context),
+            Outcome::Super => {}
+            Outcome::Handled => {}
+            Outcome::Transition(state) => self.transition(state, context),
         }
     }
 

@@ -28,7 +28,7 @@ fn serialize_deserialize() {
     )]
     impl Blinky {
         #[state(superstate = "blinking")]
-        fn led_on(event: &Event) -> Response<State> {
+        fn led_on(event: &Event) -> Outcome<State> {
             match event {
                 Event::TimerElapsed => Transition(State::led_off()),
                 _ => Super,
@@ -36,7 +36,7 @@ fn serialize_deserialize() {
         }
 
         #[state(superstate = "blinking")]
-        fn led_off(event: &Event) -> Response<State> {
+        fn led_off(event: &Event) -> Outcome<State> {
             match event {
                 Event::TimerElapsed => Transition(State::led_on()),
                 _ => Super,
@@ -44,7 +44,7 @@ fn serialize_deserialize() {
         }
 
         #[superstate]
-        fn blinking(event: &Event) -> Response<State> {
+        fn blinking(event: &Event) -> Outcome<State> {
             match event {
                 Event::ButtonPressed => Transition(State::not_blinking()),
                 _ => Super,
@@ -52,7 +52,7 @@ fn serialize_deserialize() {
         }
 
         #[state]
-        fn not_blinking(event: &Event) -> Response<State> {
+        fn not_blinking(event: &Event) -> Outcome<State> {
             match event {
                 Event::ButtonPressed => Transition(State::led_on()),
                 _ => Super,

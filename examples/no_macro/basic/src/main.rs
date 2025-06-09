@@ -41,7 +41,7 @@ impl IntoStateMachine for Blinky {
 }
 
 impl blocking::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Outcome<Self> {
         match self {
             State::On => blinky.on(event),
             State::Off => blinky.off(event),
@@ -50,13 +50,13 @@ impl blocking::State<Blinky> for State {
 }
 
 impl Blinky {
-    fn on(&mut self, event: &Event) -> Response<State> {
+    fn on(&mut self, event: &Event) -> Outcome<State> {
         self.led = false;
         // Transition to the `off` state.
         Transition(State::Off)
     }
 
-    fn off(&mut self, event: &Event) -> Response<State> {
+    fn off(&mut self, event: &Event) -> Outcome<State> {
         self.led = true;
         // Transition to the `on` state.
         Transition(State::On)

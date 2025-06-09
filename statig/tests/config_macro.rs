@@ -27,14 +27,14 @@ mod tests {
         )]
         impl MyStateMachine {
             #[state(superstate = "foo")]
-            fn bar(my_event: &Event, my_context: &mut Context) -> Response<MyState> {
+            fn bar(my_event: &Event, my_context: &mut Context) -> Outcome<MyState> {
                 match my_event {
                     Event::A => Handled,
                 }
             }
 
             #[superstate]
-            fn foo(my_event: &Event, my_context: &mut Context) -> Response<MyState> {
+            fn foo(my_event: &Event, my_context: &mut Context) -> Outcome<MyState> {
                 match my_event {
                     Event::A => Handled,
                 }

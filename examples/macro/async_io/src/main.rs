@@ -24,7 +24,7 @@ impl Receiver {
     }
 
     #[state(entry_action = "enter_on")]
-    async fn on(&mut self, event: &Event) -> Response<State> {
+    async fn on(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Step => {
                 self.connection
@@ -37,7 +37,7 @@ impl Receiver {
     }
 
     #[state]
-    async fn off(&mut self, event: &Event) -> Response<State> {
+    async fn off(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Step => Transition(State::off()),
         }

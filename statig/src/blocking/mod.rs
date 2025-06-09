@@ -6,7 +6,7 @@ mod state;
 mod state_machine;
 mod superstate;
 
-pub use crate::Response::{self, *};
+pub use crate::Outcome::{self, *};
 pub use crate::*;
 
 pub(crate) use inner::*;

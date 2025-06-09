@@ -25,7 +25,7 @@ impl Dishwasher {
     }
 
     #[superstate]
-    fn door_closed(event: &Event) -> Response<State> {
+    fn door_closed(event: &Event) -> Outcome<State> {
         match event {
             // When the door is opened the program needs to be paused until
             // the door is closed again.
@@ -35,7 +35,7 @@ impl Dishwasher {
     }
 
     #[state(superstate = "door_closed")]
-    fn idle(event: &Event) -> Response<State> {
+    fn idle(event: &Event) -> Outcome<State> {
         match event {
             Event::StartProgram => Transition(State::soap()),
             _ => Super,
@@ -43,7 +43,7 @@ impl Dishwasher {
     }
 
     #[state(superstate = "door_closed")]
-    fn soap(event: &Event) -> Response<State> {
+    fn soap(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::rinse()),
             _ => Super,
@@ -51,7 +51,7 @@ impl Dishwasher {
     }
 
     #[state(superstate = "door_closed")]
-    fn rinse(event: &Event) -> Response<State> {
+    fn rinse(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::dry()),
             _ => Super,
@@ -59,7 +59,7 @@ impl Dishwasher {
     }
 
     #[state(superstate = "door_closed")]
-    fn dry(event: &Event) -> Response<State> {
+    fn dry(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::idle()),
             _ => Super,
@@ -67,7 +67,7 @@ impl Dishwasher {
     }
 
     #[state]
-    fn door_opened(&self, event: &Event) -> Response<State> {
+    fn door_opened(&self, event: &Event) -> Outcome<State> {
         match event {
             // When the door is closed again, the program is resumed from
             // the previous state.

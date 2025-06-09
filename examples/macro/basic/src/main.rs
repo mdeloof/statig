@@ -19,16 +19,16 @@ pub struct Event;
 impl Blinky {
     /// The `#[state]` attibute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
-    /// Every state must return a `Response<State>`.
+    /// Every state must return a `Outcome<State>`.
     #[state]
-    fn on(&mut self, event: &Event) -> Response<State> {
+    fn on(&mut self, event: &Event) -> Outcome<State> {
         self.led = false;
         // Transition to the `off` state.
         Transition(State::off())
     }
 
     #[state]
-    fn off(&mut self, event: &Event) -> Response<State> {
+    fn off(&mut self, event: &Event) -> Outcome<State> {
         self.led = true;
         // Transition to the `on` state.
         Transition(State::on())

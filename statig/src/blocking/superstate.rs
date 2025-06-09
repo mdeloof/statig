@@ -1,7 +1,7 @@
 use core::cmp::Ordering;
 
 use crate::blocking::IntoStateMachine;
-use crate::{Response, StateOrSuperstate};
+use crate::{Outcome, StateOrSuperstate};
 
 /// An enum that represents the superstates of the state machine.
 pub trait Superstate<M>
@@ -14,7 +14,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Response<M::State>;
+    ) -> Outcome<M::State>;
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
@@ -92,15 +92,15 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Response<M::State>
+    ) -> Outcome<M::State>
     where
         Self: Sized,
     {
         let response = self.call_handler(shared_storage, event, context);
 
         match response {
-            Response::Handled => Response::Handled,
-            Response::Super => match self.superstate() {
+            Outcome::Handled => Outcome::Handled,
+            Outcome::Super => match self.superstate() {
                 Some(mut superstate) => {
                     M::before_dispatch(
                         shared_storage,
@@ -118,9 +118,9 @@ where
 
                     response
                 }
-                None => Response::Super,
+                None => Outcome::Super,
             },
-            Response::Transition(state) => Response::Transition(state),
+            Outcome::Transition(state) => Outcome::Transition(state),
         }
     }
 
@@ -167,8 +167,8 @@ where
         _: &mut M,
         _: &M::Event<'_>,
         _: &mut M::Context<'_>,
-    ) -> Response<M::State> {
-        Response::Handled
+    ) -> Outcome<M::State> {
+        Outcome::Handled
     }
 
     fn call_entry_action(&mut self, _: &mut M, _: &mut M::Context<'_>) {}

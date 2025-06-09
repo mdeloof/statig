@@ -12,7 +12,7 @@ mod tests {
         fn bar(
             #[default] local: &mut usize,
             #[default = "100"] local_2: &mut usize,
-        ) -> Response<State> {
+        ) -> Outcome<State> {
             Handled
         }
     }

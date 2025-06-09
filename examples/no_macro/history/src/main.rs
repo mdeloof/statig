@@ -53,7 +53,7 @@ impl blocking::State<Dishwasher> for State {
         shared: &mut Dishwasher,
         event: &Event,
         _: &mut (),
-    ) -> Response<Self> {
+    ) -> Outcome<Self> {
         match self {
             State::DoorOpened => Dishwasher::door_opened(shared, event),
             State::Dry => Dishwasher::dry(event),
@@ -80,7 +80,7 @@ impl blocking::Superstate<Dishwasher> for Superstate {
         shared: &mut Dishwasher,
         event: &Event,
         _: &mut (),
-    ) -> Response<State> {
+    ) -> Outcome<State> {
         match self {
             Superstate::DoorClosed => Dishwasher::door_closed(event),
         }
@@ -88,35 +88,35 @@ impl blocking::Superstate<Dishwasher> for Superstate {
 }
 
 impl Dishwasher {
-    fn idle(event: &Event) -> Response<State> {
+    fn idle(event: &Event) -> Outcome<State> {
         match event {
             Event::StartProgram => Transition(State::Soap),
             _ => Super,
         }
     }
 
-    fn soap(event: &Event) -> Response<State> {
+    fn soap(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::Rinse),
             _ => Super,
         }
     }
 
-    fn rinse(event: &Event) -> Response<State> {
+    fn rinse(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::Dry),
             _ => Super,
         }
     }
 
-    fn dry(event: &Event) -> Response<State> {
+    fn dry(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::Idle),
             _ => Super,
         }
     }
 
-    fn door_closed(event: &Event) -> Response<State> {
+    fn door_closed(event: &Event) -> Outcome<State> {
         match event {
             // When the door is opened the program needs to be paused until
             // the door is closed again.
@@ -125,7 +125,7 @@ impl Dishwasher {
         }
     }
 
-    fn door_opened(&mut self, event: &Event) -> Response<State> {
+    fn door_opened(&mut self, event: &Event) -> Outcome<State> {
         match event {
             // When the door is closed again, the program is resumed from
             // the previous state.

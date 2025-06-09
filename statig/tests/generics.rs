@@ -25,17 +25,17 @@ mod tests {
         B: 'static,
     {
         #[state]
-        fn a() -> Response<State<T, B, SIZE>> {
+        fn a() -> Outcome<State<T, B, SIZE>> {
             Handled
         }
 
         #[state]
-        fn b(array: &mut [T; SIZE]) -> Response<State<T, B, SIZE>> {
+        fn b(array: &mut [T; SIZE]) -> Outcome<State<T, B, SIZE>> {
             Handled
         }
 
         #[state]
-        fn c(deref: &B) -> Response<State<T, B, SIZE>> {
+        fn c(deref: &B) -> Outcome<State<T, B, SIZE>> {
             Handled
         }
     }

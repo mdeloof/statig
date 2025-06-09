@@ -1,5 +1,5 @@
 use crate::blocking::{IntoStateMachine, Superstate, SuperstateExt};
-use crate::{Response, StateOrSuperstate};
+use crate::{Outcome, StateOrSuperstate};
 
 /// An enum that represents the leaf states of the state machine.
 pub trait State<M>
@@ -13,7 +13,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Response<Self>;
+    ) -> Outcome<Self>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
@@ -89,7 +89,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Response<Self>
+    ) -> Outcome<Self>
     where
         Self: Sized,
     {
@@ -100,8 +100,8 @@ where
         M::after_dispatch(shared_storage, StateOrSuperstate::State(self), event);
 
         match response {
-            Response::Handled => Response::Handled,
-            Response::Super => match self.superstate() {
+            Outcome::Handled => Outcome::Handled,
+            Outcome::Super => match self.superstate() {
                 Some(mut superstate) => {
                     M::before_dispatch(
                         shared_storage,
@@ -119,9 +119,9 @@ where
 
                     response
                 }
-                None => Response::Super,
+                None => Outcome::Super,
             },
-            Response::Transition(state) => Response::Transition(state),
+            Outcome::Transition(state) => Outcome::Transition(state),
         }
     }
 

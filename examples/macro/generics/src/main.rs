@@ -29,7 +29,7 @@ where
     A: 'static + Deref,
 {
     #[state]
-    fn foo(event: &Event<T>) -> Response<State<T, SIZE>> {
+    fn foo(event: &Event<T>) -> Outcome<State<T, SIZE>> {
         match event {
             Event::Bar(value) => Transition(State::bar(*value, [T::default(); SIZE])),
             _ => Super,
@@ -42,7 +42,7 @@ where
     }
 
     #[state(superstate = "foo_and_bar", entry_action = "enter_bar")]
-    fn bar(value: &mut T, buffer: &[T; SIZE], event: &Event<T>) -> Response<State<T, SIZE>> {
+    fn bar(value: &mut T, buffer: &[T; SIZE], event: &Event<T>) -> Outcome<State<T, SIZE>> {
         match event {
             Event::Foo => Transition(State::foo()),
             _ => Super,
@@ -50,7 +50,7 @@ where
     }
 
     #[superstate]
-    fn foo_and_bar(value: &mut T) -> Response<State<T, SIZE>> {
+    fn foo_and_bar(value: &mut T) -> Outcome<State<T, SIZE>> {
         Super
     }
 }

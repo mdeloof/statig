@@ -711,13 +711,13 @@ fn valid_state_analyze() {
                 entry_action = "enter_on",
                 exit_action = "enter_off"
             )]
-            fn on(&mut self, event: &Event) -> Response<State> {
-                Response::Handled
+            fn on(&mut self, event: &Event) -> Outcome<State> {
+                Outcome::Handled
             }
 
             #[superstate]
-            fn playing(&mut self, event: &Event) -> Response<State> {
-                Response::Handled
+            fn playing(&mut self, event: &Event) -> Outcome<State> {
+                Outcome::Handled
             }
 
             #[action]

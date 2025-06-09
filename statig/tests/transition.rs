@@ -4,7 +4,7 @@ mod tests {
     use statig::blocking::{self, *};
     use std::fmt;
 
-    type Response = statig::Response<State>;
+    type Outcome = statig::Outcome<State>;
 
     #[derive(Clone)]
     enum Event {
@@ -66,7 +66,7 @@ mod tests {
             shared_storage: &mut Foo,
             event: &Event,
             _: &mut (),
-        ) -> statig::Response<Self> {
+        ) -> statig::Outcome<Self> {
             match self {
                 State::S211 {} => Foo::s211(shared_storage, event),
                 State::S11 {} => Foo::s11(shared_storage, event),
@@ -108,7 +108,7 @@ mod tests {
             shared_storage: &mut Foo,
             event: &Event,
             _: &mut (),
-        ) -> statig::Response<State>
+        ) -> statig::Outcome<State>
         where
             Self: Sized,
         {
@@ -150,7 +150,7 @@ mod tests {
 
     impl Foo {
         /// s11
-        pub fn s11(&mut self, event: &Event) -> Response {
+        pub fn s11(&mut self, event: &Event) -> Outcome {
             match event {
                 Event::A => Transition(State::S11),
                 Event::B => Transition(State::S12),
@@ -169,7 +169,7 @@ mod tests {
         }
 
         /// s12
-        pub fn s12(&mut self, event: &Event) -> Response {
+        pub fn s12(&mut self, event: &Event) -> Outcome {
             match event {
                 Event::C => Transition(State::S211),
                 _ => Super,
@@ -188,7 +188,7 @@ mod tests {
 
         /// s1
         #[allow(unused)]
-        pub fn s1(&mut self, event: &Event) -> Response {
+        pub fn s1(&mut self, event: &Event) -> Outcome {
             Super
         }
 
@@ -204,7 +204,7 @@ mod tests {
 
         /// s211
         #[allow(unused)]
-        pub fn s211(&mut self, event: &Event) -> Response {
+        pub fn s211(&mut self, event: &Event) -> Outcome {
             Super
         }
 
@@ -220,7 +220,7 @@ mod tests {
 
         /// s21
         #[allow(unused)]
-        pub fn s21(&mut self, event: &Event) -> Response {
+        pub fn s21(&mut self, event: &Event) -> Outcome {
             Super
         }
 
@@ -235,7 +235,7 @@ mod tests {
         }
 
         /// s2
-        pub fn s2(&mut self, event: &Event) -> Response {
+        pub fn s2(&mut self, event: &Event) -> Outcome {
             match event {
                 Event::D => Transition(State::S11),
                 _ => Super,
@@ -254,7 +254,7 @@ mod tests {
 
         /// s
         #[allow(unused)]
-        pub fn s(&mut self, event: &Event) -> Response {
+        pub fn s(&mut self, event: &Event) -> Outcome {
             Handled
         }
 

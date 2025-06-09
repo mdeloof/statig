@@ -25,12 +25,12 @@ mod tests {
     )]
     impl FooBar {
         #[state]
-        fn foo(event: &Event) -> Response<State> {
+        fn foo(event: &Event) -> Outcome<State> {
             Transition(State::bar())
         }
 
         #[state]
-        fn bar(event: &Event) -> Response<State> {
+        fn bar(event: &Event) -> Outcome<State> {
             Transition(State::foo())
         }
     }
