@@ -247,7 +247,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
         superstate_arms.push(parse_quote!(#pat => #superstate_pat));
     }
 
-    call_handler_arms.push(parse_quote!(_ => statig::Response::Super));
+    call_handler_arms.push(parse_quote!(_ => statig::Outcome::Super));
     call_entry_action_arms.push(parse_quote!(_ => {}));
     call_exit_action_arms.push(parse_quote!(_ => {}));
     superstate_arms.push(parse_quote!(_ => None));
@@ -264,7 +264,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
                         #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
-                    ) -> statig::Response<Self> where Self: Sized {
+                    ) -> statig::Outcome<Self> where Self: Sized {
                         match self {
                             #(#call_handler_arms),*
                         }
@@ -308,7 +308,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                     shared_storage: &mut #shared_storage_type,
                     #event_ident: &<#shared_storage_type as statig::awaitable::IntoStateMachine>::Event<'_>,
                     #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
-                ) -> impl core::future::Future<Output = statig::Response<Self>> {
+                ) -> impl core::future::Future<Output = statig::Outcome<Self>> {
                     async move {
                         match self {
                             #(#call_handler_arms),*
@@ -421,7 +421,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
         superstate_arms.push(parse_quote!(#pat => #superstate_pat));
     }
 
-    call_handler_arms.push(parse_quote!(_ => statig::Response::Super));
+    call_handler_arms.push(parse_quote!(_ => statig::Outcome::Super));
     call_entry_action_arms.push(parse_quote!(_ => {}));
     call_exit_action_arms.push(parse_quote!(_ => {}));
     superstate_arms.push(parse_quote!(_ => None));
@@ -438,7 +438,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
                         #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
-                    ) -> statig::Response<<#shared_storage_type as statig::blocking::IntoStateMachine>::State> where Self: Sized {
+                    ) -> statig::Outcome<<#shared_storage_type as statig::blocking::IntoStateMachine>::State> where Self: Sized {
                         match self {
                             #(#call_handler_arms),*
                         }
@@ -483,7 +483,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::awaitable::IntoStateMachine>::Event<'_>,
                         #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
-                    ) -> impl core::future::Future<Output = statig::Response<<#shared_storage_type as statig::awaitable::IntoStateMachine>::State>> {
+                    ) -> impl core::future::Future<Output = statig::Outcome<<#shared_storage_type as statig::awaitable::IntoStateMachine>::State>> {
                         async move {
                             match self {
                                 #(#call_handler_arms),*

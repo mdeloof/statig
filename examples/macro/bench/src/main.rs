@@ -29,7 +29,7 @@ pub struct CdPlayer;
 #[state_machine(initial = "State::empty()", state(derive(Debug)))]
 impl CdPlayer {
     #[state]
-    fn empty(event: &Event) -> Response<State> {
+    fn empty(event: &Event) -> Outcome<State> {
         match event {
             Event::CdDetected => Transition(State::stopped()),
             Event::OpenClose => Transition(State::open()),
@@ -38,7 +38,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn open(event: &Event) -> Response<State> {
+    fn open(event: &Event) -> Outcome<State> {
         match event {
             Event::OpenClose => Transition(State::empty()),
             _ => Super,
@@ -46,7 +46,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn stopped(event: &Event) -> Response<State> {
+    fn stopped(event: &Event) -> Outcome<State> {
         match event {
             Event::Play => Transition(State::playing()),
             Event::OpenClose => Transition(State::open()),
@@ -56,7 +56,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn playing(event: &Event) -> Response<State> {
+    fn playing(event: &Event) -> Outcome<State> {
         match event {
             Event::OpenClose => Transition(State::open()),
             Event::Pause2 => Transition(State::pause()),
@@ -66,7 +66,7 @@ impl CdPlayer {
     }
 
     #[state]
-    fn pause(event: &Event) -> Response<State> {
+    fn pause(event: &Event) -> Outcome<State> {
         match event {
             Event::EndPause => Transition(State::playing()),
             Event::Stop => Transition(State::stopped()),

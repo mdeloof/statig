@@ -26,12 +26,12 @@ mod tests {
     )]
     impl FooBar {
         #[state]
-        async fn foo(event: &Event) -> Response<State> {
+        async fn foo(event: &Event) -> Outcome<State> {
             Transition(State::bar())
         }
 
         #[state]
-        async fn bar(event: &Event) -> Response<State> {
+        async fn bar(event: &Event) -> Outcome<State> {
             Transition(State::foo())
         }
     }

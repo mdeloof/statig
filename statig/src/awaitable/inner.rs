@@ -1,5 +1,5 @@
 use crate::awaitable::{IntoStateMachine, State, StateExt, Superstate};
-use crate::Response;
+use crate::Outcome;
 
 /// Private internal representation of a state machine that is used for the public types.
 pub(crate) struct Inner<M>
@@ -33,9 +33,9 @@ where
             .handle(&mut self.shared_storage, event, context)
             .await;
         match response {
-            Response::Super => {}
-            Response::Handled => {}
-            Response::Transition(state) => self.transition(state, context).await,
+            Outcome::Super => {}
+            Outcome::Handled => {}
+            Outcome::Transition(state) => self.transition(state, context).await,
         }
     }
 

@@ -48,7 +48,7 @@ impl IntoStateMachine for Blinky {
 
 // Implement the `statig::State` trait for the state enum.
 impl blocking::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Outcome<Self> {
         match self {
             State::LedOn => Blinky::led_on(event),
             State::LedOff => Blinky::led_off(event),
@@ -67,7 +67,7 @@ impl blocking::State<Blinky> for State {
 
 // Implement the `statig::Superstate` trait for the superstate enum.
 impl blocking::Superstate<Blinky> for Superstate {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Response<State> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Outcome<State> {
         match self {
             Superstate::Blinking => Blinky::blinking(event),
         }
@@ -75,28 +75,28 @@ impl blocking::Superstate<Blinky> for Superstate {
 }
 
 impl Blinky {
-    fn led_on(event: &Event) -> Response<State> {
+    fn led_on(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::LedOff),
             _ => Super,
         }
     }
 
-    fn led_off(event: &Event) -> Response<State> {
+    fn led_off(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::LedOn),
             _ => Super,
         }
     }
 
-    fn blinking(event: &Event) -> Response<State> {
+    fn blinking(event: &Event) -> Outcome<State> {
         match event {
             Event::ButtonPressed => Transition(State::NotBlinking),
             _ => Super,
         }
     }
 
-    fn not_blinking(event: &Event) -> Response<State> {
+    fn not_blinking(event: &Event) -> Outcome<State> {
         match event {
             Event::ButtonPressed => Transition(State::LedOn),
             _ => Super,

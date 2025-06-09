@@ -60,7 +60,7 @@ impl blocking::State<CdPlayer> for State {
         cd_player: &mut CdPlayer,
         event: &Event,
         _: &mut (),
-    ) -> Response<Self> {
+    ) -> Outcome<Self> {
         match self {
             State::Empty => CdPlayer::empty(event),
             State::Open => CdPlayer::open(event),
@@ -72,7 +72,7 @@ impl blocking::State<CdPlayer> for State {
 }
 
 impl CdPlayer {
-    fn empty(event: &Event) -> Response<State> {
+    fn empty(event: &Event) -> Outcome<State> {
         match event {
             Event::CdDetected => (Transition(State::Stopped)),
             Event::OpenClose => (Transition(State::Open)),
@@ -80,14 +80,14 @@ impl CdPlayer {
         }
     }
 
-    fn open(event: &Event) -> Response<State> {
+    fn open(event: &Event) -> Outcome<State> {
         match event {
             Event::OpenClose => (Transition(State::Empty)),
             _ => (Super),
         }
     }
 
-    fn stopped(event: &Event) -> Response<State> {
+    fn stopped(event: &Event) -> Outcome<State> {
         match event {
             Event::Play => (Transition(State::Playing)),
             Event::OpenClose => (Transition(State::Open)),
@@ -96,7 +96,7 @@ impl CdPlayer {
         }
     }
 
-    fn playing(event: &Event) -> Response<State> {
+    fn playing(event: &Event) -> Outcome<State> {
         match event {
             Event::OpenClose => (Transition(State::Open)),
             Event::Pause2 => (Transition(State::Pause)),
@@ -105,7 +105,7 @@ impl CdPlayer {
         }
     }
 
-    fn pause(event: &Event) -> Response<State> {
+    fn pause(event: &Event) -> Outcome<State> {
         match event {
             Event::EndPause => (Transition(State::Playing)),
             Event::Stop => (Transition(State::Stopped)),

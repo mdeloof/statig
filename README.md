@@ -65,7 +65,7 @@ pub enum Event {
 #[state_machine(initial = "State::led_on()")]
 impl Blinky {
     #[state(superstate = "blinking")]
-    fn led_on(event: &Event) -> Response<State> {
+    fn led_on(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::led_off()),
             _ => Super
@@ -73,7 +73,7 @@ impl Blinky {
     }
 
     #[state(superstate = "blinking")]
-    fn led_off(event: &Event) -> Response<State> {
+    fn led_off(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::led_on()),
             _ => Super
@@ -81,7 +81,7 @@ impl Blinky {
     }
 
     #[superstate]
-    fn blinking(event: &Event) -> Response<State> {
+    fn blinking(event: &Event) -> Outcome<State> {
         match event {
             Event::ButtonPressed => Transition(State::not_blinking()),
             _ => Super
@@ -89,7 +89,7 @@ impl Blinky {
     }
 
     #[state]
-    fn not_blinking(event: &Event) -> Response<State> {
+    fn not_blinking(event: &Event) -> Outcome<State> {
         match event {
             Event::ButtonPressed => Transition(State::led_on()),
             _ => Super
@@ -118,12 +118,12 @@ States are defined by writing methods inside the `impl` block and adding the `#[
 
 ```rust
 #[state]
-fn led_on(event: &Event) -> Response<State> {
+fn led_on(event: &Event) -> Outcome<State> {
     Transition(State::led_off())
 }
 ```
 
-Every state must return a `Response`. A `Response` can be one of three things:
+Every state must return a `Outcome`. A `Outcome` can be one of three things:
 
 - `Handled`: The event has been handled.
 - `Transition`: Transition to another state.
@@ -135,7 +135,7 @@ Superstates allow you to create a hierarchy of states. States can defer an event
 
 ```rust
 #[state(superstate = "blinking")]
-fn led_on(event: &Event) -> Response<State> {
+fn led_on(event: &Event) -> Outcome<State> {
     match event {
         Event::TimerElapsed => Transition(State::led_off()),
         Event::ButtonPressed => Super
@@ -143,7 +143,7 @@ fn led_on(event: &Event) -> Response<State> {
 }
 
 #[superstate]
-fn blinking(event: &Event) -> Response<State> {
+fn blinking(event: &Event) -> Outcome<State> {
     match event {
         Event::ButtonPressed => Transition(State::not_blinking()),
         _ => Super
@@ -159,7 +159,7 @@ Actions run when entering or leaving states during a transition.
 
 ```rust
 #[state(entry_action = "enter_led_on", exit_action = "exit_led_on")]
-fn led_on(event: &Event) -> Response<State> {
+fn led_on(event: &Event) -> Outcome<State> {
     Transition(State::led_off())
 }
 
@@ -180,7 +180,7 @@ If the type on which your state machine is implemented has any fields, you can a
 
 ```rust
 #[state]
-fn led_on(&mut self, event: &Event) -> Response<State> {
+fn led_on(&mut self, event: &Event) -> Outcome<State> {
     match event {
         Event::TimerElapsed => {
             self.led = false;
@@ -206,7 +206,7 @@ Sometimes you have data that only exists in a certain state. Instead of adding t
 
 ```rust
 #[state]
-fn led_on(counter: &mut u32, event: &Event) -> Response<State> {
+fn led_on(counter: &mut u32, event: &Event) -> Outcome<State> {
     match event {
         Event::TimerElapsed => {
             *counter -= 1;
@@ -229,7 +229,7 @@ When state machines are used in a larger systems it can sometimes be necessary t
 
 ```rust
 #[state]
-fn led_on(context: &mut Context, event: &Event) -> Response<State> {
+fn led_on(context: &mut Context, event: &Event) -> Outcome<State> {
     match event {
         Event::TimerElapsed => {
             context.do_something();
@@ -296,7 +296,7 @@ All handlers and actions can be made async. (This is only available on `std` for
 #[state_machine(initial = "State::led_on()")]
 impl Blinky {
     #[state]
-    async fn led_on(event: &Event) -> Response<State> {
+    async fn led_on(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::led_off()),
             _ => Super
@@ -369,7 +369,7 @@ The association between states and their handlers is then expressed in the `Stat
 
 ```rust
 impl statig::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Outcome<Self> {
         match self {
             State::LedOn { counter } => blinky.led_on(counter, event),
             State::LedOff { counter } => blinky.led_off(counter, event),
@@ -379,7 +379,7 @@ impl statig::State<Blinky> for State {
 }
 
 impl statig::Superstate<Blinky> for Superstate {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Response<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Outcome<Self> {
         match self {
             Superstate::Blinking { counter } => blinky.blinking(counter, event),
         }

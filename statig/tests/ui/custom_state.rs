@@ -35,12 +35,12 @@ impl CustomState {
 )]
 impl Blinky {
     #[state]
-    fn led_on(event: &Event) -> Response<CustomState> {
+    fn led_on(event: &Event) -> Outcome<CustomState> {
         Transition(CustomState::led_off())
     }
 
     #[state]
-    fn led_off(event: &Event) -> Response<CustomState> {
+    fn led_off(event: &Event) -> Outcome<CustomState> {
         Transition(CustomState::led_on())
     }
 }

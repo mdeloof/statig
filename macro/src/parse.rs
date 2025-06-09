@@ -30,12 +30,12 @@ fn valid_input() {
     let token_stream = quote!(
         #[state_machine]
         impl Blinky {
-            fn on(&mut self, event: &Event) -> Reponse<State> {
-                Response::Handled
+            fn on(&mut self, event: &Event) -> Outcome<State> {
+                Outcome::Handled
             }
 
-            fn off(&mut self, event: &Event) -> Response<State> {
-                Response::Handled
+            fn off(&mut self, event: &Event) -> Outcome<State> {
+                Outcome::Handled
             }
         }
     );

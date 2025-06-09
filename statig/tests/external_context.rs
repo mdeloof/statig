@@ -16,7 +16,7 @@ mod tests {
     #[state_machine(initial = "State::up()")]
     impl Counter {
         #[state]
-        fn up(context: &mut ExternalContext<'_, '_>, event: &Event) -> Response<State> {
+        fn up(context: &mut ExternalContext<'_, '_>, event: &Event) -> Outcome<State> {
             match event {
                 Event::ButtonPressed => {
                     *context.0 = context.0.saturating_add(1);
@@ -27,7 +27,7 @@ mod tests {
         }
 
         #[state]
-        fn down(context: &mut ExternalContext<'_, '_>, event: &Event) -> Response<State> {
+        fn down(context: &mut ExternalContext<'_, '_>, event: &Event) -> Outcome<State> {
             match event {
                 Event::ButtonPressed => {
                     *context.0 = context.0.saturating_sub(1);

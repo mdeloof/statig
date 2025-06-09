@@ -2,7 +2,7 @@ use core::cmp::Ordering;
 use core::future::Future;
 
 use crate::awaitable::IntoStateMachine;
-use crate::Response;
+use crate::Outcome;
 
 /// An enum that represents the superstates of the state machine.
 pub trait Superstate<M>
@@ -15,7 +15,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> impl Future<Output = Response<M::State>>;
+    ) -> impl Future<Output = Outcome<M::State>>;
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
@@ -109,8 +109,8 @@ where
         _: &mut M,
         _: &M::Event<'_>,
         _: &mut M::Context<'_>,
-    ) -> impl Future<Output = Response<M::State>> {
-        core::future::ready(Response::Handled)
+    ) -> impl Future<Output = Outcome<M::State>> {
+        core::future::ready(Outcome::Handled)
     }
 
     fn call_entry_action(&mut self, _: &mut M, _: &mut M::Context<'_>) -> impl Future<Output = ()> {

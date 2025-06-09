@@ -38,7 +38,7 @@ mod tests {
     struct Event;
 
     impl Blinky {
-        fn on(&mut self, led: &mut bool, counter: &mut isize, event: &Event) -> Response<State> {
+        fn on(&mut self, led: &mut bool, counter: &mut isize, event: &Event) -> Outcome<State> {
             Transition(State::off(false))
         }
 
@@ -47,11 +47,11 @@ mod tests {
             *led = false;
         }
 
-        fn off(&mut self, led: &mut bool, event: &Event) -> Response<State> {
+        fn off(&mut self, led: &mut bool, event: &Event) -> Outcome<State> {
             Transition(State::on(true, 34))
         }
 
-        fn playing(&mut self, led: &mut bool) -> Response<State> {
+        fn playing(&mut self, led: &mut bool) -> Outcome<State> {
             Handled
         }
     }
@@ -77,7 +77,7 @@ mod tests {
             shared_storage: &mut Blinky,
             event: &Event,
             _: &mut (),
-        ) -> Response<State>
+        ) -> Outcome<State>
         where
             Self: Sized,
         {
@@ -125,7 +125,7 @@ mod tests {
             shared_storage: &mut Blinky,
             event: &Event,
             _: &mut (),
-        ) -> Response<State> {
+        ) -> Outcome<State> {
             match self {
                 Superstate::Playing { led } => Blinky::playing(shared_storage, led),
             }

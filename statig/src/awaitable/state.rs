@@ -1,7 +1,7 @@
 use core::future::Future;
 
 use crate::awaitable::{IntoStateMachine, Superstate, SuperstateExt};
-use crate::Response;
+use crate::Outcome;
 use crate::StateOrSuperstate;
 
 /// An enum that represents the leaf states of the state machine.
@@ -17,7 +17,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> impl Future<Output = Response<Self>>;
+    ) -> impl Future<Output = Outcome<Self>>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
@@ -105,7 +105,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> impl Future<Output = Response<Self>> {
+    ) -> impl Future<Output = Outcome<Self>> {
         async move {
             M::before_dispatch(shared_storage, StateOrSuperstate::State(self), event).await;
 
@@ -114,8 +114,8 @@ where
             M::after_dispatch(shared_storage, StateOrSuperstate::State(self), event).await;
 
             match response {
-                Response::Handled => Response::Handled,
-                Response::Super => match self.superstate() {
+                Outcome::Handled => Outcome::Handled,
+                Outcome::Super => match self.superstate() {
                     Some(mut superstate) => loop {
                         M::before_dispatch(
                             shared_storage,
@@ -136,19 +136,19 @@ where
                         .await;
 
                         match response {
-                            Response::Handled => break Response::Handled,
-                            Response::Super => match superstate.superstate() {
+                            Outcome::Handled => break Outcome::Handled,
+                            Outcome::Super => match superstate.superstate() {
                                 Some(superstate_of_superstate) => {
                                     superstate = superstate_of_superstate
                                 }
-                                None => break Response::Handled,
+                                None => break Outcome::Handled,
                             },
-                            Response::Transition(state) => break Response::Transition(state),
+                            Outcome::Transition(state) => break Outcome::Transition(state),
                         }
                     },
-                    None => Response::Super,
+                    None => Outcome::Super,
                 },
-                Response::Transition(state) => Response::Transition(state),
+                Outcome::Transition(state) => Outcome::Transition(state),
             }
         }
     }

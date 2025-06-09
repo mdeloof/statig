@@ -152,7 +152,7 @@ pub mod prelude {
     #[cfg_attr(docsrs, doc(cfg(feature = "async")))]
     pub use crate::awaitable::{IntoStateMachineExt as _, StateExt as _, *};
     pub use crate::blocking::{IntoStateMachineExt as _, StateExt as _, *};
-    pub use crate::Response::{self, *};
+    pub use crate::Outcome::{self, *};
     pub use crate::StateOrSuperstate;
     #[cfg(feature = "macro")]
     #[cfg_attr(docsrs, doc(cfg(feature = "macro")))]

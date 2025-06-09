@@ -41,9 +41,9 @@ impl Blinky {
     fn cool() {}
     /// The `#[state]` attibute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
-    /// Every state must return a `Response<State>`.
+    /// Every state must return a `Outcome<State>`.
     #[state(superstate = "blinking", entry_action = "cool")]
-    async fn led_on(event: &Event) -> Response<State> {
+    async fn led_on(event: &Event) -> Outcome<State> {
         match event {
             // When we receive a `TimerElapsed` event we transition to the `led_off` state.
             Event::TimerElapsed => Transition(State::led_off()),
@@ -54,7 +54,7 @@ impl Blinky {
 
     /// Note you can mix sync and async handlers/actions.
     #[state(superstate = "blinking")]
-    fn led_off(event: &Event) -> Response<State> {
+    fn led_off(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::led_on()),
             _ => Super,
@@ -63,7 +63,7 @@ impl Blinky {
 
     /// The `#[superstate]` attribute marks this as a superstate handler.
     #[superstate]
-    async fn blinking(event: &Event) -> Response<State> {
+    async fn blinking(event: &Event) -> Outcome<State> {
         match event {
             Event::ButtonPressed => Transition(State::not_blinking()),
             _ => Super,
@@ -71,7 +71,7 @@ impl Blinky {
     }
 
     #[state]
-    async fn not_blinking(event: &Event) -> Response<State> {
+    async fn not_blinking(event: &Event) -> Outcome<State> {
         match event {
             Event::ButtonPressed => Transition(State::led_on()),
             // Altough this state has no superstate, we can still defer the event which

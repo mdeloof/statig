@@ -61,7 +61,7 @@ struct BenchComplex;
 #[state_machine(initial = "State::s1()", state(derive(Debug)))]
 impl BenchComplex {
     #[state]
-    fn idle(event: &Event) -> Response<State> {
+    fn idle(event: &Event) -> Outcome<State> {
         match event {
             Event::E1 => Transition(State::s2()),
             _ => Handled,
@@ -69,7 +69,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s1(event: &Event) -> Response<State> {
+    fn s1(event: &Event) -> Outcome<State> {
         match event {
             Event::E2 => Transition(State::s2()),
             _ => Handled,
@@ -77,7 +77,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s2(event: &Event) -> Response<State> {
+    fn s2(event: &Event) -> Outcome<State> {
         match event {
             Event::E3 => Transition(State::s3()),
             _ => Handled,
@@ -85,7 +85,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s3(event: &Event) -> Response<State> {
+    fn s3(event: &Event) -> Outcome<State> {
         match event {
             Event::E4 => Transition(State::s4()),
             _ => Handled,
@@ -93,7 +93,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s4(event: &Event) -> Response<State> {
+    fn s4(event: &Event) -> Outcome<State> {
         match event {
             Event::E5 => Transition(State::s5()),
             _ => Handled,
@@ -101,7 +101,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s5(event: &Event) -> Response<State> {
+    fn s5(event: &Event) -> Outcome<State> {
         match event {
             Event::E6 => Transition(State::s6()),
             _ => Handled,
@@ -109,7 +109,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s6(event: &Event) -> Response<State> {
+    fn s6(event: &Event) -> Outcome<State> {
         match event {
             Event::E7 => Transition(State::s7()),
             _ => Handled,
@@ -117,7 +117,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s7(event: &Event) -> Response<State> {
+    fn s7(event: &Event) -> Outcome<State> {
         match event {
             Event::E8 => Transition(State::s8()),
             _ => Handled,
@@ -125,7 +125,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s8(event: &Event) -> Response<State> {
+    fn s8(event: &Event) -> Outcome<State> {
         match event {
             Event::E9 => Transition(State::s9()),
             _ => Handled,
@@ -133,7 +133,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s9(event: &Event) -> Response<State> {
+    fn s9(event: &Event) -> Outcome<State> {
         match event {
             Event::E10 => Transition(State::s10()),
             _ => Handled,
@@ -141,7 +141,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s10(event: &Event) -> Response<State> {
+    fn s10(event: &Event) -> Outcome<State> {
         match event {
             Event::E11 => Transition(State::s11()),
             _ => Handled,
@@ -149,7 +149,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s11(event: &Event) -> Response<State> {
+    fn s11(event: &Event) -> Outcome<State> {
         match event {
             Event::E12 => Transition(State::s12()),
             _ => Handled,
@@ -157,7 +157,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s12(event: &Event) -> Response<State> {
+    fn s12(event: &Event) -> Outcome<State> {
         match event {
             Event::E13 => Transition(State::s13()),
             _ => Handled,
@@ -165,7 +165,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s13(event: &Event) -> Response<State> {
+    fn s13(event: &Event) -> Outcome<State> {
         match event {
             Event::E14 => Transition(State::s14()),
             _ => Handled,
@@ -173,7 +173,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s14(event: &Event) -> Response<State> {
+    fn s14(event: &Event) -> Outcome<State> {
         match event {
             Event::E15 => Transition(State::s15()),
             _ => Handled,
@@ -181,7 +181,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s15(event: &Event) -> Response<State> {
+    fn s15(event: &Event) -> Outcome<State> {
         match event {
             Event::E16 => Transition(State::s16()),
             _ => Handled,
@@ -189,7 +189,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s16(event: &Event) -> Response<State> {
+    fn s16(event: &Event) -> Outcome<State> {
         match event {
             Event::E17 => Transition(State::s17()),
             _ => Handled,
@@ -197,7 +197,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s17(event: &Event) -> Response<State> {
+    fn s17(event: &Event) -> Outcome<State> {
         match event {
             Event::E18 => Transition(State::s18()),
             _ => Handled,
@@ -205,7 +205,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s18(event: &Event) -> Response<State> {
+    fn s18(event: &Event) -> Outcome<State> {
         match event {
             Event::E19 => Transition(State::s19()),
             _ => Handled,
@@ -213,7 +213,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s19(event: &Event) -> Response<State> {
+    fn s19(event: &Event) -> Outcome<State> {
         match event {
             Event::E20 => Transition(State::s20()),
             _ => Handled,
@@ -221,7 +221,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s20(event: &Event) -> Response<State> {
+    fn s20(event: &Event) -> Outcome<State> {
         match event {
             Event::E21 => Transition(State::s21()),
             _ => Handled,
@@ -229,7 +229,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s21(event: &Event) -> Response<State> {
+    fn s21(event: &Event) -> Outcome<State> {
         match event {
             Event::E22 => Transition(State::s22()),
             _ => Handled,
@@ -237,7 +237,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s22(event: &Event) -> Response<State> {
+    fn s22(event: &Event) -> Outcome<State> {
         match event {
             Event::E23 => Transition(State::s23()),
             _ => Handled,
@@ -245,7 +245,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s23(event: &Event) -> Response<State> {
+    fn s23(event: &Event) -> Outcome<State> {
         match event {
             Event::E24 => Transition(State::s24()),
             _ => Handled,
@@ -253,7 +253,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s24(event: &Event) -> Response<State> {
+    fn s24(event: &Event) -> Outcome<State> {
         match event {
             Event::E25 => Transition(State::s25()),
             _ => Handled,
@@ -261,7 +261,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s25(event: &Event) -> Response<State> {
+    fn s25(event: &Event) -> Outcome<State> {
         match event {
             Event::E26 => Transition(State::s26()),
             _ => Handled,
@@ -269,7 +269,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s26(event: &Event) -> Response<State> {
+    fn s26(event: &Event) -> Outcome<State> {
         match event {
             Event::E27 => Transition(State::s27()),
             _ => Handled,
@@ -277,7 +277,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s27(event: &Event) -> Response<State> {
+    fn s27(event: &Event) -> Outcome<State> {
         match event {
             Event::E28 => Transition(State::s28()),
             _ => Handled,
@@ -285,7 +285,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s28(event: &Event) -> Response<State> {
+    fn s28(event: &Event) -> Outcome<State> {
         match event {
             Event::E29 => Transition(State::s29()),
             _ => Handled,
@@ -293,7 +293,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s29(event: &Event) -> Response<State> {
+    fn s29(event: &Event) -> Outcome<State> {
         match event {
             Event::E30 => Transition(State::s30()),
             _ => Handled,
@@ -301,7 +301,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s30(event: &Event) -> Response<State> {
+    fn s30(event: &Event) -> Outcome<State> {
         match event {
             Event::E31 => Transition(State::s31()),
             _ => Handled,
@@ -309,7 +309,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s31(event: &Event) -> Response<State> {
+    fn s31(event: &Event) -> Outcome<State> {
         match event {
             Event::E32 => Transition(State::s32()),
             _ => Handled,
@@ -317,7 +317,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s32(event: &Event) -> Response<State> {
+    fn s32(event: &Event) -> Outcome<State> {
         match event {
             Event::E33 => Transition(State::s33()),
             _ => Handled,
@@ -325,7 +325,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s33(event: &Event) -> Response<State> {
+    fn s33(event: &Event) -> Outcome<State> {
         match event {
             Event::E34 => Transition(State::s34()),
             _ => Handled,
@@ -333,7 +333,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s34(event: &Event) -> Response<State> {
+    fn s34(event: &Event) -> Outcome<State> {
         match event {
             Event::E35 => Transition(State::s35()),
             _ => Handled,
@@ -341,7 +341,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s35(event: &Event) -> Response<State> {
+    fn s35(event: &Event) -> Outcome<State> {
         match event {
             Event::E36 => Transition(State::s36()),
             _ => Handled,
@@ -349,7 +349,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s36(event: &Event) -> Response<State> {
+    fn s36(event: &Event) -> Outcome<State> {
         match event {
             Event::E37 => Transition(State::s37()),
             _ => Handled,
@@ -357,7 +357,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s37(event: &Event) -> Response<State> {
+    fn s37(event: &Event) -> Outcome<State> {
         match event {
             Event::E38 => Transition(State::s38()),
             _ => Handled,
@@ -365,7 +365,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s38(event: &Event) -> Response<State> {
+    fn s38(event: &Event) -> Outcome<State> {
         match event {
             Event::E39 => Transition(State::s39()),
             _ => Handled,
@@ -373,7 +373,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s39(event: &Event) -> Response<State> {
+    fn s39(event: &Event) -> Outcome<State> {
         match event {
             Event::E40 => Transition(State::s40()),
             _ => Handled,
@@ -381,7 +381,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s40(event: &Event) -> Response<State> {
+    fn s40(event: &Event) -> Outcome<State> {
         match event {
             Event::E41 => Transition(State::s41()),
             _ => Handled,
@@ -389,7 +389,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s41(event: &Event) -> Response<State> {
+    fn s41(event: &Event) -> Outcome<State> {
         match event {
             Event::E42 => Transition(State::s42()),
             _ => Handled,
@@ -397,7 +397,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s42(event: &Event) -> Response<State> {
+    fn s42(event: &Event) -> Outcome<State> {
         match event {
             Event::E43 => Transition(State::s43()),
             _ => Handled,
@@ -405,7 +405,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s43(event: &Event) -> Response<State> {
+    fn s43(event: &Event) -> Outcome<State> {
         match event {
             Event::E44 => Transition(State::s44()),
             _ => Handled,
@@ -413,7 +413,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s44(event: &Event) -> Response<State> {
+    fn s44(event: &Event) -> Outcome<State> {
         match event {
             Event::E45 => Transition(State::s45()),
             _ => Handled,
@@ -421,7 +421,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s45(event: &Event) -> Response<State> {
+    fn s45(event: &Event) -> Outcome<State> {
         match event {
             Event::E46 => Transition(State::s46()),
             _ => Handled,
@@ -429,7 +429,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s46(event: &Event) -> Response<State> {
+    fn s46(event: &Event) -> Outcome<State> {
         match event {
             Event::E47 => Transition(State::s47()),
             _ => Handled,
@@ -437,7 +437,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s47(event: &Event) -> Response<State> {
+    fn s47(event: &Event) -> Outcome<State> {
         match event {
             Event::E48 => Transition(State::s48()),
             _ => Handled,
@@ -445,7 +445,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s48(event: &Event) -> Response<State> {
+    fn s48(event: &Event) -> Outcome<State> {
         match event {
             Event::E49 => Transition(State::s49()),
             _ => Handled,
@@ -453,7 +453,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s49(event: &Event) -> Response<State> {
+    fn s49(event: &Event) -> Outcome<State> {
         match event {
             Event::E50 => Transition(State::s50()),
             _ => Handled,
@@ -461,7 +461,7 @@ impl BenchComplex {
     }
 
     #[state]
-    fn s50(event: &Event) -> Response<State> {
+    fn s50(event: &Event) -> Outcome<State> {
         match event {
             Event::E51 => Transition(State::idle()),
             _ => Handled,

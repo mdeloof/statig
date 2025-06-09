@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 
-/// Response returned by event handlers in a state machine.
-pub enum Response<S> {
+/// Outcome returned by event handlers in a state machine.
+pub enum Outcome<S> {
     /// Consider the event handled.
     Handled,
     /// Defer the event to the superstate.
@@ -10,7 +10,10 @@ pub enum Response<S> {
     Transition(S),
 }
 
-impl<S> PartialEq for Response<S>
+#[deprecated(since = "0.4", note = "`Response` has been renamed to `Outcome`")]
+pub type Response<S> = Outcome<S>;
+
+impl<S> PartialEq for Outcome<S>
 where
     S: PartialEq,
 {
@@ -24,9 +27,9 @@ where
     }
 }
 
-impl<S> Eq for Response<S> where S: Eq {}
+impl<S> Eq for Outcome<S> where S: Eq {}
 
-impl<S> Debug for Response<S>
+impl<S> Debug for Outcome<S>
 where
     S: Debug,
 {
