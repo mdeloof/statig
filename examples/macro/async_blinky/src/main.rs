@@ -39,7 +39,7 @@ pub enum Event {
 impl Blinky {
     #[action]
     fn cool() {}
-    /// The `#[state]` attibute marks this as a state handler.  By default the
+    /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Outcome<State>`.
     #[state(superstate = "blinking", entry_action = "cool")]

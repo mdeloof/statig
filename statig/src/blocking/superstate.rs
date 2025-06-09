@@ -96,9 +96,9 @@ where
     where
         Self: Sized,
     {
-        let response = self.call_handler(shared_storage, event, context);
+        let outcome = self.call_handler(shared_storage, event, context);
 
-        match response {
+        match outcome {
             Outcome::Handled => Outcome::Handled,
             Outcome::Super => match self.superstate() {
                 Some(mut superstate) => {
@@ -108,7 +108,7 @@ where
                         event,
                     );
 
-                    let response = superstate.handle(shared_storage, event, context);
+                    let outcome = superstate.handle(shared_storage, event, context);
 
                     M::after_dispatch(
                         shared_storage,
@@ -116,7 +116,7 @@ where
                         event,
                     );
 
-                    response
+                    outcome
                 }
                 None => Outcome::Super,
             },

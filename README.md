@@ -10,12 +10,12 @@ Hierarchical state machines for designing event-driven systems.
 
 **Features**
 
-- Hierachical state machines
+- Hierarchical state machines
 - State-local storage
 - Compatible with `#![no_std]`, state machines are defined in ROM and no heap memory allocations.
 - (Optional) macro's for reducing boilerplate.
 - Support for generics.
-- Support for async actions and handlers (only on `std`).
+- Support for async actions and handlers.
 
 ---
 
@@ -123,7 +123,7 @@ fn led_on(event: &Event) -> Outcome<State> {
 }
 ```
 
-Every state must return a `Outcome`. A `Outcome` can be one of three things:
+Every state must return an `Outcome`. An `Outcome` can be one of three things:
 
 - `Handled`: The event has been handled.
 - `Transition`: Transition to another state.
@@ -131,7 +131,7 @@ Every state must return a `Outcome`. A `Outcome` can be one of three things:
 
 ### Superstates
 
-Superstates allow you to create a hierarchy of states. States can defer an event to their superstate by returning the `Super` response.
+Superstates allow you to create a hierarchy of states. States can defer an event to their superstate by returning the `Super` outcome.
 
 ```rust
 #[state(superstate = "blinking")]
@@ -252,8 +252,8 @@ For logging purposes you can define various callbacks that will be called at spe
 
 - `before_dispatch` is called before an event is dispatched to a specific state or superstate.
 - `after_dispatch` is called after an event is dispatched to a specific state or superstate.
-- `before_transition` is called before a transition has occured.
-- `after_transition` is called after a transition has occured.
+- `before_transition` is called before a transition has occurred.
+- `after_transition` is called after a transition has occurred.
 
 ```rust
 #[state_machine(
@@ -290,7 +290,7 @@ impl Blinky {
 
 ### Async
 
-All handlers and actions can be made async. (This is only available on `std` for now and requires the `async` feature to be enabled).
+All handlers and actions can be made async. (This requires the `async` feature to be enabled).
 
 ```rust
 #[state_machine(initial = "State::led_on()")]
@@ -457,9 +457,9 @@ impl<'sub> statig::Superstate<Blinky> for Superstate<'sub> {
 }
 ```
 
-When an event arrives, `statig` will first dispatch it to the current leaf state. If this state returns a `Super` response, it will then be dispatched to that state's superstate, which in turn returns its own response. Every time an event is defered to a superstate, `statig` will traverse upwards in the graph until it reaches the `Top` state. This is an implicit superstate that will consider every event as handled.
+When an event arrives, `statig` will first dispatch it to the current leaf state. If this state returns a `Super` outcome, it will then be dispatched to that state's superstate, which in turn returns its own outcome. Every time an event is deferred to a superstate, `statig` will traverse upwards in the graph until it reaches the `Top` state. This is an implicit superstate that will consider every event as handled.
 
-In case the returned response is a `Transition`, `statig` will perform a transition sequence by traversing the graph from the current source state to the target state by taking the shortest possible path. When this path is going upwards from the source state, every state that is passed will have its **exit action** executed. And then similarly when going downward, every state that is passed will have its **entry action** executed.
+In case the returned outcome is a `Transition`, `statig` will perform a transition sequence by traversing the graph from the current source state to the target state by taking the shortest possible path. When this path is going upwards from the source state, every state that is passed will have its **exit action** executed. And then similarly when going downward, every state that is passed will have its **entry action** executed.
 
 For example when transitioning from the `LedOn` state to the `NotBlinking` state the transition sequence looks like this:
 

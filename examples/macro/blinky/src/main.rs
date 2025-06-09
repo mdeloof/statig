@@ -31,7 +31,7 @@ pub enum Event {
     before_dispatch = "Self::before_dispatch"
 )]
 impl Blinky {
-    /// The `#[state]` attibute marks this as a state handler.  By default the
+    /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Outcome<State>`.
     #[state(superstate = "blinking")]

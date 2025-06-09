@@ -28,11 +28,11 @@ where
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
     ) {
-        let response = self
+        let outcome = self
             .state
             .handle(&mut self.shared_storage, event, context)
             .await;
-        match response {
+        match outcome {
             Outcome::Super => {}
             Outcome::Handled => {}
             Outcome::Transition(state) => self.transition(state, context).await,

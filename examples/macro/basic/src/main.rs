@@ -17,7 +17,7 @@ pub struct Event;
 /// derive macro with the Debug trait to the `State` enum.
 #[state_machine(initial = "State::off()", state(derive(Debug)))]
 impl Blinky {
-    /// The `#[state]` attibute marks this as a state handler.  By default the
+    /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Outcome<State>`.
     #[state]

@@ -109,11 +109,11 @@ where
         async move {
             M::before_dispatch(shared_storage, StateOrSuperstate::State(self), event).await;
 
-            let response = self.call_handler(shared_storage, event, context).await;
+            let outcome = self.call_handler(shared_storage, event, context).await;
 
             M::after_dispatch(shared_storage, StateOrSuperstate::State(self), event).await;
 
-            match response {
+            match outcome {
                 Outcome::Handled => Outcome::Handled,
                 Outcome::Super => match self.superstate() {
                     Some(mut superstate) => loop {
@@ -124,7 +124,7 @@ where
                         )
                         .await;
 
-                        let response = superstate
+                        let outcome = superstate
                             .call_handler(shared_storage, event, context)
                             .await;
 
@@ -135,7 +135,7 @@ where
                         )
                         .await;
 
-                        match response {
+                        match outcome {
                             Outcome::Handled => break Outcome::Handled,
                             Outcome::Super => match superstate.superstate() {
                                 Some(superstate_of_superstate) => {

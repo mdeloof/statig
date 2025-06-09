@@ -42,7 +42,7 @@ impl CustomState {
     state(custom, name = "CustomState")
 )]
 impl Blinky {
-    /// The `#[state]` attibute marks this as a state handler.  By default the
+    /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Outcome<CustomState>`.
     #[state(superstate = "blinking")]

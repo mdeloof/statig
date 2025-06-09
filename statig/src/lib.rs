@@ -2,7 +2,7 @@
 #![no_std]
 #![allow(incomplete_features)]
 
-mod response;
+mod outcome;
 mod state_or_superstate;
 
 /// Macro for deriving the state and superstate enum.
@@ -165,5 +165,5 @@ pub mod blocking;
 #[cfg_attr(docsrs, doc(cfg(feature = "async")))]
 pub mod awaitable;
 
-pub use response::*;
+pub use outcome::*;
 pub use state_or_superstate::*;
