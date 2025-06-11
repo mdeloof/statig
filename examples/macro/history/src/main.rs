@@ -19,7 +19,7 @@ pub struct Dishwasher {
 )]
 impl Dishwasher {
     // On every transition we update the previous state, so we can transition back to it.
-    fn after_transition(&mut self, source: &State, _target: &State) {
+    fn after_transition(&mut self, source: &State, _target: &State, _context: &mut ()) {
         // println!("transitioned from `{:?}` to `{:?}`", source, _target);
         self.previous_state = source.clone();
     }

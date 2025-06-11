@@ -42,7 +42,7 @@ impl IntoStateMachine for Dishwasher {
 
     // On every transition we update the previous state, so we can
     // transition back to it.
-    fn after_transition(&mut self, source: &Self::State, _target: &Self::State) {
+    fn after_transition(&mut self, source: &Self::State, _target: &Self::State, _context: &mut ()) {
         self.previous_state = source.clone();
     }
 }

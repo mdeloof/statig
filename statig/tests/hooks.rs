@@ -40,6 +40,7 @@ mod tests {
             &mut self,
             state_or_superstate: StateOrSuperstate<'_, State, Superstate>,
             event: &Event,
+            _context: &mut (),
         ) {
             self.before_dispatch = true;
         }
@@ -48,15 +49,16 @@ mod tests {
             &mut self,
             state_or_superstate: StateOrSuperstate<'_, State, Superstate>,
             event: &Event,
+            _context: &mut (),
         ) {
             self.after_dispatch = true;
         }
 
-        fn before_transition(&mut self, source: &State, target: &State) {
+        fn before_transition(&mut self, source: &State, target: &State, _context: &mut ()) {
             self.before_transition = true;
         }
 
-        fn after_transition(&mut self, source: &State, target: &State) {
+        fn after_transition(&mut self, source: &State, target: &State, _context: &mut ()) {
             self.after_transition = true;
         }
     }

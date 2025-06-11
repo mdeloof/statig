@@ -67,8 +67,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
+                    context: &mut Self::Context<'_>,
                 ) {
-                    #before_dispatch(self, state_or_superstate, event);
+                    #before_dispatch(self, state_or_superstate, event, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -76,8 +77,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
+                    context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #before_dispatch(self, state_or_superstate, event)
+                    #before_dispatch(self, state_or_superstate, event, context)
                 }
             ),
         },
@@ -91,8 +93,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
+                    context: &mut Self::Context<'_>,
                 ) {
-                    #after_dispatch(self, state_or_superstate, event);
+                    #after_dispatch(self, state_or_superstate, event, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -100,8 +103,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
+                    context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #after_dispatch(self, state_or_superstate, event)
+                    #after_dispatch(self, state_or_superstate, event, context)
                 }
             ),
         },
@@ -115,8 +119,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
+                    context: &mut Self::Context<'_>,
                 ) {
-                    #before_transition(self, source, target);
+                    #before_transition(self, source, target, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -124,8 +129,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
+                    context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #before_transition(self, source, target)
+                    #before_transition(self, source, target, context)
                 }
             ),
         },
@@ -139,8 +145,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
+                    context: &mut Self::Context<'_>,
                 ) {
-                    #after_transition(self, source, target);
+                    #after_transition(self, source, target, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -148,8 +155,9 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
+                    context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #after_transition(self, source, target)
+                    #after_transition(self, source, target, context)
                 }
             ),
         },

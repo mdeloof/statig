@@ -30,6 +30,7 @@ where
         &mut self,
         _state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
         _event: &Self::Event<'_>,
+        _context: &mut Self::Context<'_>,
     ) -> impl Future<Output = ()> {
         future::ready(())
     }
@@ -40,6 +41,7 @@ where
         &mut self,
         _state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
         _event: &Self::Event<'_>,
+        _context: &mut Self::Context<'_>,
     ) -> impl Future<Output = ()> {
         future::ready(())
     }
@@ -49,6 +51,7 @@ where
         &mut self,
         _source: &Self::State,
         _target: &Self::State,
+        _context: &mut Self::Context<'_>,
     ) -> impl Future<Output = ()> {
         future::ready(())
     }
@@ -58,6 +61,7 @@ where
         &mut self,
         _source: &Self::State,
         _target: &Self::State,
+        _context: &mut Self::Context<'_>,
     ) -> impl Future<Output = ()> {
         future::ready(())
     }
