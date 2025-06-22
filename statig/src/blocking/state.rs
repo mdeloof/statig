@@ -93,11 +93,21 @@ where
     where
         Self: Sized,
     {
-        M::before_dispatch(shared_storage, StateOrSuperstate::State(self), event);
+        M::before_dispatch(
+            shared_storage,
+            StateOrSuperstate::State(self),
+            event,
+            context,
+        );
 
         let outcome = self.call_handler(shared_storage, event, context);
 
-        M::after_dispatch(shared_storage, StateOrSuperstate::State(self), event);
+        M::after_dispatch(
+            shared_storage,
+            StateOrSuperstate::State(self),
+            event,
+            context,
+        );
 
         match outcome {
             Outcome::Handled => Outcome::Handled,
@@ -107,6 +117,7 @@ where
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
+                        context,
                     );
 
                     let outcome = superstate.handle(shared_storage, event, context);
@@ -115,6 +126,7 @@ where
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
+                        context,
                     );
 
                     outcome
