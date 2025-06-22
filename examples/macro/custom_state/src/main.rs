@@ -33,8 +33,6 @@ impl CustomState {
 #[state_machine(
     // This sets the initial state to `led_on`.
     initial = "CustomState::led_on()",
-    // Derive the Debug trait on the `State` enum.
-    state(derive(Debug)),
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
     // Adding custom tells the macro not to generate a State type and to
