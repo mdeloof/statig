@@ -2,7 +2,7 @@ use core::future::{self, Future};
 
 use crate::StateOrSuperstate;
 
-/// Trait for transorming a type into a state machine.
+/// Trait for transforming a type into a state machine.
 pub trait IntoStateMachine
 where
     Self: Sized,
@@ -64,5 +64,100 @@ where
         _context: &mut Self::Context<'_>,
     ) -> impl Future<Output = ()> {
         future::ready(())
+    }
+}
+
+pub trait DispatchHook<T, P>
+where
+    T: IntoStateMachine,
+{
+    fn call_dispatch_hook(
+        self,
+        shared_storage: &mut T,
+        state_or_superstate: StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        event: &T::Event<'_>,
+        context: &mut T::Context<'_>,
+    ) -> impl Future<Output = ()>;
+}
+
+impl<T, F> DispatchHook<T, ((),)> for F
+where
+    T: IntoStateMachine,
+    F: AsyncFnOnce(&mut T, StateOrSuperstate<'_, T::State, T::Superstate<'_>>, &T::Event<'_>),
+{
+    fn call_dispatch_hook(
+        self,
+        shared_storage: &mut T,
+        state_or_superstate: StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        event: &T::Event<'_>,
+        _context: &mut T::Context<'_>,
+    ) -> impl Future<Output = ()> {
+        (self)(shared_storage, state_or_superstate, event)
+    }
+}
+
+impl<T, F> DispatchHook<T, ((), ())> for F
+where
+    T: IntoStateMachine,
+    F: AsyncFnOnce(
+        &mut T,
+        StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        &T::Event<'_>,
+        &mut T::Context<'_>,
+    ),
+{
+    fn call_dispatch_hook(
+        self,
+        shared_storage: &mut T,
+        state_or_superstate: StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        event: &T::Event<'_>,
+        context: &mut T::Context<'_>,
+    ) -> impl Future<Output = ()> {
+        (self)(shared_storage, state_or_superstate, event, context)
+    }
+}
+
+pub trait TransitionHook<T, P>
+where
+    T: IntoStateMachine,
+{
+    fn call_transition_hook(
+        self,
+        shared_storage: &mut T,
+        source: &T::State,
+        target: &T::State,
+        context: &mut T::Context<'_>,
+    ) -> impl Future<Output = ()>;
+}
+
+impl<T, F> TransitionHook<T, ((),)> for F
+where
+    T: IntoStateMachine,
+    F: AsyncFnOnce(&mut T, &T::State, &T::State),
+{
+    fn call_transition_hook(
+        self,
+        shared_storage: &mut T,
+        source: &T::State,
+        target: &T::State,
+        _context: &mut T::Context<'_>,
+    ) -> impl Future<Output = ()> {
+        (self)(shared_storage, source, target)
+    }
+}
+
+impl<T, F> TransitionHook<T, ((), ())> for F
+where
+    T: IntoStateMachine,
+    F: AsyncFnOnce(&mut T, &T::State, &T::State, &mut T::Context<'_>),
+{
+    fn call_transition_hook(
+        self,
+        shared_storage: &mut T,
+        source: &T::State,
+        target: &T::State,
+        context: &mut T::Context<'_>,
+    ) -> impl Future<Output = ()> {
+        (self)(shared_storage, source, target, context)
     }
 }

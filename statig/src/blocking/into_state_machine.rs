@@ -1,6 +1,6 @@
 use crate::StateOrSuperstate;
 
-/// Trait for transorming a type into a state machine.
+/// Trait for transforming a type into a state machine.
 pub trait IntoStateMachine
 where
     Self: Sized,
@@ -58,5 +58,100 @@ where
         _target: &Self::State,
         _context: &mut Self::Context<'_>,
     ) {
+    }
+}
+
+pub trait DispatchHook<T, P>
+where
+    T: IntoStateMachine,
+{
+    fn call_dispatch_hook(
+        &self,
+        shared_storage: &mut T,
+        state_or_superstate: StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        event: &T::Event<'_>,
+        context: &mut T::Context<'_>,
+    );
+}
+
+impl<T, F> DispatchHook<T, (T::Event<'_>,)> for F
+where
+    T: IntoStateMachine,
+    F: Fn(&mut T, StateOrSuperstate<'_, T::State, T::Superstate<'_>>, &T::Event<'_>),
+{
+    fn call_dispatch_hook(
+        &self,
+        shared_storage: &mut T,
+        state_or_superstate: StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        event: &T::Event<'_>,
+        _context: &mut T::Context<'_>,
+    ) {
+        (self)(shared_storage, state_or_superstate, event)
+    }
+}
+
+impl<T, F> DispatchHook<T, (T::Event<'_>, T::Context<'_>)> for F
+where
+    T: IntoStateMachine,
+    F: Fn(
+        &mut T,
+        StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        &T::Event<'_>,
+        &mut T::Context<'_>,
+    ),
+{
+    fn call_dispatch_hook(
+        &self,
+        shared_storage: &mut T,
+        state_or_superstate: StateOrSuperstate<'_, T::State, T::Superstate<'_>>,
+        event: &T::Event<'_>,
+        context: &mut T::Context<'_>,
+    ) {
+        (self)(shared_storage, state_or_superstate, event, context)
+    }
+}
+
+pub trait TransitionHook<T, P>
+where
+    T: IntoStateMachine,
+{
+    fn call_transition_hook(
+        &self,
+        shared_storage: &mut T,
+        source: &T::State,
+        target: &T::State,
+        context: &mut T::Context<'_>,
+    );
+}
+
+impl<T, F> TransitionHook<T, ()> for F
+where
+    T: IntoStateMachine,
+    F: Fn(&mut T, &T::State, &T::State),
+{
+    fn call_transition_hook(
+        &self,
+        shared_storage: &mut T,
+        source: &T::State,
+        target: &T::State,
+        _context: &mut T::Context<'_>,
+    ) {
+        (self)(shared_storage, source, target)
+    }
+}
+
+impl<T, F> TransitionHook<T, (T::Context<'_>,)> for F
+where
+    T: IntoStateMachine,
+    F: Fn(&mut T, &T::State, &T::State, &mut T::Context<'_>),
+{
+    fn call_transition_hook(
+        &self,
+        shared_storage: &mut T,
+        source: &T::State,
+        target: &T::State,
+        context: &mut T::Context<'_>,
+    ) {
+        (self)(shared_storage, source, target, context)
     }
 }

@@ -69,7 +69,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     event: &Self::Event<'_>,
                     context: &mut Self::Context<'_>,
                 ) {
-                    #before_dispatch(self, state_or_superstate, event, context);
+                    use statig::blocking::DispatchHook;
+                    #before_dispatch.call_dispatch_hook(self, state_or_superstate, event, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -79,7 +80,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     event: &Self::Event<'_>,
                     context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #before_dispatch(self, state_or_superstate, event, context)
+                    use statig::awaitable::DispatchHook;
+                    #before_dispatch.call_dispatch_hook(self, state_or_superstate, event, context)
                 }
             ),
         },
@@ -95,7 +97,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     event: &Self::Event<'_>,
                     context: &mut Self::Context<'_>,
                 ) {
-                    #after_dispatch(self, state_or_superstate, event, context);
+                    use statig::blocking::DispatchHook;
+                    #after_dispatch.call_dispatch_hook(self, state_or_superstate, event, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -105,7 +108,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     event: &Self::Event<'_>,
                     context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #after_dispatch(self, state_or_superstate, event, context)
+                    use statig::awaitable::DispatchHook;
+                    #after_dispatch.call_dispatch_hook(self, state_or_superstate, event, context)
                 }
             ),
         },
@@ -121,7 +125,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     target: &Self::State,
                     context: &mut Self::Context<'_>,
                 ) {
-                    #before_transition(self, source, target, context);
+                    use statig::blocking::TransitionHook;
+                    #before_transition.call_transition_hook(self, source, target, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -131,7 +136,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     target: &Self::State,
                     context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #before_transition(self, source, target, context)
+                    use statig::awaitable::TransitionHook;
+                    #before_transition.call_transition_hook(self, source, target, context)
                 }
             ),
         },
@@ -147,7 +153,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     target: &Self::State,
                     context: &mut Self::Context<'_>,
                 ) {
-                    #after_transition(self, source, target, context);
+                    use statig::blocking::TransitionHook;
+                    #after_transition.call_transition_hook(self, source, target, context);
                 }
             ),
             Mode::Awaitable => quote!(
@@ -157,7 +164,8 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
                     target: &Self::State,
                     context: &mut Self::Context<'_>,
                 ) -> impl core::future::Future<Output = ()> {
-                    #after_transition(self, source, target, context)
+                    use statig::awaitable::TransitionHook;
+                    #after_transition.call_transition_hook(self, source, target, context)
                 }
             ),
         },

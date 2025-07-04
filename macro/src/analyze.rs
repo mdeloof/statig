@@ -645,6 +645,9 @@ pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> 
                 Err(_) => abort!(meta, "initial state must be an expression"),
             }
         } else if meta.path().is_ident("local_storage") {
+            if !local_storage.is_empty() {
+                abort!(meta, "duplicate `local_storage` item")
+            }
             match meta.require_list().and_then(|list| {
                 Punctuated::<LitStr, Token![,]>::parse_terminated.parse2(list.tokens.clone())
             }) {

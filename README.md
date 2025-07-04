@@ -369,7 +369,7 @@ The association between states and their handlers is then expressed in the `Stat
 
 ```rust
 impl statig::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Outcome<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, context: &mut ()) -> Outcome<Self> {
         match self {
             State::LedOn { counter } => blinky.led_on(counter, event),
             State::LedOff { counter } => blinky.led_off(counter, event),
@@ -379,7 +379,7 @@ impl statig::State<Blinky> for State {
 }
 
 impl statig::Superstate<Blinky> for Superstate {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event) -> Outcome<Self> {
+    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, context: &mut ()) -> Outcome<Self> {
         match self {
             Superstate::Blinking { counter } => blinky.blinking(counter, event),
         }
@@ -394,7 +394,7 @@ impl statig::State<Blinky> for State {
 
     ...
 
-    fn call_entry_action(&mut self, blinky: &mut Blinky) {
+    fn call_entry_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             State::LedOn { counter } => blinky.enter_led_on(counter),
             State::LedOff { counter } => blinky.enter_led_off(counter),
@@ -402,7 +402,7 @@ impl statig::State<Blinky> for State {
         }
     }
 
-    fn call_exit_action(&mut self, blinky: &mut Blinky) {
+    fn call_exit_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             State::LedOn { counter } => blinky.exit_led_on(counter),
             State::LedOff { counter } => blinky.exit_led_off(counter),
@@ -415,13 +415,13 @@ impl statig::Superstate<Blinky> for Superstate {
 
     ...
 
-    fn call_entry_action(&mut self, blinky: &mut Blinky) {
+    fn call_entry_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             Superstate::Blinking { counter } => blinky.enter_blinking(counter),
         }
     }
 
-    fn call_exit_action(&mut self, blinky: &mut Blinky) {
+    fn call_exit_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             Superstate::Blinking { counter } => blinky.exit_blinking(counter),
         }
@@ -490,7 +490,9 @@ impl IntoStateMachine for Blinky {
 
     type Context<'ctx> = Context;
 
-    const INITIAL: fn() -> State = || State::off(10);
+    fn initial() -> Self::State {
+        State::off(10)
+    }
 }
 ```
 
