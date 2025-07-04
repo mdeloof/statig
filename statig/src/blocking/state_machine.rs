@@ -259,6 +259,30 @@ where
     }
 }
 
+impl<M> From<UninitializedStateMachine<M>> for StateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    fn from(value: UninitializedStateMachine<M>) -> Self {
+        Self {
+            inner: value.inner,
+            initialized: false,
+        }
+    }
+}
+
+impl<M> From<InitializedStateMachine<M>> for StateMachine<M>
+where
+    M: IntoStateMachine,
+{
+    fn from(value: InitializedStateMachine<M>) -> Self {
+        Self {
+            inner: value.inner,
+            initialized: true,
+        }
+    }
+}
+
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<M> serde::Serialize for StateMachine<M>
