@@ -39,7 +39,7 @@ where
 
     /// Transition from the current state to the given target state.
     pub(crate) fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
-        M::before_transition(&mut self.shared_storage, &target, &self.state);
+        M::before_transition(&mut self.shared_storage, &target, &self.state, context);
 
         // Get the transition path we need to perform from one state to the next.
         let (exit_levels, enter_levels) = self.state.transition_path(&mut target);
@@ -55,7 +55,7 @@ where
         self.state
             .enter(&mut self.shared_storage, context, enter_levels);
 
-        M::after_transition(&mut self.shared_storage, &target, &self.state);
+        M::after_transition(&mut self.shared_storage, &target, &self.state, context);
     }
 }
 

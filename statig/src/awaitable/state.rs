@@ -107,11 +107,23 @@ where
         context: &mut M::Context<'_>,
     ) -> impl Future<Output = Outcome<Self>> {
         async move {
-            M::before_dispatch(shared_storage, StateOrSuperstate::State(self), event).await;
+            M::before_dispatch(
+                shared_storage,
+                StateOrSuperstate::State(self),
+                event,
+                context,
+            )
+            .await;
 
             let outcome = self.call_handler(shared_storage, event, context).await;
 
-            M::after_dispatch(shared_storage, StateOrSuperstate::State(self), event).await;
+            M::after_dispatch(
+                shared_storage,
+                StateOrSuperstate::State(self),
+                event,
+                context,
+            )
+            .await;
 
             match outcome {
                 Outcome::Handled => Outcome::Handled,
@@ -121,6 +133,7 @@ where
                             shared_storage,
                             StateOrSuperstate::Superstate(&superstate),
                             event,
+                            context,
                         )
                         .await;
 
@@ -132,6 +145,7 @@ where
                             shared_storage,
                             StateOrSuperstate::Superstate(&superstate),
                             event,
+                            context,
                         )
                         .await;
 

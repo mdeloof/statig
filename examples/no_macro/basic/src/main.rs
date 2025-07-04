@@ -35,7 +35,7 @@ impl IntoStateMachine for Blinky {
     }
 
     /// This method is called on every transition of the state machine.
-    fn after_transition(&mut self, source: &Self::State, target: &Self::State) {
+    fn after_transition(&mut self, source: &Self::State, target: &Self::State, _context: &mut ()) {
         println!("transitioned from {source:?} to {target:?}");
     }
 }

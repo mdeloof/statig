@@ -106,6 +106,7 @@ where
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
+                        context
                     );
 
                     let outcome = superstate.handle(shared_storage, event, context);
@@ -114,6 +115,7 @@ where
                         shared_storage,
                         StateOrSuperstate::Superstate(&superstate),
                         event,
+                        context
                     );
 
                     outcome
