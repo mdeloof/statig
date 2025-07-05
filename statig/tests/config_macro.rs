@@ -18,15 +18,15 @@ mod tests {
         struct MyStateMachine;
 
         #[state_machine(
-            initial = "MyState::bar()",
-            state(name = "MyState", derive(PartialEq, Eq)),
-            superstate(name = "MySuperstate", derive(Clone)),
-            event_identifier = "my_event",
-            context_identifier = "my_context",
+            initial = MyState::bar(),
+            state(name = MyState, derive(PartialEq, Eq)),
+            superstate(name = MySuperstate, derive(Clone)),
+            event_identifier = my_event,
+            context_identifier = my_context,
             visibility = "pub(crate)"
         )]
         impl MyStateMachine {
-            #[state(superstate = "foo")]
+            #[state(superstate = foo)]
             fn bar(my_event: &Event, my_context: &mut Context) -> Outcome<MyState> {
                 match my_event {
                     Event::A => Handled,

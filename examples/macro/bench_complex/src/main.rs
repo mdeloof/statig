@@ -58,7 +58,7 @@ enum Event {
 
 struct BenchComplex;
 
-#[state_machine(initial = "State::s1()", state(derive(Debug)))]
+#[state_machine(initial = State::s1(), state(derive(Debug)))]
 impl BenchComplex {
     #[state]
     fn idle(event: &Event) -> Outcome<State> {

@@ -18,11 +18,11 @@ mod tests {
     }
 
     #[state_machine(
-        initial = "State::foo()",
-        before_dispatch = "Self::before_dispatch",
-        after_dispatch = "Self::after_dispatch",
-        before_transition = "Self::before_transition",
-        after_transition = "Self::after_transition"
+        initial = State::foo(),
+        before_dispatch = Self::before_dispatch,
+        after_dispatch = Self::after_dispatch,
+        before_transition = Self::before_transition,
+        after_transition = Self::after_transition
     )]
     impl FooBar {
         #[state]

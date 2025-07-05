@@ -223,64 +223,39 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
             if initial_state.is_some() {
                 abort!(meta, "duplicate `initial` item")
             }
-            initial_state = match meta_require_name_lit_str(meta).parse() {
-                Ok(initial_state) => Some(initial_state),
-                Err(_) => abort!(meta, "initial state must be an expression"),
-            }
+            initial_state = Some(meta_require_name_expr(meta).clone());
         } else if meta.path().is_ident("event_identifier") {
             if event_ident_item {
                 abort!(meta, "duplicate `event_identifier` item")
             }
-            event_ident = match meta_require_name_lit_str(meta).parse() {
-                Ok(event_ident) => {
-                    event_ident_item = true;
-                    event_ident
-                }
-                Err(_) => abort!(meta, "event identifier must be an ident"),
-            }
+            event_ident = meta_require_name_ident(meta).clone();
+            event_ident_item = true;
         } else if meta.path().is_ident("context_identifier") {
             if context_ident_item {
                 abort!(meta, "duplicate `context_identifier` item")
             }
-            context_ident = match meta_require_name_lit_str(meta).parse() {
-                Ok(context_ident) => {
-                    context_ident_item = true;
-                    context_ident
-                }
-                Err(_) => abort!(meta, "context identifier must be an ident"),
-            }
+            context_ident = meta_require_name_ident(meta).clone();
+            context_ident_item = true;
         } else if meta.path().is_ident("before_transition") {
             if before_transition.is_some() {
                 abort!(meta, "duplicate `before_transition` item")
             }
-            before_transition = match meta_require_name_lit_str(meta).parse() {
-                Ok(before_transition) => Some(before_transition),
-                Err(_) => abort!(meta, "before transition hook must be a function pointer"),
-            }
+            before_transition = Some(meta_require_name_path(meta).clone());
         } else if meta.path().is_ident("after_transition") {
             if after_transition.is_some() {
                 abort!(meta, "duplicate `after_transition` item")
             }
-            after_transition = match meta_require_name_lit_str(meta).parse() {
-                Ok(after_transition) => Some(after_transition),
-                Err(_) => abort!(meta, "after transition hook must be a function pointer"),
-            }
+            after_transition = Some(meta_require_name_path(meta).clone());
         } else if meta.path().is_ident("before_dispatch") {
             if before_dispatch.is_some() {
                 abort!(meta, "duplicate `before_dispatch` item")
             }
-            before_dispatch = match meta_require_name_lit_str(meta).parse() {
-                Ok(before_transition) => Some(before_transition),
-                Err(_) => abort!(meta, "before dispatch hook must be a function pointer"),
-            }
+            before_dispatch = Some(meta_require_name_path(meta).clone());
         } else if meta.path().is_ident("after_dispatch") {
             if after_dispatch.is_some() {
                 abort!(meta, "duplicate `after_dispatch` item")
             }
-            after_dispatch = match meta_require_name_lit_str(meta).parse() {
-                Ok(after_dispatch) => Some(after_dispatch),
-                Err(_) => abort!(meta, "after dispatch hook must be a function pointer"),
-            }
+            after_dispatch = Some(meta_require_name_path(meta).clone());
         } else if meta.path().is_ident("visibility") {
             if visibility_item {
                 abort!(meta, "duplicate `visibillity` item")
@@ -340,10 +315,7 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
 
     for meta in state_meta.iter() {
         if meta.path().is_ident("name") {
-            state_name = match meta_require_name_lit_str(meta).parse() {
-                Ok(state_ident) => Some(state_ident),
-                Err(_) => abort!(meta, "state type name must be an ident"),
-            }
+            state_name = Some(meta_require_name_ident(meta).clone())
         } else if meta.path().is_ident("custom") {
             custom = true;
         } else if meta.path().is_ident("derive") {
@@ -385,10 +357,7 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
 
     for meta in superstate_meta.iter() {
         if meta.path().is_ident("name") {
-            superstate_ident = match meta_require_name_lit_str(meta).parse() {
-                Ok(superstate_ident) => superstate_ident,
-                Err(_) => abort!(meta, "superstate type name must be an ident"),
-            }
+            superstate_ident = meta_require_name_ident(meta).clone();
         } else if meta.path().is_ident("derive") {
             match meta.require_list().and_then(|list| {
                 Punctuated::<Path, Token![,]>::parse_terminated.parse2(list.tokens.clone())
@@ -499,26 +468,17 @@ pub fn analyze_state(method: &mut ImplItemFn, state_machine: &StateMachine) -> S
             if superstate.is_some() {
                 abort!(meta, "duplicate `superstate` item")
             }
-            superstate = match meta_require_name_lit_str(&meta).parse() {
-                Ok(superstate) => Some(superstate),
-                Err(_) => abort!(meta, "superstate must be an ident"),
-            }
+            superstate = Some(meta_require_name_ident(&meta).clone());
         } else if meta.path().is_ident("entry_action") {
             if entry_action.is_some() {
                 abort!(meta, "duplicate `entry_action` item")
             }
-            entry_action = match meta_require_name_lit_str(&meta).parse() {
-                Ok(entry_action) => Some(entry_action),
-                Err(_) => abort!(meta, "entry action must be an ident"),
-            }
+            entry_action = Some(meta_require_name_ident(&meta).clone());
         } else if meta.path().is_ident("exit_action") {
             if exit_action.is_some() {
                 abort!(meta, "duplicate `exit_action` item")
             }
-            exit_action = match meta_require_name_lit_str(&meta).parse() {
-                Ok(exit_action) => Some(exit_action),
-                Err(_) => abort!(meta, "exit action must be an ident"),
-            }
+            exit_action = Some(meta_require_name_ident(&meta).clone());
         } else if meta.path().is_ident("local_storage") {
             if !local_storage.is_empty() {
                 abort!(meta, "duplicate `local_storage` item")
@@ -616,34 +576,22 @@ pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> 
             if superstate.is_some() {
                 abort!(meta, "duplicate `superstate` item")
             }
-            superstate = match meta_require_name_lit_str(&meta).parse() {
-                Ok(superstate) => Some(superstate),
-                Err(_) => abort!(meta, "superstate must be an ident"),
-            }
+            superstate = Some(meta_require_name_ident(&meta).clone());
         } else if meta.path().is_ident("entry_action") {
             if entry_action.is_some() {
                 abort!(meta, "duplicate `entry_action` item")
             }
-            entry_action = match meta_require_name_lit_str(&meta).parse() {
-                Ok(entry_action) => Some(entry_action),
-                Err(_) => abort!(meta, "entry action must be an ident"),
-            }
+            entry_action = Some(meta_require_name_ident(&meta).clone());
         } else if meta.path().is_ident("exit_action") {
             if exit_action.is_some() {
                 abort!(meta, "duplicate `exit_action` item")
             }
-            exit_action = match meta_require_name_lit_str(&meta).parse() {
-                Ok(exit_action) => Some(exit_action),
-                Err(_) => abort!(meta, "exit action must be an ident"),
-            }
+            exit_action = Some(meta_require_name_ident(&meta).clone());
         } else if meta.path().is_ident("initial") {
             if initial_state.is_some() {
                 abort!(meta, "duplicate `initial` item")
             }
-            initial_state = match meta_require_name_lit_str(&meta).parse() {
-                Ok(initial) => Some(initial),
-                Err(_) => abort!(meta, "initial state must be an expression"),
-            }
+            initial_state = Some(meta_require_name_expr(&meta).clone());
         } else if meta.path().is_ident("local_storage") {
             if !local_storage.is_empty() {
                 abort!(meta, "duplicate `local_storage` item")
@@ -708,21 +656,9 @@ fn analyze_local_storage_default(input: &PatIdent, attribute: &Attribute) -> Loc
             ident: input.ident.clone(),
         }
     } else if let Ok(name_value) = attribute.meta.require_name_value() {
-        if let Expr::Lit(ExprLit {
-            lit: Lit::Str(string),
-            ..
-        }) = &name_value.value
-        {
-            let value = match string.parse() {
-                Ok(value) => value,
-                Err(_) => abort!(string, "value must be an expression"),
-            };
-            LocalStorageDefault::Value {
-                ident: input.ident.clone(),
-                value,
-            }
-        } else {
-            abort!(name_value, "must be string literal")
+        LocalStorageDefault::Value {
+            ident: input.ident.clone(),
+            value: name_value.value.clone(),
         }
     } else {
         abort!(attribute, "wrong attribute format")
@@ -770,13 +706,49 @@ fn meta_require_name_lit_str(meta: &Meta) -> &LitStr {
     }
 }
 
+/// Require that the meta item be a name-value pair, where the value
+/// is an ident (ex. `superstate = my_state`).
+fn meta_require_name_ident(meta: &Meta) -> &Ident {
+    match meta {
+        Meta::NameValue(name_value) => match &name_value.value {
+            Expr::Path(path) => match path.path.get_ident() {
+                Some(ident) => ident,
+                None => abort!(name_value.value, "expected ident"),
+            },
+            _ => abort!(name_value.value, "expected ident"),
+        },
+        _ => abort!(meta, "expected name-value pair"),
+    }
+}
+
+/// Require that the meta item be a name-value pair, where the value
+/// is a path (ex. `before_transition = Self::before_transition_hook`).
+fn meta_require_name_path(meta: &Meta) -> &Path {
+    match meta {
+        Meta::NameValue(name_value) => match &name_value.value {
+            Expr::Path(path) => &path.path,
+            _ => abort!(name_value.value, "expected path"),
+        },
+        _ => abort!(meta, "expected name-value pair"),
+    }
+}
+
+/// Require that the meta item be a name-value pair, where the value
+/// is an expression (ex. `initial = State::my_state()`).
+fn meta_require_name_expr(meta: &Meta) -> &Expr {
+    match meta {
+        Meta::NameValue(name_value) => &name_value.value,
+        _ => abort!(meta, "expected name-value pair"),
+    }
+}
+
 #[test]
 fn valid_state_analyze() {
     use syn::parse_quote;
 
     let attribute_args: Punctuated<Meta, Token![,]> = parse_quote!(
-        initial = "State::on()",
-        event_identifier = "event",
+        initial = State::on(),
+        event_identifier = event,
         state(derive(Copy, Clone)),
         superstate(derive(Copy, Clone))
     );
@@ -784,9 +756,9 @@ fn valid_state_analyze() {
     let item_impl: ItemImpl = parse_quote!(
         impl Blinky {
             #[state(
-                superstate = "playing",
-                entry_action = "enter_on",
-                exit_action = "enter_off"
+                superstate = playing,
+                entry_action = enter_on,
+                exit_action = enter_off
             )]
             fn on(&mut self, event: &Event) -> Outcome<State> {
                 Outcome::Handled

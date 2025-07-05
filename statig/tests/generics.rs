@@ -17,7 +17,7 @@ mod tests {
 
     enum Event {}
 
-    #[state_machine(initial = "State::a()")]
+    #[state_machine(initial = State::a())]
     impl<'a, T, A, B, const SIZE: usize> Counter<'a, T, A, B, SIZE>
     where
         T: 'static + Default + Copy,

@@ -11,7 +11,7 @@ mod tests {
 
     struct Event;
 
-    #[state_machine(initial = "Superstate::playing()")]
+    #[state_machine(initial = Superstate::playing())]
     impl Blinky {
         #[state]
         fn on(&mut self, led: &mut bool, counter: &mut isize, event: &Event) -> Outcome<State> {
@@ -24,12 +24,12 @@ mod tests {
             *led = false;
         }
 
-        #[state(entry_action = "enter_off")]
+        #[state(entry_action = enter_off)]
         fn off(&mut self, led: &mut bool, event: &Event) -> Outcome<State> {
             Transition(State::on(true, 34))
         }
 
-        #[superstate(initial = "State::on(false, 23)")]
+        #[superstate(initial = State::on(false, 23))]
         fn playing(&mut self, led: &mut bool) -> Outcome<State> {
             Handled
         }

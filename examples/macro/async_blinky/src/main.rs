@@ -22,19 +22,19 @@ pub enum Event {
 /// `statig::Superstate` traits.
 #[state_machine(
     // This sets the initial state to `led_on`.
-    initial = "State::led_on()",
+    initial = State::led_on(),
     // Derive the Debug trait on the `State` enum.
     state(derive(Debug)),
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
     // Set the `after_transition` callback.
-    after_transition = "Self::after_transition",
+    after_transition = Self::after_transition,
     // Set the `before_dispatch` callback.
-    before_dispatch = "Self::before_dispatch",
+    before_dispatch = Self::before_dispatch,
     // Set the `after_dispatch` callback.
-    after_dispatch = "Self::after_dispatch",
+    after_dispatch = Self::after_dispatch,
     // Set the `before_transition` callback.
-    before_transition = "Self::before_transition"
+    before_transition = Self::before_transition
 )]
 impl Blinky {
     #[action]
@@ -42,7 +42,7 @@ impl Blinky {
     /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Outcome<State>`.
-    #[state(superstate = "blinking", entry_action = "cool")]
+    #[state(superstate = blinking, entry_action = cool)]
     async fn led_on(event: &Event) -> Outcome<State> {
         match event {
             // When we receive a `TimerElapsed` event we transition to the `led_off` state.
@@ -53,7 +53,7 @@ impl Blinky {
     }
 
     /// Note you can mix sync and async handlers/actions.
-    #[state(superstate = "blinking")]
+    #[state(superstate = blinking)]
     fn led_off(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::led_on()),

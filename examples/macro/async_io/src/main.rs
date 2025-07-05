@@ -13,7 +13,7 @@ enum Event {
     Step,
 }
 
-#[state_machine(initial = "State::on()")]
+#[state_machine(initial = State::on())]
 impl Receiver {
     #[action]
     async fn enter_on(&mut self) {
@@ -23,7 +23,7 @@ impl Receiver {
             .unwrap();
     }
 
-    #[state(entry_action = "enter_on")]
+    #[state(entry_action = enter_on)]
     async fn on(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Step => {

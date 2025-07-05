@@ -15,7 +15,7 @@ pub struct Event;
 /// `action` attribute. It also implements the `statig::State` and
 /// `statig::Superstate` traits. We also pass an argument that will add the
 /// derive macro with the Debug trait to the `State` enum.
-#[state_machine(initial = "State::off()", state(derive(Debug)))]
+#[state_machine(initial = State::off(), state(derive(Debug)))]
 impl Blinky {
     /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.

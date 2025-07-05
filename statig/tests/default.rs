@@ -6,12 +6,12 @@ mod tests {
 
     pub struct Foo;
 
-    #[state_machine(initial = "State::bar()")]
+    #[state_machine(initial = State::bar())]
     impl Foo {
         #[state]
         fn bar(
             #[default] local: &mut usize,
-            #[default = "100"] local_2: &mut usize,
+            #[default = 100] local_2: &mut usize,
         ) -> Outcome<State> {
             Handled
         }

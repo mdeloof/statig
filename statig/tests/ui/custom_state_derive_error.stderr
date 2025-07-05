@@ -1,8 +1,8 @@
 error: Can not use `custom` with derives
   --> tests/ui/custom_state_derive_error.rs:34:11
    |
-34 |     state(custom, name = "CustomState", derive(Debug))
-   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+34 |     state(custom, name = CustomState, derive(Debug))
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0599]: the method `state_machine` exists for struct `Blinky`, but its trait bounds were not satisfied
   --> tests/ui/custom_state_derive_error.rs:51:47

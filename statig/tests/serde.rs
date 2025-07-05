@@ -22,12 +22,12 @@ fn serialize_deserialize() {
     }
 
     #[state_machine(
-        initial = "State::led_on()",
+        initial = State::led_on(),
         state(derive(Debug, Serialize, Deserialize, Clone, PartialEq)),
         superstate(derive(Debug))
     )]
     impl Blinky {
-        #[state(superstate = "blinking")]
+        #[state(superstate = blinking)]
         fn led_on(event: &Event) -> Outcome<State> {
             match event {
                 Event::TimerElapsed => Transition(State::led_off()),
@@ -35,7 +35,7 @@ fn serialize_deserialize() {
             }
         }
 
-        #[state(superstate = "blinking")]
+        #[state(superstate = blinking)]
         fn led_off(event: &Event) -> Outcome<State> {
             match event {
                 Event::TimerElapsed => Transition(State::led_on()),

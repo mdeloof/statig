@@ -129,7 +129,7 @@ where
     /// # pub struct Event;
     /// #
     /// # #[state_machine(
-    /// #     initial = "State::on()",
+    /// #     initial = State::on(),
     /// #     state(derive(Debug, PartialEq, Eq))
     /// # )]
     /// # impl Blinky {
@@ -160,7 +160,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
@@ -192,7 +192,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
@@ -399,7 +399,7 @@ where
     /// # pub struct Event;
     /// #
     /// # #[state_machine(
-    /// #     initial = "State::on()",
+    /// #     initial = State::on(),
     /// #     state(derive(Debug, PartialEq, Eq))
     /// # )]
     /// # impl Blinky {
@@ -434,7 +434,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
@@ -469,7 +469,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
@@ -606,7 +606,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
@@ -642,7 +642,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
@@ -677,7 +677,7 @@ where
     /// # pub struct Event;
     /// #
     /// # #[state_machine(
-    /// #     initial = "State::on()",
+    /// #     initial = State::on(),
     /// #     state(derive(Debug, PartialEq, Eq))
     /// # )]
     /// # impl Blinky {
@@ -704,7 +704,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
@@ -734,7 +734,7 @@ where
     /// #
     /// # pub struct Event;
     /// #
-    /// # #[state_machine(initial = "State::on()")]
+    /// # #[state_machine(initial = State::on())]
     /// # impl Blinky {
     /// #     #[state]
     /// #     async fn on(event: &Event) -> Outcome<State> { Handled }

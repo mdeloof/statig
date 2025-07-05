@@ -33,17 +33,17 @@ mod tests {
     }
 
     #[state_machine(
-        initial = "State::s11()",
-        event_identifier = "event",
+        initial = State::s11(),
+        event_identifier = event,
         state(derive(Eq, PartialEq, Debug)),
         superstate(derive(Eq, PartialEq, Debug))
     )]
     impl Foo {
         /// s11
         #[state(
-            superstate = "s1",
-            entry_action = "enter_s11",
-            exit_action = "exit_s11"
+            superstate = s1,
+            entry_action = enter_s11,
+            exit_action = exit_s11
         )]
         pub async fn s11(&mut self, event: &Event) -> Outcome {
             match event {
@@ -67,9 +67,9 @@ mod tests {
 
         /// s12
         #[state(
-            superstate = "s1",
-            entry_action = "enter_s12",
-            exit_action = "exit_s12"
+            superstate = s1,
+            entry_action = enter_s12,
+            exit_action = exit_s12
         )]
         pub async fn s12(&mut self, event: &Event) -> Outcome {
             match event {
@@ -92,7 +92,7 @@ mod tests {
 
         /// s1
         #[allow(unused)]
-        #[superstate(superstate = "s", entry_action = "enter_s1", exit_action = "exit_s1")]
+        #[superstate(superstate = s, entry_action = enter_s1, exit_action = exit_s1)]
         pub async fn s1(&mut self, event: &Event) -> Outcome {
             Super
         }
@@ -112,9 +112,9 @@ mod tests {
         /// s211
         #[allow(unused)]
         #[state(
-            superstate = "s21",
-            entry_action = "enter_s211",
-            exit_action = "exit_s211"
+            superstate = s21,
+            entry_action = enter_s211,
+            exit_action = exit_s211
         )]
         pub async fn s211(&mut self, event: &Event) -> Outcome {
             Super
@@ -135,9 +135,9 @@ mod tests {
         /// s21
         #[allow(unused)]
         #[superstate(
-            superstate = "s2",
-            entry_action = "enter_s21",
-            exit_action = "exit_s21"
+            superstate = s2,
+            entry_action = enter_s21,
+            exit_action = exit_s21
         )]
         pub async fn s21(&mut self, event: &Event) -> Outcome {
             Super
@@ -156,7 +156,7 @@ mod tests {
         }
 
         /// s2
-        #[superstate(superstate = "s", entry_action = "enter_s2", exit_action = "exit_s2")]
+        #[superstate(superstate = s, entry_action = enter_s2, exit_action = exit_s2)]
         pub async fn s2(&mut self, event: &Event) -> Outcome {
             match event {
                 Event::D => Transition(State::s11()),
@@ -178,7 +178,7 @@ mod tests {
 
         /// s
         #[allow(unused)]
-        #[superstate(entry_action = "enter_s", exit_action = "exit_s")]
+        #[superstate(entry_action = enter_s, exit_action = exit_s)]
         pub async fn s(&mut self, event: &Event) -> Outcome {
             Handled
         }

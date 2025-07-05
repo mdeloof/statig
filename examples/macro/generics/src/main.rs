@@ -20,7 +20,7 @@ pub struct Machine<'a, T, A, const SIZE: usize> {
 
 use statig::prelude::*;
 
-#[state_machine(initial = "State::foo()")]
+#[state_machine(initial = State::foo())]
 impl<'d, T, A, const SIZE: usize> Machine<'d, T, A, SIZE>
 where
     // Note that we need to introduce a `'static` trait bound on the generics. This
@@ -41,7 +41,7 @@ where
         println!("{:?}", value);
     }
 
-    #[state(superstate = "foo_and_bar", entry_action = "enter_bar")]
+    #[state(superstate = foo_and_bar, entry_action = enter_bar)]
     fn bar(value: &mut T, buffer: &[T; SIZE], event: &Event<T>) -> Outcome<State<T, SIZE>> {
         match event {
             Event::Foo => Transition(State::foo()),

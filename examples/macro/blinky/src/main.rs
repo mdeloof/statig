@@ -20,21 +20,22 @@ pub enum Event {
 /// `statig::Superstate` traits.
 #[state_machine(
     // This sets the initial state to `led_on`.
-    initial = "State::led_on()",
+    initial = State::led_on(),
     // Derive the Debug trait on the `State` enum.
     state(derive(Debug)),
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
     // Set the `after_transition` callback.
-    after_transition = "Self::after_transition",
+    after_transition = Self::after_transition,
     // Set the `before_dispatch` callback.
-    before_dispatch = "Self::before_dispatch"
+    before_dispatch = Self::before_dispatch,
+    visibility = "pub",
 )]
 impl Blinky {
     /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Outcome<State>`.
-    #[state(superstate = "blinking")]
+    #[state(superstate = blinking)]
     fn led_on(event: &Event) -> Outcome<State> {
         match event {
             // When we receive a `TimerElapsed` event we transition to the `led_off` state.
@@ -44,7 +45,7 @@ impl Blinky {
         }
     }
 
-    #[state(superstate = "blinking")]
+    #[state(superstate = blinking)]
     fn led_off(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::led_on()),
@@ -78,7 +79,12 @@ impl Blinky {
         println!("transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_dispatch(&mut self, state: StateOrSuperstate<'_, State, Superstate>, event: &Event,  _context: &mut ()) {
+    fn before_dispatch(
+        &mut self,
+        state: StateOrSuperstate<'_, State, Superstate>,
+        event: &Event,
+        _context: &mut (),
+    ) {
         println!("dispatching `{event:?}` to `{state:?}`");
     }
 }

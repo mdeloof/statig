@@ -34,7 +34,7 @@ pub struct Calculator {
 }
 
 /// Calculator is a state machine.
-#[state_machine(initial = "State::begin()")]
+#[state_machine(initial = State::begin())]
 impl Calculator {
     #[action]
     fn enter_begin(&mut self) {
@@ -44,7 +44,7 @@ impl Calculator {
     /// The initial state of the calculator.
     ///
     /// - [`Event::Operator`] => [`negated1`](Self::negated1)
-    #[state(superstate = "ready", entry_action = "enter_begin")]
+    #[state(superstate = ready, entry_action = enter_begin)]
     fn begin(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Operator {
@@ -65,8 +65,8 @@ impl Calculator {
 
     /// Show the result of the calculation.
     #[state(
-        superstate = "ready",
-        entry_action = "enter_result",
+        superstate = ready,
+        entry_action = enter_result,
         local_storage("result: f32")
     )]
     fn result(event: &Event) -> Outcome<State> {
@@ -83,7 +83,7 @@ impl Calculator {
     /// - [`Event::Operator`] => [`op_entered`](Self::op_entered)
     /// - [`Event::Ac`] => [`begin`](Self::begin)
     /// - [`Event::Ce`] => [`begin`](Self::begin)
-    #[superstate(superstate = "on")]
+    #[superstate(superstate = on)]
     fn ready(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Digit { digit: 0 } => {
@@ -119,7 +119,7 @@ impl Calculator {
     ///
     /// - [`Event::Digit`] => [`int1`](Self::int1) | `(handled)`
     /// - [`Event::Point`] => [`frac1`](Self::frac1)
-    #[state(superstate = "operand1")]
+    #[state(superstate = operand1)]
     fn zero1(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Digit { digit: 0 } => Handled,
@@ -142,7 +142,7 @@ impl Calculator {
     ///
     /// - [`Event::Point`] => [`frac1`](Self::frac1)
     /// - [`Event::Digit`] => `(handled)`
-    #[state(superstate = "operand1")]
+    #[state(superstate = operand1)]
     fn int1(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Point => {
@@ -163,7 +163,7 @@ impl Calculator {
     ///
     /// - [`Event::Point`] => `(handled)`
     /// - [`Event::Digit`] => `(handled)`
-    #[state(superstate = "operand1")]
+    #[state(superstate = operand1)]
     fn frac1(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Point => Handled,
@@ -184,7 +184,7 @@ impl Calculator {
     /// - [`Event::Point`] => [`frac1`](Self::frac1)
     /// - [`Event::Operator`] => `(handled)`
     /// - [`Event::Ac`] => [`begin`](Self::begin)
-    #[state(superstate = "operand1")]
+    #[state(superstate = operand1)]
     fn negated1(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Digit { digit: digit @ 0 } => {
@@ -223,7 +223,7 @@ impl Calculator {
     /// - [`Event::Ac`] => [`begin`](Self::begin)
     /// - [`Event::Operator`] => [`op_entered`](Self::op_entered)
     /// - [`Event::Equal`] => [`result`](Self::result)
-    #[superstate(superstate = "on")]
+    #[superstate(superstate = on)]
     fn operand1(&mut self, event: &Event) -> Outcome<State> {
         match event {
             Event::Ac => {
@@ -254,13 +254,8 @@ impl Calculator {
     /// - [`Event::Digit`] => [`zero2`](Self::zero2) | [`int2`](Self::int2)
     /// - [`Event::Point`] => [`frac2`](Self::frac2)
     /// - [`Event::Operator`] => [`negated2`](Self::negated2) | `(handled)`
-    #[state(superstate = "on")]
-    fn op_entered(
-        &mut self,
-        operand1: &f32,
-        operator: &Operator,
-        event: &Event,
-    ) -> Outcome<State> {
+    #[state(superstate = on)]
+    fn op_entered(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
             Event::Digit { digit: 0 } => {
                 self.display = "0".to_string();
@@ -295,7 +290,7 @@ impl Calculator {
     ///
     /// - [`Event::Digit`] => [`int2`](Self::int2) | `(handled)`
     /// - [`Event::Point`] => [`frac2`](Self::frac2)
-    #[state(superstate = "operand2")]
+    #[state(superstate = operand2)]
     fn zero2(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
             Event::Digit { digit: 0 } => Handled,
@@ -318,7 +313,7 @@ impl Calculator {
     ///
     /// - [`Event::Point`] => [`frac2`](Self::frac2)
     /// - [`Event::Digit`] => `(handled)`
-    #[state(superstate = "operand2")]
+    #[state(superstate = operand2)]
     fn int2(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
             Event::Point => {
@@ -340,7 +335,7 @@ impl Calculator {
     /// - [`Event::Point`] => `(handled)`
     /// - [`Event::Digit`] => `(handled)`
     #[state(
-        superstate = "operand2",
+        superstate = operand2,
         local_storage("operand1: f32", "operator: Operator")
     )]
     fn frac2(&mut self, event: &Event) -> Outcome<State> {
@@ -361,7 +356,7 @@ impl Calculator {
     /// - [`Event::Ac`] => [`op_entered`](Self::op_entered)
     /// - [`Event::Equal`] => [`result`](Self::result)
     /// - [`Event::Operator`] => [`op_entered`](Self::op_entered)
-    #[superstate(superstate = "on")]
+    #[superstate(superstate = on)]
     fn operand2(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
             Event::Ac => {
@@ -399,7 +394,7 @@ impl Calculator {
     /// - [`Event::Point`] => [`frac2`](Self::frac2)
     /// - [`Event::Operator`] => `(handled)`
     /// - [`Event::Ac`] => [`op_entered`](Self::op_entered)
-    #[state(superstate = "on")]
+    #[state(superstate = on)]
     fn negated2(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
             Event::Digit { digit: digit @ 0 } => {

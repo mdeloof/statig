@@ -13,7 +13,7 @@ mod tests {
         TimerElapsed,
     }
 
-    #[state_machine(initial = "State::up()")]
+    #[state_machine(initial = State::up())]
     impl Counter {
         #[state]
         fn up(context: &mut ExternalContext<'_, '_>, event: &Event) -> Outcome<State> {

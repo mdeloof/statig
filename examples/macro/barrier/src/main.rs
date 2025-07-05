@@ -9,11 +9,11 @@ enum Event {
     C,
 }
 
-#[state_machine(initial = "State::initializing()", state(derive(PartialEq, Eq, Debug)))]
+#[state_machine(initial = State::initializing(), state(derive(PartialEq, Eq, Debug)))]
 impl Foo {
-    #[state(superstate = "waiting_for_initialization")]
+    #[state(superstate = waiting_for_initialization)]
     fn initializing(
-        #[default = "true"] a: &mut bool,
+        #[default = true] a: &mut bool,
         #[default] b: &mut bool,
         #[default] c: &mut bool,
         event: &Event,

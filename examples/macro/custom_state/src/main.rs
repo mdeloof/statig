@@ -32,18 +32,18 @@ impl CustomState {
 /// `statig::Superstate` traits.
 #[state_machine(
     // This sets the initial state to `led_on`.
-    initial = "CustomState::led_on()",
+    initial = CustomState::led_on(),
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
     // Adding custom tells the macro not to generate a State type and to
     // instead use the name field to map to a local type.
-    state(custom, name = "CustomState")
+    state(custom, name = CustomState)
 )]
 impl Blinky {
     /// The `#[state]` attribute marks this as a state handler.  By default the
     /// `event` argument will map to the event handler by the state machine.
     /// Every state must return a `Outcome<CustomState>`.
-    #[state(superstate = "blinking")]
+    #[state(superstate = blinking)]
     fn led_on(event: &Event) -> Outcome<CustomState> {
         match event {
             // When we receive a `TimerElapsed` event we transition to the `led_off` state.
@@ -53,7 +53,7 @@ impl Blinky {
         }
     }
 
-    #[state(superstate = "blinking")]
+    #[state(superstate = blinking)]
     fn led_off(event: &Event) -> Outcome<CustomState> {
         match event {
             Event::TimerElapsed => Transition(CustomState::LedOn),

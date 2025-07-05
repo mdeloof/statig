@@ -13,8 +13,8 @@ pub struct Dishwasher {
 }
 
 #[state_machine(
-    initial = "State::idle()",
-    after_transition = "Self::after_transition",
+    initial = State::idle(),
+    after_transition = Self::after_transition,
     state(derive(Debug, Clone))
 )]
 impl Dishwasher {
@@ -34,7 +34,7 @@ impl Dishwasher {
         }
     }
 
-    #[state(superstate = "door_closed")]
+    #[state(superstate = door_closed)]
     fn idle(event: &Event) -> Outcome<State> {
         match event {
             Event::StartProgram => Transition(State::soap()),
@@ -42,7 +42,7 @@ impl Dishwasher {
         }
     }
 
-    #[state(superstate = "door_closed")]
+    #[state(superstate = door_closed)]
     fn soap(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::rinse()),
@@ -50,7 +50,7 @@ impl Dishwasher {
         }
     }
 
-    #[state(superstate = "door_closed")]
+    #[state(superstate = door_closed)]
     fn rinse(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::dry()),
@@ -58,7 +58,7 @@ impl Dishwasher {
         }
     }
 
-    #[state(superstate = "door_closed")]
+    #[state(superstate = door_closed)]
     fn dry(event: &Event) -> Outcome<State> {
         match event {
             Event::TimerElapsed => Transition(State::idle()),

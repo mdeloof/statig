@@ -26,7 +26,7 @@ pub enum Event {
 #[derive(Default)]
 pub struct CdPlayer;
 
-#[state_machine(initial = "State::empty()", state(derive(Debug)))]
+#[state_machine(initial = State::empty(), state(derive(Debug)))]
 impl CdPlayer {
     #[state]
     fn empty(event: &Event) -> Outcome<State> {

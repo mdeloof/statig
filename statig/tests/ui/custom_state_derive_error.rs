@@ -26,12 +26,12 @@ impl CustomState {
 
 #[state_machine(
     // This sets the initial state to `led_on`.
-    initial = "CustomState::led_on()",
+    initial = CustomState::led_on(),
     // Derive the Debug trait on the `Superstate` enum.
     superstate(derive(Debug)),
     // Adding custom tells the macro not to generate a State type and to
     // instead use the name field to map to a local type.
-    state(custom, name = "CustomState", derive(Debug))
+    state(custom, name = CustomState, derive(Debug))
 )]
 impl Blinky {
     #[state]
