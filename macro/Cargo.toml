@@ -26,3 +26,6 @@ proc-macro-error2 = { version = "2.0.1", features = ["syn-error"] }
 
 [dev-dependencies]
 trybuild = "1.0.90"
+
+[package.metadata.docs.rs]
+targets = ["aarch64-apple-darwin"]

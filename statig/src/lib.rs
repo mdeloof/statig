@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(not(doctest), doc = include_str!(concat!("../", core::env!("CARGO_PKG_README"))))]
 #![no_std]
 #![allow(incomplete_features)]
