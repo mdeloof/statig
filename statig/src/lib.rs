@@ -1,4 +1,4 @@
-#![cfg_attr(not(doctest), doc = include_str!("../../README.md"))]
+#![cfg_attr(not(doctest), doc = include_str!(concat!("../", core::env!("CARGO_PKG_README"))))]
 #![no_std]
 #![allow(incomplete_features)]
 
