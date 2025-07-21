@@ -26,17 +26,17 @@ mod tests {
     {
         #[state]
         fn a() -> Outcome<State<T, B, SIZE>> {
-            Handled
+            Handled(())
         }
 
         #[state]
         fn b(array: &mut [T; SIZE]) -> Outcome<State<T, B, SIZE>> {
-            Handled
+            Handled(())
         }
 
         #[state]
         fn c(deref: &B) -> Outcome<State<T, B, SIZE>> {
-            Handled
+            Handled(())
         }
     }
 }

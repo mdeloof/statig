@@ -29,14 +29,14 @@ mod tests {
             #[state(superstate = "foo")]
             fn bar(my_event: &Event, my_context: &mut Context) -> Outcome<MyState> {
                 match my_event {
-                    Event::A => Handled,
+                    Event::A => Handled(()),
                 }
             }
 
             #[superstate]
             fn foo(my_event: &Event, my_context: &mut Context) -> Outcome<MyState> {
                 match my_event {
-                    Event::A => Handled,
+                    Event::A => Handled(()),
                 }
             }
         }

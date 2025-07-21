@@ -31,7 +31,7 @@ mod tests {
 
         #[superstate(initial = "State::on(false, 23)")]
         fn playing(&mut self, led: &mut bool) -> Outcome<State> {
-            Handled
+            Handled(())
         }
     }
 

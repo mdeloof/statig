@@ -55,6 +55,8 @@ mod tests {
 
         type Context<'ctx> = ();
 
+        type Response = ();
+
         fn initial() -> Self::State {
             State::S11
         }
@@ -255,7 +257,7 @@ mod tests {
         /// s
         #[allow(unused)]
         pub fn s(&mut self, event: &Event) -> Outcome {
-            Handled
+            Handled(())
         }
 
         fn enter_s(&mut self) {

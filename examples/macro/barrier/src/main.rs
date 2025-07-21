@@ -38,13 +38,13 @@ impl Foo {
     fn waiting_for_initialization(a: &bool, b: &bool, c: &bool) -> Outcome<State> {
         match (a, b, c) {
             (true, true, true) => Transition(State::initialized()),
-            _ => Handled,
+            _ => Handled(()),
         }
     }
 
     #[state]
     fn initialized() -> Outcome<State> {
-        Handled
+        Handled(())
     }
 }
 

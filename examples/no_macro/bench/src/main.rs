@@ -48,6 +48,8 @@ impl IntoStateMachine for CdPlayer {
 
     type Context<'ctx> = ();
 
+    type Response = ();
+
     /// The initial state of the state machine.
     fn initial() -> Self::State {
         State::Empty

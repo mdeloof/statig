@@ -36,6 +36,8 @@ impl IntoStateMachine for Dishwasher {
 
     type Context<'ctx> = ();
 
+    type Response = ();
+
     fn initial() -> Self::State {
         State::Idle
     }

@@ -40,6 +40,8 @@ impl IntoStateMachine for Blinky {
 
     type Context<'ctx> = ();
 
+    type Response = ();
+
     /// The initial state of the state machine.
     fn initial() -> State {
         State::LedOn

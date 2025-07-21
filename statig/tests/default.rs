@@ -13,7 +13,7 @@ mod tests {
             #[default] local: &mut usize,
             #[default = "100"] local_2: &mut usize,
         ) -> Outcome<State> {
-            Handled
+            Handled(())
         }
     }
 

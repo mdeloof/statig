@@ -20,7 +20,7 @@ mod tests {
             match event {
                 Event::ButtonPressed => {
                     *context.0 = context.0.saturating_add(1);
-                    Handled
+                    Handled(())
                 }
                 Event::TimerElapsed => Transition(State::down()),
             }
@@ -31,7 +31,7 @@ mod tests {
             match event {
                 Event::ButtonPressed => {
                     *context.0 = context.0.saturating_sub(1);
-                    Handled
+                    Handled(())
                 }
                 Event::TimerElapsed => Transition(State::up()),
             }

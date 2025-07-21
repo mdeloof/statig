@@ -66,6 +66,8 @@ impl blocking::IntoStateMachine for Calculator {
 
     type Context<'ctx> = ();
 
+    type Response = ();
+
     fn initial() -> Self::State {
         State::Begin
     }
@@ -241,7 +243,7 @@ impl Calculator {
     /// - [`Event::Point`] => [`frac1`](Self::frac1)
     fn zero1(&mut self, event: &Event) -> Outcome<State> {
         match event {
-            Event::Digit { digit: 0 } => Handled,
+            Event::Digit { digit: 0 } => Handled(()),
 
             Event::Digit { digit } => {
                 self.display.push_str(&digit.to_string());
@@ -270,7 +272,7 @@ impl Calculator {
 
             Event::Digit { digit } => {
                 self.display.push_str(&digit.to_string());
-                Handled
+                Handled(())
             }
 
             _ => Super,
@@ -283,11 +285,11 @@ impl Calculator {
     /// - [`Event::Digit`] => `(handled)`
     fn frac1(&mut self, event: &Event) -> Outcome<State> {
         match event {
-            Event::Point => Handled,
+            Event::Point => Handled(()),
 
             Event::Digit { digit } => {
                 self.display.push_str(&digit.to_string());
-                Handled
+                Handled(())
             }
 
             _ => Super,
@@ -323,7 +325,7 @@ impl Calculator {
                 Transition(State::Frac1)
             }
 
-            Event::Operator { .. } => Handled,
+            Event::Operator { .. } => Handled(()),
 
             Event::Ac => {
                 self.display.clear();
@@ -348,7 +350,7 @@ impl Calculator {
 
             Event::Ce => {
                 self.display.clear();
-                Handled
+                Handled(())
             }
 
             Event::Operator { operator } => {
@@ -409,7 +411,7 @@ impl Calculator {
                 })
             }
 
-            Event::Operator { .. } => Handled,
+            Event::Operator { .. } => Handled(()),
 
             _ => Super,
         }
@@ -421,7 +423,7 @@ impl Calculator {
     /// - [`Event::Point`] => [`frac2`](Self::frac2)
     fn zero2(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
-            Event::Digit { digit: 0 } => Handled,
+            Event::Digit { digit: 0 } => Handled(()),
 
             Event::Digit { digit } => {
                 self.display = digit.to_string();
@@ -459,7 +461,7 @@ impl Calculator {
 
             Event::Digit { digit } => {
                 self.display.push_str(&digit.to_string());
-                Handled
+                Handled(())
             }
 
             _ => Super,
@@ -473,11 +475,11 @@ impl Calculator {
     #[allow(unused)]
     fn frac2(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
-            Event::Point => Handled,
+            Event::Point => Handled(()),
 
             Event::Digit { digit } => {
                 self.display.push_str(&digit.to_string());
-                Handled
+                Handled(())
             }
 
             _ => Super,
@@ -563,7 +565,7 @@ impl Calculator {
                 })
             }
 
-            Event::Operator { .. } => Handled,
+            Event::Operator { .. } => Handled(()),
 
             Event::Ac => {
                 self.display.clear();

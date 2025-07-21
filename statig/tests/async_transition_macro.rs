@@ -180,7 +180,7 @@ mod tests {
         #[allow(unused)]
         #[superstate(entry_action = "enter_s", exit_action = "exit_s")]
         pub async fn s(&mut self, event: &Event) -> Outcome {
-            Handled
+            Handled(())
         }
 
         #[action]
