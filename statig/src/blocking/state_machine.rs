@@ -343,39 +343,39 @@ where
     M::State: State<M>,
 {
     /// Handle the given event.
-    pub fn handle(&mut self, event: &M::Event<'_>)
+    pub fn handle(&mut self, event: &M::Event<'_>) -> M::Response
     where
         for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
-        self.handle_with_context(event, &mut ());
+        self.handle_with_context(event, &mut ())
     }
 
     /// Handle the given event.
-    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
+    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) -> M::Response
     where
         M: IntoStateMachine,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
-        self.inner.handle_with_context(event, context);
+        self.inner.handle_with_context(event, context)
     }
 
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step(&mut self)
+    pub fn step(&mut self) -> M::Response
     where
         for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
-        self.handle(&());
+        self.handle(&())
     }
 
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    pub fn step_with_context(&mut self, context: &mut M::Context<'_>) -> M::Response
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
-        self.handle_with_context(&(), context);
+        self.handle_with_context(&(), context)
     }
 
     /// Get an immutable reference to the current state of the state machine.

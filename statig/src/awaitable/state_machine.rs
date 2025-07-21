@@ -77,11 +77,11 @@ where
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub async fn handle(&mut self, event: &M::Event<'_>)
+    pub async fn handle(&mut self, event: &M::Event<'_>) -> M::Response
     where
         for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
     {
-        self.handle_with_context(event, &mut ()).await;
+        self.handle_with_context(event, &mut ()).await
     }
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
@@ -90,26 +90,26 @@ where
         &mut self,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) {
+    ) -> M::Response {
         if !self.initialized {
             self.inner.init_with_context(context).await;
             self.initialized = true;
         }
-        self.inner.handle_with_context(event, context).await;
+        self.inner.handle_with_context(event, context).await
     }
 
-    pub async fn step(&mut self)
+    pub async fn step(&mut self) -> M::Response
     where
         for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
     {
-        self.handle_with_context(&(), &mut ()).await;
+        self.handle_with_context(&(), &mut ()).await
     }
 
-    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>) -> M::Response
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context).await;
+        self.handle_with_context(&(), context).await
     }
 
     /// Get the current state.
