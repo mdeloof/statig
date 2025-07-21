@@ -326,7 +326,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                     shared_storage: &mut #shared_storage_type,
                     #event_ident: &<#shared_storage_type as statig::awaitable::IntoStateMachine>::Event<'_>,
                     #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
-                ) -> impl core::future::Future<Output = statig::Outcome<Self>> {
+                ) -> impl core::future::Future<Output = statig::Outcome<Self, <#shared_storage_type as statig::awaitable::IntoStateMachine>::Response>> {
                     async move {
                         match self {
                             #(#call_handler_arms),*
@@ -501,7 +501,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::awaitable::IntoStateMachine>::Event<'_>,
                         #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
-                    ) -> impl core::future::Future<Output = statig::Outcome<<#shared_storage_type as statig::awaitable::IntoStateMachine>::State>> {
+                    ) -> impl core::future::Future<Output = statig::Outcome<<#shared_storage_type as statig::awaitable::IntoStateMachine>::State, <#shared_storage_type as statig::awaitable::IntoStateMachine>::Response>> {
                         async move {
                             match self {
                                 #(#call_handler_arms),*
