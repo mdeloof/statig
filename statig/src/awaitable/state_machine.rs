@@ -350,35 +350,35 @@ where
     for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Handle the given event.
-    pub async fn handle(&mut self, event: &M::Event<'_>)
+    pub async fn handle(&mut self, event: &M::Event<'_>) -> M::Response
     where
         for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
     {
-        self.handle_with_context(event, &mut ()).await;
+        self.handle_with_context(event, &mut ()).await
     }
 
     /// Handle the given event.
-    pub async fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
+    pub async fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) -> M::Response
     where
         M: IntoStateMachine,
     {
-        self.inner.handle_with_context(event, context).await;
+        self.inner.handle_with_context(event, context).await
     }
 
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub async fn step(&mut self)
+    pub async fn step(&mut self) -> M::Response
     where
         for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
     {
-        self.handle(&()).await;
+        self.handle(&()).await
     }
 
     /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>) -> M::Response
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context).await;
+        self.handle_with_context(&(), context).await
     }
 
     /// Get an immutable reference to the current state of the state machine.
