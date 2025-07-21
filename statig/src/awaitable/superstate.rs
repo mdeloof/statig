@@ -15,7 +15,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> impl Future<Output = Outcome<M::State>>;
+    ) -> impl Future<Output = Outcome<M::State, M::Response>>;
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
@@ -109,8 +109,8 @@ where
         _: &mut M,
         _: &M::Event<'_>,
         _: &mut M::Context<'_>,
-    ) -> impl Future<Output = Outcome<M::State>> {
-        core::future::ready(Outcome::Handled)
+    ) -> impl Future<Output = Outcome<M::State, M::Response>> {
+        core::future::ready(Outcome::Handled(M::Response::default()))
     }
 
     fn call_entry_action(&mut self, _: &mut M, _: &mut M::Context<'_>) -> impl Future<Output = ()> {

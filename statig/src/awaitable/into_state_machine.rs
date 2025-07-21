@@ -13,6 +13,9 @@ where
     /// External context that can be passed in.
     type Context<'ctx>;
 
+    /// Response type returned when events are handled.
+    type Response: Default;
+
     /// Enumeration of the various states.
     type State;
 

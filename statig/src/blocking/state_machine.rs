@@ -75,21 +75,21 @@ where
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub fn handle(&mut self, event: &M::Event<'_>)
+    pub fn handle(&mut self, event: &M::Event<'_>) -> M::Response
     where
         for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
     {
-        self.handle_with_context(event, &mut ());
+        self.handle_with_context(event, &mut ())
     }
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) {
+    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) -> M::Response {
         if !self.initialized {
             self.inner.init_with_context(context);
             self.initialized = true;
         }
-        self.inner.handle_with_context(event, context);
+        self.inner.handle_with_context(event, context)
     }
 
     pub fn step(&mut self)
@@ -128,7 +128,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let state_machine = Blinky::default().state_machine();
@@ -157,7 +157,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut state_machine = Blinky::default().state_machine();
@@ -189,7 +189,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut state_machine = Blinky::default().state_machine();
@@ -400,7 +400,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -430,7 +430,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -462,7 +462,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -595,7 +595,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -629,7 +629,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -664,7 +664,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -689,7 +689,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -719,7 +719,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();

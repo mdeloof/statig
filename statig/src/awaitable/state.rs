@@ -17,7 +17,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> impl Future<Output = Outcome<Self>>;
+    ) -> impl Future<Output = Outcome<Self, M::Response>>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
@@ -105,7 +105,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> impl Future<Output = Outcome<Self>> {
+    ) -> impl Future<Output = Outcome<Self, M::Response>> {
         async move {
             M::before_dispatch(
                 shared_storage,
@@ -126,7 +126,7 @@ where
             .await;
 
             match outcome {
-                Outcome::Handled => Outcome::Handled,
+                Outcome::Handled(response) => Outcome::Handled(response),
                 Outcome::Super => match self.superstate() {
                     Some(mut superstate) => loop {
                         M::before_dispatch(
@@ -150,12 +150,12 @@ where
                         .await;
 
                         match outcome {
-                            Outcome::Handled => break Outcome::Handled,
+                            Outcome::Handled(response) => break Outcome::Handled(response),
                             Outcome::Super => match superstate.superstate() {
                                 Some(superstate_of_superstate) => {
                                     superstate = superstate_of_superstate
                                 }
-                                None => break Outcome::Handled,
+                                None => break Outcome::Handled(M::Response::default()),
                             },
                             Outcome::Transition(state) => break Outcome::Transition(state),
                         }

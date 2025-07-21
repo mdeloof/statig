@@ -14,7 +14,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Outcome<M::State>;
+    ) -> Outcome<M::State, M::Response>;
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
@@ -92,14 +92,14 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Outcome<M::State>
+    ) -> Outcome<M::State, M::Response>
     where
         Self: Sized,
     {
         let outcome = self.call_handler(shared_storage, event, context);
 
         match outcome {
-            Outcome::Handled => Outcome::Handled,
+            Outcome::Handled(response) => Outcome::Handled(response),
             Outcome::Super => match self.superstate() {
                 Some(mut superstate) => {
                     M::before_dispatch(
@@ -169,8 +169,8 @@ where
         _: &mut M,
         _: &M::Event<'_>,
         _: &mut M::Context<'_>,
-    ) -> Outcome<M::State> {
-        Outcome::Handled
+    ) -> Outcome<M::State, M::Response> {
+        Outcome::Handled(M::Response::default())
     }
 
     fn call_entry_action(&mut self, _: &mut M, _: &mut M::Context<'_>) {}

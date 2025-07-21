@@ -76,6 +76,8 @@ pub struct StateMachine {
     pub context_ident: Ident,
     /// Whether the state machine is sync (blocking) or async (awaitable).
     pub mode: Mode,
+    /// Response type returned when events are handled.
+    pub response_type: Type,
 }
 
 /// Information regarding a state.
@@ -470,6 +472,7 @@ pub fn lower(model: &Model) -> Ir {
         event_ident,
         context_ident,
         mode,
+        response_type: model.state_machine.response_type.clone(),
     };
 
     Ir {
@@ -794,6 +797,7 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         visibility: parse_quote!(pub),
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),
+        response_type: parse_quote!(()),
     }
 }
 
@@ -826,6 +830,7 @@ fn create_lower_state_machine() -> StateMachine {
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),
         mode: Mode::Blocking,
+        response_type: parse_quote!(()),
     }
 }
 

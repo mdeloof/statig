@@ -13,7 +13,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Outcome<Self>;
+    ) -> Outcome<Self, M::Response>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
@@ -89,7 +89,7 @@ where
         shared_storage: &mut M,
         event: &M::Event<'_>,
         context: &mut M::Context<'_>,
-    ) -> Outcome<Self>
+    ) -> Outcome<Self, M::Response>
     where
         Self: Sized,
     {
@@ -110,7 +110,7 @@ where
         );
 
         match outcome {
-            Outcome::Handled => Outcome::Handled,
+            Outcome::Handled(response) => Outcome::Handled(response),
             Outcome::Super => match self.superstate() {
                 Some(mut superstate) => {
                     M::before_dispatch(

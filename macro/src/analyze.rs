@@ -59,6 +59,8 @@ pub struct StateMachine {
     pub before_dispatch: Option<Path>,
     /// Optional `after_dispatch` callback.
     pub after_dispatch: Option<Path>,
+    /// Response type returned when events are handled.
+    pub response_type: Type,
 }
 
 /// Information regarding a state.
@@ -144,7 +146,10 @@ impl LocalStorageDefault {
 
 /// Analyze the impl block and create a model.
 pub fn analyze(attribute_args: Vec<Meta>, mut item_impl: ItemImpl) -> Model {
-    let state_machine = analyze_state_machine(&attribute_args[..], &item_impl);
+    let response_type = extract_response_type_from_impl(&item_impl);
+    
+    let mut state_machine = analyze_state_machine(&attribute_args[..], &item_impl);
+    state_machine.response_type = response_type;
 
     let mut states = HashMap::new();
     let mut superstates = HashMap::new();
@@ -420,6 +425,7 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
         event_ident,
         context_ident,
         visibility,
+        response_type: parse_quote!(()),
     }
 }
 
@@ -841,6 +847,7 @@ fn valid_state_analyze() {
         event_ident,
         context_ident,
         visibility,
+        response_type: parse_quote!(()),
     };
 
     let state = State {
@@ -909,4 +916,42 @@ fn valid_state_analyze() {
     };
 
     assert_eq!(actual, expected);
+}
+
+/// Extract the response type from the return type of state/superstate functions.
+/// Returns `()` if no specific response type is found.
+fn extract_response_type_from_impl(item_impl: &ItemImpl) -> Type {
+    use syn::{ReturnType, TypePath, PathArguments, GenericArgument};
+    
+    // Look for state or superstate functions that return Outcome<State, Response>
+    for item in &item_impl.items {
+        if let ImplItem::Fn(method) = item {
+            // Check if this is a state or superstate function
+            let is_state_fn = method.attrs.iter().any(|attr| {
+                attr.path().is_ident("state") || attr.path().is_ident("superstate")
+            });
+            
+            if is_state_fn {
+                if let ReturnType::Type(_, return_type) = &method.sig.output {
+                    if let Type::Path(TypePath { path, .. }) = return_type.as_ref() {
+                        // Look for Outcome<State, Response> pattern
+                        if let Some(segment) = path.segments.last() {
+                            if segment.ident == "Outcome" {
+                                if let PathArguments::AngleBracketed(args) = &segment.arguments {
+                                    if args.args.len() >= 2 {
+                                        if let Some(GenericArgument::Type(response_type)) = args.args.iter().nth(1) {
+                                            return response_type.clone();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Default to () if no response type is found
+    parse_quote!(())
 }

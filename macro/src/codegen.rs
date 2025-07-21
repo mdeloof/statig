@@ -44,6 +44,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         &ir.state_machine.shared_storage_generics.split_for_impl();
     let event_type = &ir.state_machine.event_type;
     let context_type = &ir.state_machine.context_type;
+    let response_type = &ir.state_machine.response_type;
     let state_ident = &ir.state_machine.state_ident.as_ident();
     let (_, state_generics, _) = &ir.state_machine.state_generics.split_for_impl();
     let superstate_ident = &ir.state_machine.superstate_ident;
@@ -176,6 +177,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         {
             type Event<#event_lifetime> = #event_type;
             type Context<#context_lifetime> = #context_type;
+            type Response = #response_type;
             type State = #state_ident #state_generics;
             type Superstate<#superstate_lifetime> = #superstate_ident #superstate_generics ;
 
@@ -280,7 +282,7 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
                         #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
-                    ) -> statig::Outcome<Self> where Self: Sized {
+                    ) -> statig::Outcome<Self, <#shared_storage_type as statig::blocking::IntoStateMachine>::Response> where Self: Sized {
                         match self {
                             #(#call_handler_arms),*
                         }
@@ -454,7 +456,7 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
                         #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
-                    ) -> statig::Outcome<<#shared_storage_type as statig::blocking::IntoStateMachine>::State> where Self: Sized {
+                    ) -> statig::Outcome<<#shared_storage_type as statig::blocking::IntoStateMachine>::State, <#shared_storage_type as statig::blocking::IntoStateMachine>::Response> where Self: Sized {
                         match self {
                             #(#call_handler_arms),*
                         }

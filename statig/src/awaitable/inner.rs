@@ -34,7 +34,7 @@ where
             .await;
         match outcome {
             Outcome::Super => {}
-            Outcome::Handled => {}
+            Outcome::Handled(_) => {}
             Outcome::Transition(state) => self.transition(state, context).await,
         }
     }

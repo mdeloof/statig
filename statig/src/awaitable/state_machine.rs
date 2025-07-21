@@ -134,7 +134,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let state_machine = Blinky::default().state_machine();
@@ -163,7 +163,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut state_machine = Blinky::default().state_machine();
@@ -195,7 +195,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut state_machine = Blinky::default().state_machine();
@@ -404,7 +404,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// # executor::block_on(async {
@@ -437,7 +437,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// # executor::block_on(async {
@@ -472,7 +472,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// # executor::block_on(async {
@@ -609,7 +609,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// # executor::block_on(async {
@@ -645,7 +645,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// # executor::block_on(async {
@@ -682,7 +682,7 @@ where
     /// # )]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -707,7 +707,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
@@ -737,7 +737,7 @@ where
     /// # #[state_machine(initial = "State::on()")]
     /// # impl Blinky {
     /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
+    /// #     async fn on(event: &Event) -> Outcome<State> { Handled(()) }
     /// # }
     /// #
     /// let mut uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
