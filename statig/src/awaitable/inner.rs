@@ -33,11 +33,11 @@ where
             .handle(&mut self.shared_storage, event, context)
             .await;
         match outcome {
-            Outcome::Super => M::Response::default(),
+            Outcome::Super => M::default_response(),
             Outcome::Handled(response) => response,
             Outcome::Transition(state) => {
                 self.transition(state, context).await;
-                M::Response::default()
+                M::default_response()
             }
         }
     }

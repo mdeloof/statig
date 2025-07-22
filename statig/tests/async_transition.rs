@@ -63,6 +63,10 @@ mod tests {
         fn initial() -> Self::State {
             State::S11
         }
+
+        fn default_response() -> Self::Response {
+            ()
+        }
     }
 
     impl awaitable::State<Foo> for State {

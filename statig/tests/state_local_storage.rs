@@ -29,6 +29,10 @@ mod tests {
         fn initial() -> Self::State {
             Superstate::playing()
         }
+        
+        fn default_response() -> Self::Response {
+            Self::Response::default()
+        }
     }
 
     impl Default for State {

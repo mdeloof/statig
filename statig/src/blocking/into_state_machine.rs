@@ -12,7 +12,10 @@ where
     type Context<'ctx>;
 
     /// Response type returned when events are handled.
-    type Response: Default;
+    type Response;
+
+    /// Generate a default response for transitions and super outcomes.
+    fn default_response() -> Self::Response;
 
     /// Enumeration of the various states.
     type State;

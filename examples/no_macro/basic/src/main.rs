@@ -36,6 +36,10 @@ impl IntoStateMachine for Blinky {
         State::Off
     }
 
+    fn default_response() -> Self::Response {
+        ()
+    }
+
     /// This method is called on every transition of the state machine.
     fn after_transition(&mut self, source: &Self::State, target: &Self::State, _context: &mut ()) {
         println!("transitioned from {source:?} to {target:?}");

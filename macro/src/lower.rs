@@ -78,6 +78,10 @@ pub struct StateMachine {
     pub mode: Mode,
     /// Response type returned when events are handled.
     pub response_type: Type,
+    /// Error type returned when events are handled.
+    pub error_type: Type,
+    /// Whether the state machine uses Result-based responses.
+    pub uses_result_responses: bool,
 }
 
 /// Information regarding a state.
@@ -473,6 +477,8 @@ pub fn lower(model: &Model) -> Ir {
         context_ident,
         mode,
         response_type: model.state_machine.response_type.clone(),
+        error_type: model.state_machine.error_type.clone(),
+        uses_result_responses: model.state_machine.uses_result_responses,
     };
 
     Ir {
@@ -798,6 +804,8 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),
         response_type: parse_quote!(()),
+        error_type: parse_quote!(()),
+        uses_result_responses: false,
     }
 }
 
@@ -831,6 +839,8 @@ fn create_lower_state_machine() -> StateMachine {
         context_ident: parse_quote!(context),
         mode: Mode::Blocking,
         response_type: parse_quote!(()),
+        error_type: parse_quote!(()),
+        uses_result_responses: false,
     }
 }
 

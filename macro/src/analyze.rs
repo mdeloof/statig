@@ -61,6 +61,10 @@ pub struct StateMachine {
     pub after_dispatch: Option<Path>,
     /// Response type returned when events are handled.
     pub response_type: Type,
+    /// Error type returned when events are handled.
+    pub error_type: Type,
+    /// Whether the state machine uses Result-based responses.
+    pub uses_result_responses: bool,
 }
 
 /// Information regarding a state.
@@ -146,10 +150,12 @@ impl LocalStorageDefault {
 
 /// Analyze the impl block and create a model.
 pub fn analyze(attribute_args: Vec<Meta>, mut item_impl: ItemImpl) -> Model {
-    let response_type = extract_response_type_from_impl(&item_impl);
+    let (response_type, error_type, uses_result_responses) = extract_response_and_error_types_from_impl(&item_impl);
     
     let mut state_machine = analyze_state_machine(&attribute_args[..], &item_impl);
     state_machine.response_type = response_type;
+    state_machine.error_type = error_type;
+    state_machine.uses_result_responses = uses_result_responses;
 
     let mut states = HashMap::new();
     let mut superstates = HashMap::new();
@@ -409,6 +415,8 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
         }
     }
 
+    let (response_type, error_type, uses_result_responses) = extract_response_and_error_types_from_impl(item_impl);
+
     StateMachine {
         initial_state,
         shared_storage_type,
@@ -425,7 +433,9 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
         event_ident,
         context_ident,
         visibility,
-        response_type: parse_quote!(()),
+        response_type,
+        error_type,
+        uses_result_responses,
     }
 }
 
@@ -848,6 +858,8 @@ fn valid_state_analyze() {
         context_ident,
         visibility,
         response_type: parse_quote!(()),
+        error_type: parse_quote!(()),
+        uses_result_responses: false,
     };
 
     let state = State {
@@ -918,12 +930,15 @@ fn valid_state_analyze() {
     assert_eq!(actual, expected);
 }
 
-/// Extract the response type from the return type of state/superstate functions.
-/// Returns `()` if no specific response type is found.
-fn extract_response_type_from_impl(item_impl: &ItemImpl) -> Type {
+/// Extract response type information from state function signatures.
+/// Returns (response_type, error_type, uses_result_responses) tuple.
+/// - For Outcome<State>: returns ((), (), false) 
+/// - For Outcome<State, Result<Response, Error>>: returns (Response, Error, true)
+/// - For Outcome<State, Response>: returns (Response, (), false) - direct response type
+fn extract_response_and_error_types_from_impl(item_impl: &ItemImpl) -> (Type, Type, bool) {
     use syn::{ReturnType, TypePath, PathArguments, GenericArgument};
     
-    // Look for state or superstate functions that return Outcome<State, Response>
+    // Look for state or superstate functions
     for item in &item_impl.items {
         if let ImplItem::Fn(method) = item {
             // Check if this is a state or superstate function
@@ -934,14 +949,38 @@ fn extract_response_type_from_impl(item_impl: &ItemImpl) -> Type {
             if is_state_fn {
                 if let ReturnType::Type(_, return_type) = &method.sig.output {
                     if let Type::Path(TypePath { path, .. }) = return_type.as_ref() {
-                        // Look for Outcome<State, Response> pattern
+                        // Look for Outcome<...> pattern
                         if let Some(segment) = path.segments.last() {
                             if segment.ident == "Outcome" {
                                 if let PathArguments::AngleBracketed(args) = &segment.arguments {
-                                    if args.args.len() >= 2 {
-                                        if let Some(GenericArgument::Type(response_type)) = args.args.iter().nth(1) {
-                                            return response_type.clone();
+                                    match args.args.len() {
+                                        // Outcome<State> - backward compatibility
+                                        1 => {
+                                            return (parse_quote!(()), parse_quote!(()), false);
                                         }
+                                        // Outcome<State, Response> or Outcome<State, Result<Response, Error>>
+                                        2 => {
+                                            if let Some(GenericArgument::Type(response_type)) = args.args.iter().nth(1) {
+                                                // Check if response_type is Result<Response, Error>
+                                                if let Type::Path(result_path) = response_type {
+                                                    if let Some(result_segment) = result_path.path.segments.last() {
+                                                        if result_segment.ident == "Result" {
+                                                            if let PathArguments::AngleBracketed(result_args) = &result_segment.arguments {
+                                                                if result_args.args.len() >= 2 {
+                                                                    if let (Some(GenericArgument::Type(response)), Some(GenericArgument::Type(error))) = 
+                                                                        (result_args.args.iter().nth(0), result_args.args.iter().nth(1)) {
+                                                                        return (response.clone(), error.clone(), true);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                // Direct response type: Outcome<State, Response>
+                                                return (response_type.clone(), parse_quote!(()), false);
+                                            }
+                                        }
+                                        _ => {}
                                     }
                                 }
                             }
@@ -952,6 +991,8 @@ fn extract_response_type_from_impl(item_impl: &ItemImpl) -> Type {
         }
     }
     
-    // Default to () if no response type is found
-    parse_quote!(())
+    // Default to () for both if no pattern found
+    (parse_quote!(()), parse_quote!(()), false)
 }
+
+

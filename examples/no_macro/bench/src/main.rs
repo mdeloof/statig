@@ -54,6 +54,10 @@ impl IntoStateMachine for CdPlayer {
     fn initial() -> Self::State {
         State::Empty
     }
+
+    fn default_response() -> Self::Response {
+        ()
+    }
 }
 
 impl blocking::State<CdPlayer> for State {

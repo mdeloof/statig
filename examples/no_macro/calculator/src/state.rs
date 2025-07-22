@@ -71,6 +71,10 @@ impl blocking::IntoStateMachine for Calculator {
     fn initial() -> Self::State {
         State::Begin
     }
+
+    fn default_response() -> Self::Response {
+        ()
+    }
 }
 
 impl blocking::State<Calculator> for State {

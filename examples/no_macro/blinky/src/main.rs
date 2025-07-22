@@ -46,6 +46,10 @@ impl IntoStateMachine for Blinky {
     fn initial() -> State {
         State::LedOn
     }
+
+    fn default_response() -> Self::Response {
+        ()
+    }
 }
 
 // Implement the `statig::State` trait for the state enum.

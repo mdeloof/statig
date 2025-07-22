@@ -110,7 +110,7 @@ where
         _: &M::Event<'_>,
         _: &mut M::Context<'_>,
     ) -> impl Future<Output = Outcome<M::State, M::Response>> {
-        core::future::ready(Outcome::Handled(M::Response::default()))
+        core::future::ready(Outcome::Handled(M::default_response()))
     }
 
     fn call_entry_action(&mut self, _: &mut M, _: &mut M::Context<'_>) -> impl Future<Output = ()> {

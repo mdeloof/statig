@@ -155,7 +155,7 @@ where
                                 Some(superstate_of_superstate) => {
                                     superstate = superstate_of_superstate
                                 }
-                                None => break Outcome::Handled(M::Response::default()),
+                                None => break Outcome::Handled(M::default_response()),
                             },
                             Outcome::Transition(state) => break Outcome::Transition(state),
                         }

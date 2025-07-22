@@ -92,18 +92,18 @@ where
         self.inner.handle_with_context(event, context)
     }
 
-    pub fn step(&mut self)
+    pub fn step(&mut self) -> M::Response
     where
         for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
     {
-        self.handle_with_context(&(), &mut ());
+        self.handle_with_context(&(), &mut ())
     }
 
-    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    pub fn step_with_context(&mut self, context: &mut M::Context<'_>) -> M::Response
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context);
+        self.handle_with_context(&(), context)
     }
 
     /// Get the current state.

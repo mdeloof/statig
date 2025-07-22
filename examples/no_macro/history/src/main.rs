@@ -42,6 +42,10 @@ impl IntoStateMachine for Dishwasher {
         State::Idle
     }
 
+    fn default_response() -> Self::Response {
+        ()
+    }
+
     // On every transition we update the previous state, so we can
     // transition back to it.
     fn after_transition(&mut self, source: &Self::State, _target: &Self::State, _context: &mut ()) {

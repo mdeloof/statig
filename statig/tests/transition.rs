@@ -60,6 +60,10 @@ mod tests {
         fn initial() -> Self::State {
             State::S11
         }
+
+        fn default_response() -> Self::Response {
+            ()
+        }
     }
 
     impl blocking::State<Foo> for State {

@@ -45,6 +45,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let event_type = &ir.state_machine.event_type;
     let context_type = &ir.state_machine.context_type;
     let response_type = &ir.state_machine.response_type;
+    let error_type = &ir.state_machine.error_type;
     let state_ident = &ir.state_machine.state_ident.as_ident();
     let (_, state_generics, _) = &ir.state_machine.state_generics.split_for_impl();
     let superstate_ident = &ir.state_machine.superstate_ident;
@@ -172,18 +173,40 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         },
     };
 
+    let response_definition = if ir.state_machine.uses_result_responses {
+        quote!(type Response = Result<#response_type, #error_type>;)
+    } else {
+        quote!(type Response = #response_type;)
+    };
+
+    let default_response_fn = if ir.state_machine.uses_result_responses {
+        quote!(
+            fn default_response() -> Self::Response {
+                Ok(core::default::Default::default())
+            }
+        )
+    } else {
+        quote!(
+            fn default_response() -> Self::Response {
+                core::default::Default::default()
+            }
+        )
+    };
+
     parse_quote!(
         impl #impl_generics statig::#mode::IntoStateMachine for #shared_storage_type #where_clause
         {
             type Event<#event_lifetime> = #event_type;
             type Context<#context_lifetime> = #context_type;
-            type Response = #response_type;
+            #response_definition
             type State = #state_ident #state_generics;
             type Superstate<#superstate_lifetime> = #superstate_ident #superstate_generics ;
 
             fn initial() -> #state_ident #state_generics {
                 (#initial_state)()
             }
+
+            #default_response_fn
 
             #before_transition
             #after_transition
