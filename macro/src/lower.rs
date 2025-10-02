@@ -535,7 +535,10 @@ pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine
 
     let handler_inputs: Vec<Ident> = state.inputs.iter().map(fn_arg_to_ident).collect();
 
-    let variant = parse_quote!(#variant_name { #(#variant_fields),* });
+    let mut variant: Variant = parse_quote!(#variant_name { #(#variant_fields),* });
+    // Attach doc comments from the state handler to the enum variant
+    variant.attrs = state.doc_comments.clone();
+
     let pat = parse_quote!(#state_name::#variant_name { #(#pat_fields),*});
     let constructor = parse_quote!(fn #state_handler_name ( #(#constructor_args),* ) -> Self { Self::#variant_name { #(#field_values),*} });
 
@@ -597,7 +600,10 @@ pub fn lower_superstate(
         .collect();
     let handler_inputs: Vec<Ident> = superstate.inputs.iter().map(fn_arg_to_ident).collect();
 
-    let variant = parse_quote!(#superstate_name { #(#variant_fields),* });
+    let mut variant: Variant = parse_quote!(#superstate_name { #(#variant_fields),* });
+    // Attach doc comments from the superstate handler to the enum variant
+    variant.attrs = superstate.doc_comments.clone();
+
     let pat = parse_quote!(#superstate_type::#superstate_name { #(#pat_fields),*});
 
     let handler_call = match &superstate.is_async {
@@ -865,6 +871,7 @@ fn create_analyze_state() -> analyze::State {
             },
         ],
         is_async: false,
+        doc_comments: vec![],
     }
 }
 
@@ -932,6 +939,7 @@ fn create_analyze_superstate() -> analyze::Superstate {
         ],
         is_async: false,
         initial_state: None,
+        doc_comments: vec![],
     }
 }
 
