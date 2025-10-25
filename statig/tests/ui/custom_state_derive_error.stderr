@@ -7,7 +7,7 @@ error: Can not use `custom` with derives
 error[E0599]: the method `state_machine` exists for struct `Blinky`, but its trait bounds were not satisfied
   --> tests/ui/custom_state_derive_error.rs:51:47
    |
-6  | pub struct Blinky {}
+ 6 | pub struct Blinky {}
    | ----------------- method `state_machine` not found for this struct because it doesn't satisfy `Blinky: statig::awaitable::IntoStateMachineExt`, `Blinky: statig::awaitable::IntoStateMachine`, `Blinky: statig::blocking::IntoStateMachineExt` or `Blinky: statig::blocking::IntoStateMachine`
 ...
 51 |     let mut state_machine = Blinky::default().state_machine();
