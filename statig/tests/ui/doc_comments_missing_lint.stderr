@@ -1,0 +1,12 @@
+error: missing documentation for a variant
+  --> tests/ui/doc_comments_missing_lint.rs:20:1
+   |
+20 | #[state_machine(initial = "State::documented()")]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/doc_comments_missing_lint.rs:1:9
+   |
+ 1 | #![deny(missing_docs)]
+   |         ^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `state_machine` (in Nightly builds, run with -Z macro-backtrace for more info)

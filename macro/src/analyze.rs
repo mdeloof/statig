@@ -86,6 +86,8 @@ pub struct State {
     pub context_arg: Option<PatType>,
     /// Whether the function is async or not.
     pub is_async: bool,
+    /// Doc comments from the state handler function.
+    pub doc_comments: Vec<Attribute>,
 }
 
 /// Information regarding a superstate.
@@ -113,6 +115,8 @@ pub struct Superstate {
     pub context_arg: Option<PatType>,
     /// Whether the function is async or not.
     pub is_async: bool,
+    /// Doc comments from the superstate handler function.
+    pub doc_comments: Vec<Attribute>,
 }
 
 /// Information regarding an action.
@@ -540,6 +544,8 @@ pub fn analyze_state(method: &mut ImplItemFn, state_machine: &StateMachine) -> S
         }
     }
 
+    let doc_comments = extract_doc_comments(&method.attrs);
+
     State {
         handler_name,
         superstate,
@@ -552,6 +558,7 @@ pub fn analyze_state(method: &mut ImplItemFn, state_machine: &StateMachine) -> S
         event_arg,
         context_arg,
         is_async,
+        doc_comments,
     }
 }
 
@@ -665,6 +672,8 @@ pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> 
         }
     }
 
+    let doc_comments = extract_doc_comments(&method.attrs);
+
     Superstate {
         handler_name,
         superstate,
@@ -677,6 +686,7 @@ pub fn analyze_superstate(method: &ImplItemFn, state_machine: &StateMachine) -> 
         event_arg,
         context_arg,
         is_async,
+        doc_comments,
     }
 }
 
@@ -741,6 +751,15 @@ pub fn get_meta(attrs: &[Attribute], name: &str) -> Vec<Meta> {
             Some(meta)
         })
         .flatten()
+        .collect()
+}
+
+/// Extract doc comments from function attributes.
+fn extract_doc_comments(attrs: &[Attribute]) -> Vec<Attribute> {
+    attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("doc"))
+        .cloned()
         .collect()
 }
 
@@ -859,6 +878,7 @@ fn valid_state_analyze() {
         }),
         context_arg: None,
         is_async: false,
+        doc_comments: vec![],
     };
 
     let superstate = Superstate {
@@ -877,6 +897,7 @@ fn valid_state_analyze() {
         }),
         context_arg: None,
         is_async: false,
+        doc_comments: vec![],
     };
 
     let entry_action = Action {
