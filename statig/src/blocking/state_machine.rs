@@ -1,11 +1,9 @@
 use core::fmt::Debug;
 
-use crate::blocking::{Inner, IntoStateMachine, State, Superstate};
+use crate::blocking::{Inner, IntoStateMachine};
 
 /// A state machine where the shared storage is of type `Self`.
 pub trait IntoStateMachineExt: IntoStateMachine
-where
-    Self::State: State<Self>,
 {
     /// Create a state machine that will be lazily initialized.
     fn state_machine(self) -> StateMachine<Self>
@@ -35,8 +33,7 @@ where
 
 impl<T> IntoStateMachineExt for T
 where
-    T: IntoStateMachine,
-    Self::State: State<Self>,
+    T: IntoStateMachine
 {
 }
 
@@ -52,8 +49,6 @@ where
 impl<M> StateMachine<M>
 where
     M: IntoStateMachine,
-    M::State: State<M>,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
@@ -283,6 +278,19 @@ where
     }
 }
 
+impl<M> Debug for StateMachine<M>
+where
+    M: IntoStateMachine + Debug,
+    M::State: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("StateMachine")
+            .field("inner", &self.inner)
+            .field("initialized", &self.initialized)
+            .finish()
+    }
+}
+
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<M> serde::Serialize for StateMachine<M>
@@ -340,13 +348,11 @@ where
 impl<M> InitializedStateMachine<M>
 where
     M: IntoStateMachine,
-    M::State: State<M>,
 {
     /// Handle the given event.
     pub fn handle(&mut self, event: &M::Event<'_>)
     where
         for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         self.handle_with_context(event, &mut ());
     }
@@ -355,7 +361,6 @@ where
     pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
     where
         M: IntoStateMachine,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         self.inner.handle_with_context(event, context);
     }
@@ -364,7 +369,6 @@ where
     pub fn step(&mut self)
     where
         for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         self.handle(&());
     }
@@ -373,7 +377,6 @@ where
     pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         self.handle_with_context(&(), context);
     }
@@ -578,7 +581,6 @@ where
 impl<M> UninitializedStateMachine<M>
 where
     M: IntoStateMachine,
-    M::State: State<M>,
 {
     /// Initialize the state machine by executing all entry actions towards
     /// the initial state.
@@ -607,7 +609,6 @@ where
     pub fn init(self) -> InitializedStateMachine<M>
     where
         for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.init_with_context(&mut ());
@@ -639,8 +640,6 @@ where
     /// let initialized_state_machine = uninitialized_state_machine.init();
     /// ```
     pub fn init_with_context(self, context: &mut M::Context<'_>) -> InitializedStateMachine<M>
-    where
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
         state_machine.inner.init_with_context(context);

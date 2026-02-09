@@ -12,10 +12,10 @@ where
     type Context<'ctx>;
 
     /// Enumeration of the various states.
-    type State;
+    type State: crate::blocking::State<Self>;
 
     /// Enumeration of the various superstates.
-    type Superstate<'sub>
+    type Superstate<'sub>: crate::blocking::Superstate<Self>
     where
         Self::State: 'sub;
 

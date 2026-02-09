@@ -9,7 +9,6 @@ pub trait State<M>
 where
     Self: Sized,
     M: IntoStateMachine<State = Self>,
-    for<'b> M::Superstate<'b>: Superstate<M>,
 {
     /// Call the handler for the current state and let it handle the given event.
     fn call_handler(
@@ -49,7 +48,6 @@ where
 pub trait StateExt<M>: State<M>
 where
     M: IntoStateMachine<State = Self>,
-    for<'b> M::Superstate<'b>: Superstate<M>,
 {
     /// Check if two states are the same.
     fn same_state(lhs: &Self, rhs: &Self) -> bool {
@@ -236,6 +234,5 @@ impl<T, M> StateExt<M> for T
 where
     Self: State<M>,
     M: IntoStateMachine<State = T>,
-    for<'b> M::Superstate<'b>: Superstate<M>,
 {
 }

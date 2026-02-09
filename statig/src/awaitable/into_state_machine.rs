@@ -14,10 +14,10 @@ where
     type Context<'ctx>;
 
     /// Enumeration of the various states.
-    type State;
+    type State: crate::awaitable::State<Self>;
 
     /// Enumeration of the various superstates.
-    type Superstate<'sub>
+    type Superstate<'sub>: crate::awaitable::Superstate<Self>
     where
         Self::State: 'sub;
 

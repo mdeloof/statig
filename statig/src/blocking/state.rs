@@ -1,4 +1,4 @@
-use crate::blocking::{IntoStateMachine, Superstate, SuperstateExt};
+use crate::blocking::{IntoStateMachine, SuperstateExt};
 use crate::{Outcome, StateOrSuperstate};
 
 /// An enum that represents the leaf states of the state machine.
@@ -30,11 +30,9 @@ where
 }
 
 /// Extensions for `State` trait.
-pub trait StateExt<'a, M>: State<M>
+pub trait StateExt<M>: State<M>
 where
     M: IntoStateMachine<State = Self>,
-    M::State: 'a,
-    for<'b> M::Superstate<'b>: Superstate<M>,
 {
     /// Check if two states are the same.
     fn same_state(lhs: &Self, rhs: &Self) -> bool {
@@ -168,11 +166,9 @@ where
     }
 }
 
-impl<'a, T, M> StateExt<'a, M> for T
+impl<T, M> StateExt<M> for T
 where
     T: State<M>,
     M: IntoStateMachine<State = T>,
-    M::State: 'a,
-    for<'b> M::Superstate<'b>: Superstate<M>,
 {
 }

@@ -1,12 +1,9 @@
 use core::fmt::Debug;
 
-use crate::awaitable::{Inner, IntoStateMachine, State, Superstate};
+use crate::awaitable::{Inner, IntoStateMachine};
 
 /// A state machine where the shared storage is of type `Self`.
 pub trait IntoStateMachineExt: IntoStateMachine
-where
-    for<'sub> Self::Superstate<'sub>: Superstate<Self>,
-    Self::State: State<Self>,
 {
     /// Create a state machine that will be lazily initialized.
     fn state_machine(self) -> StateMachine<Self>
@@ -36,9 +33,7 @@ where
 
 impl<T> IntoStateMachineExt for T
 where
-    Self: IntoStateMachine,
-    for<'sub> Self::Superstate<'sub>: Superstate<Self>,
-    Self::State: State<Self>,
+    Self: IntoStateMachine
 {
 }
 
@@ -54,8 +49,6 @@ where
 impl<M> StateMachine<M>
 where
     M: IntoStateMachine,
-    M::State: State<M> + 'static,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
@@ -289,6 +282,19 @@ where
     }
 }
 
+impl<M> Debug for StateMachine<M>
+where
+    M: IntoStateMachine + Debug,
+    M::State: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("StateMachine")
+            .field("inner", &self.inner)
+            .field("initialized", &self.initialized)
+            .finish()
+    }
+}
+
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<M> serde::Serialize for StateMachine<M>
@@ -346,8 +352,6 @@ where
 impl<M> InitializedStateMachine<M>
 where
     M: IntoStateMachine,
-    M::State: State<M> + 'static,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Handle the given event.
     pub async fn handle(&mut self, event: &M::Event<'_>)
@@ -590,8 +594,6 @@ where
 impl<M> UninitializedStateMachine<M>
 where
     M: IntoStateMachine,
-    M::State: State<M> + 'static,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Initialize the state machine by executing all entry actions towards
     /// the initial state.

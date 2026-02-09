@@ -1,5 +1,6 @@
-use crate::awaitable::{IntoStateMachine, State, StateExt, Superstate};
+use crate::awaitable::{IntoStateMachine, StateExt};
 use crate::Outcome;
+use core::fmt::Debug;
 
 /// Private internal representation of a state machine that is used for the public types.
 pub(crate) struct Inner<M>
@@ -13,8 +14,6 @@ where
 impl<M> Inner<M>
 where
     M: IntoStateMachine,
-    M::State: State<M> + 'static,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     pub(crate) async fn init_with_context(&mut self, context: &mut M::Context<'_>) {
         let enter_levels = self.state.depth();
@@ -91,6 +90,19 @@ where
     M: IntoStateMachine + Eq,
     M::State: Eq,
 {
+}
+
+impl<M> Debug for Inner<M>
+where
+    M: IntoStateMachine + Debug,
+    M::State: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Inner")
+            .field("shared_storage", &self.shared_storage)
+            .field("state", &self.state)
+            .finish()
+    }
 }
 
 #[cfg(feature = "serde")]

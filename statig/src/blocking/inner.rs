@@ -1,4 +1,5 @@
-use crate::blocking::{IntoStateMachine, State, StateExt, Superstate};
+use core::fmt::{Debug, Formatter};
+use crate::blocking::{IntoStateMachine, StateExt};
 use crate::Outcome;
 
 /// Private internal representation of a state machine that is used for the public types.
@@ -13,8 +14,6 @@ where
 impl<M> Inner<M>
 where
     M: IntoStateMachine,
-    M::State: State<M>,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Initialize the state machine by executing all entry actions towards the initial state.
     pub(crate) fn init_with_context(&mut self, context: &mut M::Context<'_>) {
@@ -87,6 +86,15 @@ where
     M: IntoStateMachine + Eq,
     M::State: Eq,
 {
+}
+
+impl<M> Debug for Inner<M> where M: IntoStateMachine + Debug, M::State: Debug {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Inner")
+            .field("shared_storage", &self.shared_storage)
+            .field("state", &self.state)
+            .finish()
+    }
 }
 
 #[cfg(feature = "serde")]

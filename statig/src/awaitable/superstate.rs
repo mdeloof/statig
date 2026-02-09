@@ -47,11 +47,9 @@ where
 }
 
 /// Extensions for `Superstate` trait.
-pub trait SuperstateExt<M>: Superstate<M>
+pub trait SuperstateExt<M>: Superstate<M> + Sized
 where
-    Self: Sized,
     M: IntoStateMachine,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     fn same_state(lhs: &M::Superstate<'_>, rhs: &M::Superstate<'_>) -> bool {
         use core::mem::{discriminant, transmute, Discriminant};
@@ -131,8 +129,7 @@ where
 
 impl<T, M> SuperstateExt<M> for T
 where
-    Self: Superstate<M>,
+    T: Superstate<M>,
     M: IntoStateMachine,
-    for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
 }
