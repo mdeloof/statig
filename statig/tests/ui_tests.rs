@@ -10,6 +10,8 @@ fn ui() {
 
     // Context type declaration tests
     t.compile_fail("tests/ui/context_attribute_missing.rs");
+    t.compile_fail("tests/ui/context_attribute_missing_order.rs");
+    t.compile_fail("tests/ui/context_attribute_missing_superstate.rs");
     t.compile_fail("tests/ui/context_attribute_duplicate.rs");
     t.compile_fail("tests/ui/context_attribute_not_a_type.rs");
 
