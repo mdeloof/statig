@@ -32,6 +32,14 @@ where
     /// An implementation that writes `type Context<'ctx, 'data> = ...;` without the bound is
     /// rejected with E0478.
     ///
+    /// Overrides in this module return `impl Future`, and the returned future captures every
+    /// lifetime in the method signature, including the elided ones. An override must therefore
+    /// keep each elided lifetime of the trait's parameter types: write the event as
+    /// `&<Machine as IntoStateMachine>::Event<'_>` (or `&Self::Event<'_>` inside
+    /// `IntoStateMachine`) and the superstate as `Self::Superstate<'_>`, even when they resolve
+    /// to types without lifetimes. Spelling the event as `&u32` drops a lifetime parameter and
+    /// is rejected with E0195.
+    ///
     /// A context with fewer lifetimes ignores the unused parameters:
     /// `type Context<'ctx, 'data: 'ctx> = Owned<'data>;` for a context that owns a value
     /// borrowing long-lived data, `= Borrowed<'ctx>;` for a context that only reborrows,
