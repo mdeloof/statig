@@ -1,0 +1,18 @@
+error[E0308]: mismatched types
+  --> tests/ui/context_attribute_mismatch.rs:23:13
+   |
+21 |   impl Machine {
+   |  ______-
+22 | |     #[state]
+23 | |     fn idle(context: &mut Other, event: &Event) -> Outcome<State> {
+   | |           - ^^^^^^^ expected `&mut Other`, found `&mut Ctx<'_, '_>`
+   | |___________|
+   |             arguments to this function are incorrect
+   |
+   = note: expected mutable reference `&mut Other`
+              found mutable reference `&mut Ctx<'ctx, 'data>`
+note: associated function defined here
+  --> tests/ui/context_attribute_mismatch.rs:23:8
+   |
+23 |     fn idle(context: &mut Other, event: &Event) -> Outcome<State> {
+   |        ^^^^ -------------------

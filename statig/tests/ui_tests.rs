@@ -12,4 +12,8 @@ fn ui() {
     t.compile_fail("tests/ui/context_attribute_missing.rs");
     t.compile_fail("tests/ui/context_attribute_duplicate.rs");
     t.compile_fail("tests/ui/context_attribute_not_a_type.rs");
+
+    // Context type declarations that disagree with the handlers
+    t.compile_fail("tests/ui/context_attribute_mismatch.rs");
+    t.compile_fail("tests/ui/context_attribute_foreign_lifetime.rs");
 }
