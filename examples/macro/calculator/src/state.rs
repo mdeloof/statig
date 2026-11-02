@@ -255,12 +255,7 @@ impl Calculator {
     /// - [`Event::Point`] => [`frac2`](Self::frac2)
     /// - [`Event::Operator`] => [`negated2`](Self::negated2) | `(handled)`
     #[state(superstate = "on")]
-    fn op_entered(
-        &mut self,
-        operand1: &f32,
-        operator: &Operator,
-        event: &Event,
-    ) -> Outcome<State> {
+    fn op_entered(&mut self, operand1: &f32, operator: &Operator, event: &Event) -> Outcome<State> {
         match event {
             Event::Digit { digit: 0 } => {
                 self.display = "0".to_string();

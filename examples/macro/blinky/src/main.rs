@@ -78,7 +78,12 @@ impl Blinky {
         println!("transitioned from `{source:?}` to `{target:?}`");
     }
 
-    fn before_dispatch(&mut self, state: StateOrSuperstate<'_, State, Superstate>, event: &Event,  _context: &mut ()) {
+    fn before_dispatch(
+        &mut self,
+        state: StateOrSuperstate<'_, State, Superstate>,
+        event: &Event,
+        _context: &mut (),
+    ) {
         println!("dispatching `{event:?}` to `{state:?}`");
     }
 }
