@@ -100,8 +100,8 @@ impl Blinky {
 fn main() {
     let mut state_machine = Blinky::default().state_machine();
 
-    state_machine.handle(&Event::TimerElapsed);
-    state_machine.handle(&Event::ButtonPressed);
+    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle_with_context(&Event::ButtonPressed, &mut ());
 }
 ```
 
@@ -227,24 +227,37 @@ fn led_on(counter: &mut u32, event: &Event) -> Outcome<State> {
 
 When state machines are used in a larger systems it can sometimes be necessary to pass in an external mutable context. By default this context is mapped to the `context` argument of the method.
 
+The context type is declared with the `context = "..."` argument of `#[state_machine]`. The type is copied verbatim into `type Context<'ctx, 'data: 'ctx> = ...;` of the generated `IntoStateMachine` impl, so it may use only the lifetimes `'ctx`, `'data` and `'static` and the lifetimes declared on the `impl` block. `'ctx` is the lifetime of the borrows held directly by the context value, and `'data` is the lifetime of the data behind those borrows. This lets a context such as `Ctx<'ctx, 'data>`, holding a `&'ctx mut Writer<'data>`, be built fresh for every event while the `Writer` itself lives for the whole loop. A context that needs fewer lifetimes leaves the other one unused, for example `context = "Owned<'data>"`, `context = "Borrowed<'ctx>"` or `context = "Plain"`. Handlers and actions take the context with elided lifetimes, as in `&mut Ctx<'_, '_>`.
+
 ```rust
-#[state]
-fn led_on(context: &mut Context, event: &Event) -> Outcome<State> {
-    match event {
-        Event::TimerElapsed => {
-            context.do_something();
-            Handled
+struct Ctx<'a, 'b> {
+    writer: &'a mut Writer<'b>,
+}
+
+#[state_machine(initial = "State::led_on()", context = "Ctx<'ctx, 'data>")]
+impl Blinky {
+    #[state]
+    fn led_on(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+        match event {
+            Event::TimerElapsed => {
+                context.writer.do_something();
+                Handled
+            }
+            _ => Super
         }
-        _ => Super
     }
 }
 ```
 
-You will then be required to use the `handle_with_context` method to submit events to the state machine.
+A state or superstate handler that takes the `context` argument without a `context = "..."` declaration on `#[state_machine]` is a compile error.
+
+`handle_with_context` is the only way to dispatch an event to the state machine.
 
 ```rust
 state_machine.handle_with_context(&Event::TimerElapsed, &mut context);
 ```
+
+No method dispatches or initializes a state machine without a context argument. A state machine whose handlers take no context is driven with `handle_with_context(&event, &mut ())` and initialized with `init_with_context(&mut ())`, so a state machine without a context declares nothing special.
 
 ### Introspection
 
@@ -312,8 +325,8 @@ and generate an async state machine.
 async fn main() {
     let mut state_machine = Blinky::default().state_machine();
 
-    state_machine.handle(&Event::TimerElapsed).await;
-    state_machine.handle(&Event::ButtonPressed).await;
+    state_machine.handle_with_context(&Event::TimerElapsed, &mut ()).await;
+    state_machine.handle_with_context(&Event::ButtonPressed, &mut ()).await;
 }
 ```
 
@@ -369,7 +382,7 @@ The association between states and their handlers is then expressed in the `Stat
 
 ```rust
 impl statig::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, context: &mut ()) -> Outcome<Self> {
+    fn call_handler<'ctx, 'data: 'ctx>(&mut self, blinky: &mut Blinky, event: &Event, context: &mut ()) -> Outcome<Self> {
         match self {
             State::LedOn { counter } => blinky.led_on(counter, event),
             State::LedOff { counter } => blinky.led_off(counter, event),
@@ -379,7 +392,7 @@ impl statig::State<Blinky> for State {
 }
 
 impl statig::Superstate<Blinky> for Superstate {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, context: &mut ()) -> Outcome<Self> {
+    fn call_handler<'ctx, 'data: 'ctx>(&mut self, blinky: &mut Blinky, event: &Event, context: &mut ()) -> Outcome<Self> {
         match self {
             Superstate::Blinking { counter } => blinky.blinking(counter, event),
         }
@@ -394,7 +407,7 @@ impl statig::State<Blinky> for State {
 
     ...
 
-    fn call_entry_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
+    fn call_entry_action<'ctx, 'data: 'ctx>(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             State::LedOn { counter } => blinky.enter_led_on(counter),
             State::LedOff { counter } => blinky.enter_led_off(counter),
@@ -402,7 +415,7 @@ impl statig::State<Blinky> for State {
         }
     }
 
-    fn call_exit_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
+    fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             State::LedOn { counter } => blinky.exit_led_on(counter),
             State::LedOff { counter } => blinky.exit_led_off(counter),
@@ -415,13 +428,13 @@ impl statig::Superstate<Blinky> for Superstate {
 
     ...
 
-    fn call_entry_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
+    fn call_entry_action<'ctx, 'data: 'ctx>(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             Superstate::Blinking { counter } => blinky.enter_blinking(counter),
         }
     }
 
-    fn call_exit_action(&mut self, blinky: &mut Blinky, context: &mut ()) {
+    fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, blinky: &mut Blinky, context: &mut ()) {
         match self {
             Superstate::Blinking { counter } => blinky.exit_blinking(counter),
         }
@@ -488,7 +501,7 @@ impl IntoStateMachine for Blinky {
 
     type Event<'evt> = Event;
 
-    type Context<'ctx> = Context;
+    type Context<'ctx, 'data: 'ctx> = Context;
 
     fn initial() -> Self::State {
         State::off(10)
