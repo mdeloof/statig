@@ -221,10 +221,6 @@ where
         }
 
         const FIELDS: &[&str] = &["shared_storage", "state"];
-        deserializer.deserialize_struct(
-            "StateMachine",
-            FIELDS,
-            InnerVisitor(PhantomData::default()),
-        )
+        deserializer.deserialize_struct("StateMachine", FIELDS, InnerVisitor(PhantomData))
     }
 }
