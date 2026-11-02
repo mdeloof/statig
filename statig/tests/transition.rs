@@ -99,10 +99,7 @@ mod tests {
         }
     }
 
-    impl<'sub> blocking::Superstate<Foo> for Superstate
-    where
-        Self: 'sub,
-    {
+    impl blocking::Superstate<Foo> for Superstate {
         fn call_handler(
             &mut self,
             shared_storage: &mut Foo,
