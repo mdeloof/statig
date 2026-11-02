@@ -205,12 +205,15 @@ mod tests {
     #[test]
     fn test_transition_path() {
         let future = async {
-            let mut state_machine = Foo::default().uninitialized_state_machine().init().await;
+            let mut state_machine = Foo::default()
+                .uninitialized_state_machine()
+                .init_with_context(&mut ())
+                .await;
 
-            state_machine.handle(&Event::A).await;
-            state_machine.handle(&Event::B).await;
-            state_machine.handle(&Event::C).await;
-            state_machine.handle(&Event::D).await;
+            state_machine.handle_with_context(&Event::A, &mut ()).await;
+            state_machine.handle_with_context(&Event::B, &mut ()).await;
+            state_machine.handle_with_context(&Event::C, &mut ()).await;
+            state_machine.handle_with_context(&Event::D, &mut ()).await;
 
             let expected_path: [(StateWrapper, Action); 17] = [
                 (StateWrapper::Super(Superstate::S {}), Action::Entry),

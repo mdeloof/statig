@@ -16,7 +16,7 @@ use quote::format_ident;
 use crate::analyze;
 use crate::analyze::Model;
 use crate::visitors::{GenericParamVisitor, LifetimeVisitor};
-use crate::SUPERSTATE_LIFETIME;
+use crate::{CONTEXT_LIFETIME, SUPERSTATE_LIFETIME};
 
 /// Intermediate representation of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
@@ -383,7 +383,7 @@ pub fn lower(model: &Model) -> Ir {
     };
 
     // Rename all the anonymous lifetimes in the context type.
-    let mut lifetime_visitor = LifetimeVisitor::new("'context");
+    let mut lifetime_visitor = LifetimeVisitor::new(CONTEXT_LIFETIME);
     lifetime_visitor.rename_type(&mut context_type);
 
     // Find the generics that need to be included on the state and superstate enums.

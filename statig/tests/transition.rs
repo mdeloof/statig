@@ -53,7 +53,7 @@ mod tests {
 
         type Event<'evt> = Event;
 
-        type Context<'ctx> = ();
+        type Context<'ctx, 'data: 'ctx> = ();
 
         fn initial() -> Self::State {
             State::S11
@@ -61,7 +61,7 @@ mod tests {
     }
 
     impl blocking::State<Foo> for State {
-        fn call_handler(
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
             event: &Event,
@@ -74,7 +74,7 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_entry_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
                 State::S211 => Foo::enter_s211(shared_storage),
                 State::S11 => Foo::enter_s11(shared_storage),
@@ -82,7 +82,7 @@ mod tests {
             }
         }
 
-        fn call_exit_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
                 State::S211 => Foo::exit_s211(shared_storage),
                 State::S11 => Foo::exit_s11(shared_storage),
@@ -100,7 +100,7 @@ mod tests {
     }
 
     impl blocking::Superstate<Foo> for Superstate {
-        fn call_handler(
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
             event: &Event,
@@ -117,7 +117,7 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_entry_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
                 Superstate::S21 => Foo::enter_s21(shared_storage),
                 Superstate::S => Foo::enter_s(shared_storage),
@@ -126,7 +126,7 @@ mod tests {
             }
         }
 
-        fn call_exit_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
                 Superstate::S21 => Foo::exit_s21(shared_storage),
                 Superstate::S => Foo::exit_s(shared_storage),
@@ -274,12 +274,14 @@ mod tests {
 
     #[test]
     fn test_transition_path() {
-        let mut state_machine = Foo::default().uninitialized_state_machine().init();
+        let mut state_machine = Foo::default()
+            .uninitialized_state_machine()
+            .init_with_context(&mut ());
 
-        state_machine.handle(&Event::A);
-        state_machine.handle(&Event::B);
-        state_machine.handle(&Event::C);
-        state_machine.handle(&Event::D);
+        state_machine.handle_with_context(&Event::A, &mut ());
+        state_machine.handle_with_context(&Event::B, &mut ());
+        state_machine.handle_with_context(&Event::C, &mut ());
+        state_machine.handle_with_context(&Event::D, &mut ());
 
         let expected_path: [(StateWrapper, Action); 17] = [
             (StateWrapper::Super(Superstate::S), Action::Entry),

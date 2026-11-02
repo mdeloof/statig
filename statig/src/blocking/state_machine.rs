@@ -23,7 +23,7 @@ where
     }
 
     /// Create an uninitialized state machine that must be explicitly initialized with
-    /// [`init`](UninitializedStateMachine::init).
+    /// [`init_with_context`](UninitializedStateMachine::init_with_context).
     fn uninitialized_state_machine(self) -> UninitializedStateMachine<Self> {
         let inner = Inner {
             shared_storage: self,
@@ -57,16 +57,7 @@ where
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
-    pub fn init(&mut self)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        self.init_with_context(&mut ());
-    }
-
-    /// Explicitly initialize the state machine. If the state machine is already initialized
-    /// this is a no-op.
-    pub fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub fn init_with_context<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>) {
         if !self.initialized {
             self.inner.init_with_context(context);
             self.initialized = true;
@@ -75,16 +66,11 @@ where
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub fn handle(&mut self, event: &M::Event<'_>)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        self.handle_with_context(event, &mut ());
-    }
-
-    /// Handle an event. If the state machine is still uninitialized, it will be initialized
-    /// before handling the event.
-    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) {
+    pub fn handle_with_context<'ctx, 'data: 'ctx>(
+        &mut self,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'ctx, 'data>,
+    ) {
         if !self.initialized {
             self.inner.init_with_context(context);
             self.initialized = true;
@@ -92,14 +78,14 @@ where
         self.inner.handle_with_context(event, context);
     }
 
-    pub fn step(&mut self)
+    pub fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
-        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
+        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), &mut ());
+        self.handle_with_context(&(), context);
     }
 
-    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    pub fn step_with_context<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
@@ -301,7 +287,7 @@ where
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// A serialized state machine can only be deserialized into an [`UninitializedStateMachine`] and can
-/// then be initialized with [`init`](UninitializedStateMachine::init).
+/// then be initialized with [`init_with_context`](UninitializedStateMachine::init_with_context).
 impl<'de, M> serde::Deserialize<'de> for StateMachine<M>
 where
     M: IntoStateMachine + serde::Deserialize<'de>,
@@ -343,34 +329,30 @@ where
     M::State: State<M>,
 {
     /// Handle the given event.
-    pub fn handle(&mut self, event: &M::Event<'_>)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
-    {
-        self.handle_with_context(event, &mut ());
-    }
-
-    /// Handle the given event.
-    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
-    where
+    pub fn handle_with_context<'ctx, 'data: 'ctx>(
+        &mut self,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'ctx, 'data>,
+    ) where
         M: IntoStateMachine,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         self.inner.handle_with_context(event, context);
     }
 
-    /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step(&mut self)
+    /// This is the same as `handle_with_context(&(), context)` in the case `Event` is of
+    /// type `()`.
+    pub fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
-        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
+        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
-        self.handle(&());
+        self.handle_with_context(&(), context);
     }
 
-    /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    /// This is the same as `handle_with_context(&(), context)` in the case `Event` is of
+    /// type `()`.
+    pub fn step_with_context<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
@@ -404,7 +386,7 @@ where
     /// # }
     /// #
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// let initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ());
     /// assert_eq!(initialized_state_machine.inner().led, false);
     /// ```
     pub fn inner(&self) -> &M {
@@ -434,7 +416,7 @@ where
     /// # }
     /// #
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ());
     /// unsafe {
     ///     initialized_state_machine.inner_mut().led = true;
     /// }
@@ -466,7 +448,7 @@ where
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ());
     ///
     /// unsafe {
     ///     *initialized_state_machine.state_mut() = State::on();
@@ -534,7 +516,7 @@ where
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// Once an [`InitializedStateMachine`] is serialized, it can only be deserialized into
 /// an [`UninitializedStateMachine`] which can then be re-initialized with the
-/// [`init`](UninitializedStateMachine::init) method.
+/// [`init_with_context`](UninitializedStateMachine::init_with_context) method.
 impl<M> serde::Serialize for InitializedStateMachine<M>
 where
     M: IntoStateMachine + serde::Serialize,
@@ -566,7 +548,7 @@ where
 /// A state machine that has not yet been initialized.
 ///
 /// A state machine needs to be initialized before it can handle events. This
-/// can be done by calling the [`init`](Self::init) method on it. This will
+/// can be done by calling the [`init_with_context`](Self::init_with_context) method on it. This will
 /// execute all the entry actions into the initial state.
 pub struct UninitializedStateMachine<M>
 where
@@ -602,43 +584,12 @@ where
     ///
     /// // The uninitialized state machine is consumed to create the initialized
     /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// let initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ());
     /// ```
-    pub fn init(self) -> InitializedStateMachine<M>
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
-    {
-        let mut state_machine = InitializedStateMachine { inner: self.inner };
-        state_machine.inner.init_with_context(&mut ());
-        state_machine
-    }
-
-    /// Initialize the state machine by executing all entry actions towards
-    /// the initial state.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(initial = "State::on()")]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
-    /// # }
-    /// #
-    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    ///
-    /// // The uninitialized state machine is consumed to create the initialized
-    /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init();
-    /// ```
-    pub fn init_with_context(self, context: &mut M::Context<'_>) -> InitializedStateMachine<M>
+    pub fn init_with_context<'ctx, 'data: 'ctx>(
+        self,
+        context: &mut M::Context<'ctx, 'data>,
+    ) -> InitializedStateMachine<M>
     where
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
@@ -802,7 +753,7 @@ where
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// A serialized state machine can only be deserialized into an [`UninitializedStateMachine`] and can
-/// then be initialized with [`init`](UninitializedStateMachine::init).
+/// then be initialized with [`init_with_context`](UninitializedStateMachine::init_with_context).
 impl<'de, M> serde::Deserialize<'de> for UninitializedStateMachine<M>
 where
     M: IntoStateMachine + serde::Deserialize<'de>,

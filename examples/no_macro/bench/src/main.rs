@@ -46,7 +46,7 @@ impl IntoStateMachine for CdPlayer {
     /// The event type that will be submitted to the state machine.
     type Event<'evt> = Event;
 
-    type Context<'ctx> = ();
+    type Context<'ctx, 'data: 'ctx> = ();
 
     /// The initial state of the state machine.
     fn initial() -> Self::State {
@@ -55,7 +55,7 @@ impl IntoStateMachine for CdPlayer {
 }
 
 impl blocking::State<CdPlayer> for State {
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         cd_player: &mut CdPlayer,
         event: &Event,
@@ -115,7 +115,9 @@ impl CdPlayer {
 }
 
 fn main() {
-    let mut state_machine = CdPlayer.uninitialized_state_machine().init();
+    let mut state_machine = CdPlayer
+        .uninitialized_state_machine()
+        .init_with_context(&mut ());
 
     let loops: u32 = rand::random();
 
@@ -124,19 +126,19 @@ fn main() {
     let instant = Instant::now();
 
     for _ in 0..loops {
-        state_machine.handle(&Event::OpenClose);
-        state_machine.handle(&Event::OpenClose);
-        state_machine.handle(&Event::CdDetected);
-        state_machine.handle(&Event::Play);
-        state_machine.handle(&Event::Pause2);
+        state_machine.handle_with_context(&Event::OpenClose, &mut ());
+        state_machine.handle_with_context(&Event::OpenClose, &mut ());
+        state_machine.handle_with_context(&Event::CdDetected, &mut ());
+        state_machine.handle_with_context(&Event::Play, &mut ());
+        state_machine.handle_with_context(&Event::Pause2, &mut ());
 
-        state_machine.handle(&Event::EndPause);
-        state_machine.handle(&Event::Pause2);
-        state_machine.handle(&Event::Stop);
+        state_machine.handle_with_context(&Event::EndPause, &mut ());
+        state_machine.handle_with_context(&Event::Pause2, &mut ());
+        state_machine.handle_with_context(&Event::Stop, &mut ());
 
-        state_machine.handle(&Event::Stop);
-        state_machine.handle(&Event::OpenClose);
-        state_machine.handle(&Event::OpenClose);
+        state_machine.handle_with_context(&Event::Stop, &mut ());
+        state_machine.handle_with_context(&Event::OpenClose, &mut ());
+        state_machine.handle_with_context(&Event::OpenClose, &mut ());
     }
 
     let total_duration = instant.elapsed();

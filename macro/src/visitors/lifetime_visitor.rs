@@ -41,13 +41,13 @@ impl VisitMut for LifetimeVisitor {
 fn lifetime_visitor() {
     use syn::parse_quote;
 
-    let mut ty: Type = parse_quote!((Context<'_>, &T, &'static T));
+    let mut ty: Type = parse_quote!((Wrapper<'_>, &T, &'static T));
 
     let mut lifetime = LifetimeVisitor::new("'sub");
 
     lifetime.rename_type(&mut ty);
 
-    let expected = parse_quote!((Context<'sub>, &'sub T, &'static T));
+    let expected = parse_quote!((Wrapper<'sub>, &'sub T, &'static T));
 
     assert_eq!(ty, expected);
 }

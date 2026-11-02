@@ -21,7 +21,7 @@ mod tests {
         /// The event type that will be submitted to the state machine.
         type Event<'evt> = Event;
 
-        type Context<'ctx> = ();
+        type Context<'ctx, 'data: 'ctx> = ();
 
         /// The initial state of the state machine.
         fn initial() -> Self::State {
@@ -72,7 +72,7 @@ mod tests {
     }
 
     impl blocking::State<Blinky> for State {
-        fn call_handler(
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Blinky,
             event: &Event,
@@ -87,14 +87,18 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
+        fn call_entry_action<'ctx, 'data: 'ctx>(
+            &mut self,
+            shared_storage: &mut Blinky,
+            _: &mut (),
+        ) {
             match self {
                 State::On { led, counter } => {}
                 State::Off { led } => Blinky::enter_off(shared_storage, led),
             }
         }
 
-        fn call_exit_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
+        fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
                 State::On { led, counter } => {}
                 State::Off { led } => {}
@@ -120,7 +124,7 @@ mod tests {
     }
 
     impl<'sub> blocking::Superstate<Blinky> for Superstate<'sub> {
-        fn call_handler(
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Blinky,
             event: &Event,
@@ -131,13 +135,17 @@ mod tests {
             }
         }
 
-        fn call_entry_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
+        fn call_entry_action<'ctx, 'data: 'ctx>(
+            &mut self,
+            shared_storage: &mut Blinky,
+            _: &mut (),
+        ) {
             match self {
                 Superstate::Playing { led } => {}
             }
         }
 
-        fn call_exit_action(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
+        fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Blinky, _: &mut ()) {
             match self {
                 Superstate::Playing { led } => {}
             }
@@ -155,10 +163,12 @@ mod tests {
 
     #[test]
     fn main() {
-        let mut state_machine = Blinky.uninitialized_state_machine().init();
+        let mut state_machine = Blinky
+            .uninitialized_state_machine()
+            .init_with_context(&mut ());
 
         for _ in 0..10 {
-            state_machine.handle(&Event);
+            state_machine.handle_with_context(&Event, &mut ());
         }
     }
 }

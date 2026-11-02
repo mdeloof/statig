@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{parse_quote, Arm, ItemEnum, ItemFn, ItemImpl, Lifetime, Variant};
 
 use crate::lower::{Ir, Mode};
-use crate::{CONTEXT_LIFETIME, EVENT_LIFETIME, SUPERSTATE_LIFETIME};
+use crate::{CONTEXT_DATA_LIFETIME, CONTEXT_LIFETIME, EVENT_LIFETIME, SUPERSTATE_LIFETIME};
 
 pub fn codegen(ir: Ir) -> TokenStream {
     let item_impl = &ir.item_impl;
@@ -51,6 +51,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
     let superstate_lifetime = Lifetime::new(SUPERSTATE_LIFETIME, Span::call_site());
     let event_lifetime = Lifetime::new(EVENT_LIFETIME, Span::call_site());
     let context_lifetime = Lifetime::new(CONTEXT_LIFETIME, Span::call_site());
+    let data_lifetime = Lifetime::new(CONTEXT_DATA_LIFETIME, Span::call_site());
 
     let initial_state = &ir.state_machine.initial_state;
 
@@ -63,22 +64,22 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(before_dispatch) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                fn before_dispatch(
+                fn before_dispatch<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) {
                     use statig::blocking::DispatchHook;
                     #before_dispatch.call_dispatch_hook(self, state_or_superstate, event, context);
                 }
             ),
             Mode::Awaitable => quote!(
-                fn before_dispatch(
+                fn before_dispatch<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) -> impl core::future::Future<Output = ()> {
                     use statig::awaitable::DispatchHook;
                     #before_dispatch.call_dispatch_hook(self, state_or_superstate, event, context)
@@ -91,22 +92,22 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(after_dispatch) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                fn after_dispatch(
+                fn after_dispatch<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) {
                     use statig::blocking::DispatchHook;
                     #after_dispatch.call_dispatch_hook(self, state_or_superstate, event, context);
                 }
             ),
             Mode::Awaitable => quote!(
-                fn after_dispatch(
+                fn after_dispatch<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     state_or_superstate: StateOrSuperstate<'_, Self::State, Self::Superstate<'_>>,
                     event: &Self::Event<'_>,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) -> impl core::future::Future<Output = ()> {
                     use statig::awaitable::DispatchHook;
                     #after_dispatch.call_dispatch_hook(self, state_or_superstate, event, context)
@@ -119,22 +120,22 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(before_transition) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                fn before_transition(
+                fn before_transition<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) {
                     use statig::blocking::TransitionHook;
                     #before_transition.call_transition_hook(self, source, target, context);
                 }
             ),
             Mode::Awaitable => quote!(
-                fn before_transition(
+                fn before_transition<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) -> impl core::future::Future<Output = ()> {
                     use statig::awaitable::TransitionHook;
                     #before_transition.call_transition_hook(self, source, target, context)
@@ -147,22 +148,22 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         None => quote!(),
         Some(after_transition) => match ir.state_machine.mode {
             Mode::Blocking => quote!(
-                fn after_transition(
+                fn after_transition<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) {
                     use statig::blocking::TransitionHook;
                     #after_transition.call_transition_hook(self, source, target, context);
                 }
             ),
             Mode::Awaitable => quote!(
-                fn after_transition(
+                fn after_transition<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     source: &Self::State,
                     target: &Self::State,
-                    context: &mut Self::Context<'_>,
+                    context: &mut Self::Context<#context_lifetime, #data_lifetime>,
                 ) -> impl core::future::Future<Output = ()> {
                     use statig::awaitable::TransitionHook;
                     #after_transition.call_transition_hook(self, source, target, context)
@@ -175,7 +176,7 @@ fn codegen_state_machine_impl(ir: &Ir) -> ItemImpl {
         impl #impl_generics statig::#mode::IntoStateMachine for #shared_storage_type #where_clause
         {
             type Event<#event_lifetime> = #event_type;
-            type Context<#context_lifetime> = #context_type;
+            type Context<#context_lifetime, #data_lifetime: #context_lifetime> = #context_type;
             type State = #state_ident #state_generics;
             type Superstate<#superstate_lifetime> = #superstate_ident #superstate_generics ;
 
@@ -242,6 +243,8 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
     let (_, state_generics, _) = &ir.state_machine.state_generics.split_for_impl();
     let event_ident = &ir.state_machine.event_ident;
     let context_ident = &ir.state_machine.context_ident;
+    let context_lifetime = Lifetime::new(CONTEXT_LIFETIME, Span::call_site());
+    let data_lifetime = Lifetime::new(CONTEXT_DATA_LIFETIME, Span::call_site());
 
     let mut constructors: Vec<ItemFn> = Vec::new();
     let mut call_handler_arms: Vec<Arm> = Vec::new();
@@ -276,31 +279,31 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                 #[allow(unused)]
                 impl #impl_generics statig::blocking::State<#shared_storage_type> for #state_ident #state_generics #where_clause
                 {
-                    fn call_handler(
+                    fn call_handler<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
-                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) -> statig::Outcome<Self> where Self: Sized {
                         match self {
                             #(#call_handler_arms),*
                         }
                     }
 
-                    fn call_entry_action(
+                    fn call_entry_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
-                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) {
                         match self {
                             #(#call_entry_action_arms),*
                         }
                     }
 
-                    fn call_exit_action(
+                    fn call_exit_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
-                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) {
                         match self {
                             #(#call_exit_action_arms),*
@@ -320,11 +323,11 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
             impl #impl_generics statig::awaitable::State<#shared_storage_type> for #state_ident #state_generics #where_clause
             {
                 #[allow(clippy::manual_async_fn)]
-                fn call_handler(
+                fn call_handler<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     shared_storage: &mut #shared_storage_type,
                     #event_ident: &<#shared_storage_type as statig::awaitable::IntoStateMachine>::Event<'_>,
-                    #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
+                    #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                 ) -> impl core::future::Future<Output = statig::Outcome<Self>> {
                     async move {
                         match self {
@@ -334,10 +337,10 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                 }
 
                 #[allow(clippy::manual_async_fn)]
-                fn call_entry_action(
+                fn call_entry_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     shared_storage: &mut #shared_storage_type,
-                    #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
+                    #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                 ) -> impl core::future::Future<Output = ()> {
                     async move {
                         match self {
@@ -347,10 +350,10 @@ fn codegen_state_impl_state(ir: &Ir) -> ItemImpl {
                 }
 
                 #[allow(clippy::manual_async_fn)]
-                fn call_exit_action(
+                fn call_exit_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                     &mut self,
                     shared_storage: &mut #shared_storage_type,
-                    #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
+                    #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                 ) -> impl core::future::Future<Output = ()> {
                     async move {
                         match self {
@@ -419,6 +422,8 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
     let (_, superstate_generics, _) = &ir.state_machine.superstate_generics.split_for_impl();
     let event_ident = &ir.state_machine.event_ident;
     let context_ident = &ir.state_machine.context_ident;
+    let context_lifetime = Lifetime::new(CONTEXT_LIFETIME, Span::call_site());
+    let data_lifetime = Lifetime::new(CONTEXT_DATA_LIFETIME, Span::call_site());
 
     let mut call_handler_arms: Vec<Arm> = Vec::new();
     let mut call_entry_action_arms: Vec<Arm> = Vec::new();
@@ -451,31 +456,31 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 #[allow(unused)]
                 impl #impl_generics statig::blocking::Superstate<#shared_storage_type> for #superstate_ident #superstate_generics #where_clause
                 {
-                    fn call_handler(
+                    fn call_handler<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::blocking::IntoStateMachine>::Event<'_>,
-                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) -> statig::Outcome<<#shared_storage_type as statig::blocking::IntoStateMachine>::State> where Self: Sized {
                         match self {
                             #(#call_handler_arms),*
                         }
                     }
 
-                    fn call_entry_action(
+                    fn call_entry_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
-                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) {
                         match self {
                             #(#call_entry_action_arms),*
                         }
                     }
 
-                    fn call_exit_action(
+                    fn call_exit_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
-                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::blocking::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) {
                         match self {
                             #(#call_exit_action_arms),*
@@ -496,11 +501,11 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                 impl #impl_generics statig::awaitable::Superstate<#shared_storage_type> for #superstate_ident #superstate_generics #where_clause
                 {
                     #[allow(clippy::manual_async_fn)]
-                    fn call_handler(
+                    fn call_handler<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
                         #event_ident: &<#shared_storage_type as statig::awaitable::IntoStateMachine>::Event<'_>,
-                        #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) -> impl core::future::Future<Output = statig::Outcome<<#shared_storage_type as statig::awaitable::IntoStateMachine>::State>> {
                         async move {
                             match self {
@@ -510,10 +515,10 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                     }
 
                     #[allow(clippy::manual_async_fn)]
-                    fn call_entry_action(
+                    fn call_entry_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
-                        #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) -> impl core::future::Future<Output = ()> {
                         async move {
                             match self {
@@ -523,10 +528,10 @@ fn codegen_superstate_impl_superstate(ir: &Ir) -> ItemImpl {
                     }
 
                     #[allow(clippy::manual_async_fn)]
-                    fn call_exit_action(
+                    fn call_exit_action<#context_lifetime, #data_lifetime: #context_lifetime>(
                         &mut self,
                         shared_storage: &mut #shared_storage_type,
-                        #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<'_>
+                        #context_ident: &mut <#shared_storage_type as statig::awaitable::IntoStateMachine>::Context<#context_lifetime, #data_lifetime>
                     ) -> impl core::future::Future<Output = ()> {
                         async move {
                             match self {

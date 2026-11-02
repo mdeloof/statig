@@ -38,7 +38,7 @@ impl IntoStateMachine for Blinky {
     /// The event type that will be submitted to the state machine.
     type Event<'evt> = Event;
 
-    type Context<'ctx> = ();
+    type Context<'ctx, 'data: 'ctx> = ();
 
     /// The initial state of the state machine.
     fn initial() -> State {
@@ -48,7 +48,12 @@ impl IntoStateMachine for Blinky {
 
 // Implement the `statig::State` trait for the state enum.
 impl blocking::State<Blinky> for State {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Outcome<Self> {
+    fn call_handler<'ctx, 'data: 'ctx>(
+        &mut self,
+        blinky: &mut Blinky,
+        event: &Event,
+        _: &mut (),
+    ) -> Outcome<Self> {
         match self {
             State::LedOn => Blinky::led_on(event),
             State::LedOff => Blinky::led_off(event),
@@ -67,7 +72,12 @@ impl blocking::State<Blinky> for State {
 
 // Implement the `statig::Superstate` trait for the superstate enum.
 impl blocking::Superstate<Blinky> for Superstate {
-    fn call_handler(&mut self, blinky: &mut Blinky, event: &Event, _: &mut ()) -> Outcome<State> {
+    fn call_handler<'ctx, 'data: 'ctx>(
+        &mut self,
+        blinky: &mut Blinky,
+        event: &Event,
+        _: &mut (),
+    ) -> Outcome<State> {
         match self {
             Superstate::Blinking => Blinky::blinking(event),
         }
@@ -107,8 +117,8 @@ impl Blinky {
 fn main() {
     let mut state_machine = Blinky.state_machine();
 
-    state_machine.handle(&Event::TimerElapsed);
-    state_machine.handle(&Event::ButtonPressed);
-    state_machine.handle(&Event::TimerElapsed);
-    state_machine.handle(&Event::ButtonPressed);
+    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle_with_context(&Event::ButtonPressed, &mut ());
+    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle_with_context(&Event::ButtonPressed, &mut ());
 }

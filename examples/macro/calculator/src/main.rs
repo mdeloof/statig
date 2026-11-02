@@ -18,7 +18,9 @@ fn main() {
         ..Default::default()
     };
 
-    let state_machine = Calculator::default().uninitialized_state_machine().init();
+    let state_machine = Calculator::default()
+        .uninitialized_state_machine()
+        .init_with_context(&mut ());
 
     eframe::run_native(
         "Calculator",

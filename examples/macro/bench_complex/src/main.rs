@@ -470,7 +470,9 @@ impl BenchComplex {
 }
 
 fn main() {
-    let mut state_machine = BenchComplex.uninitialized_state_machine().init();
+    let mut state_machine = BenchComplex
+        .uninitialized_state_machine()
+        .init_with_context(&mut ());
 
     let loops: u32 = 1_000_000;
 
@@ -480,207 +482,207 @@ fn main() {
 
     for _ in 0..loops {
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E1);
+            state_machine.handle_with_context(&Event::E1, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E2);
+            state_machine.handle_with_context(&Event::E2, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E3);
+            state_machine.handle_with_context(&Event::E3, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E4);
+            state_machine.handle_with_context(&Event::E4, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E5);
+            state_machine.handle_with_context(&Event::E5, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E6);
+            state_machine.handle_with_context(&Event::E6, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E7);
+            state_machine.handle_with_context(&Event::E7, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E8);
+            state_machine.handle_with_context(&Event::E8, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E9);
+            state_machine.handle_with_context(&Event::E9, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E10);
+            state_machine.handle_with_context(&Event::E10, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E11);
+            state_machine.handle_with_context(&Event::E11, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E12);
+            state_machine.handle_with_context(&Event::E12, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E13);
+            state_machine.handle_with_context(&Event::E13, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E14);
+            state_machine.handle_with_context(&Event::E14, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E15);
+            state_machine.handle_with_context(&Event::E15, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E16);
+            state_machine.handle_with_context(&Event::E16, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E17);
+            state_machine.handle_with_context(&Event::E17, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E18);
+            state_machine.handle_with_context(&Event::E18, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E19);
+            state_machine.handle_with_context(&Event::E19, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E20);
+            state_machine.handle_with_context(&Event::E20, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E21);
+            state_machine.handle_with_context(&Event::E21, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E22);
+            state_machine.handle_with_context(&Event::E22, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E23);
+            state_machine.handle_with_context(&Event::E23, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E24);
+            state_machine.handle_with_context(&Event::E24, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E25);
+            state_machine.handle_with_context(&Event::E25, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E26);
+            state_machine.handle_with_context(&Event::E26, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E27);
+            state_machine.handle_with_context(&Event::E27, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E28);
+            state_machine.handle_with_context(&Event::E28, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E29);
+            state_machine.handle_with_context(&Event::E29, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E30);
+            state_machine.handle_with_context(&Event::E30, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E31);
+            state_machine.handle_with_context(&Event::E31, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E32);
+            state_machine.handle_with_context(&Event::E32, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E33);
+            state_machine.handle_with_context(&Event::E33, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E34);
+            state_machine.handle_with_context(&Event::E34, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E35);
+            state_machine.handle_with_context(&Event::E35, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E36);
+            state_machine.handle_with_context(&Event::E36, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E37);
+            state_machine.handle_with_context(&Event::E37, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E38);
+            state_machine.handle_with_context(&Event::E38, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E39);
+            state_machine.handle_with_context(&Event::E39, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E40);
+            state_machine.handle_with_context(&Event::E40, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E41);
+            state_machine.handle_with_context(&Event::E41, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E42);
+            state_machine.handle_with_context(&Event::E42, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E43);
+            state_machine.handle_with_context(&Event::E43, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E44);
+            state_machine.handle_with_context(&Event::E44, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E45);
+            state_machine.handle_with_context(&Event::E45, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E46);
+            state_machine.handle_with_context(&Event::E46, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E47);
+            state_machine.handle_with_context(&Event::E47, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E48);
+            state_machine.handle_with_context(&Event::E48, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E49);
+            state_machine.handle_with_context(&Event::E49, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E50);
+            state_machine.handle_with_context(&Event::E50, &mut ());
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle(&Event::E51);
+            state_machine.handle_with_context(&Event::E51, &mut ());
         }
     }
 

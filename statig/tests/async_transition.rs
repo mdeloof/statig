@@ -56,7 +56,7 @@ mod tests {
 
         type Event<'evt> = Event;
 
-        type Context<'ctx> = ();
+        type Context<'ctx, 'data: 'ctx> = ();
 
         fn initial() -> Self::State {
             State::S11
@@ -64,11 +64,11 @@ mod tests {
     }
 
     impl awaitable::State<Foo> for State {
-        fn call_handler(
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
             event: &<Foo as IntoStateMachine>::Event<'_>,
-            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'ctx, 'data>,
         ) -> impl Future<Output = statig::Outcome<Self>> {
             async move {
                 match self {
@@ -79,10 +79,10 @@ mod tests {
             }
         }
 
-        fn call_entry_action(
+        fn call_entry_action<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
-            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'ctx, 'data>,
         ) -> impl Future<Output = ()> {
             async move {
                 match self {
@@ -93,10 +93,10 @@ mod tests {
             }
         }
 
-        fn call_exit_action(
+        fn call_exit_action<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
-            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'ctx, 'data>,
         ) -> impl Future<Output = ()> {
             async move {
                 match self {
@@ -117,11 +117,11 @@ mod tests {
     }
 
     impl awaitable::Superstate<Foo> for Superstate {
-        fn call_handler(
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
             event: &<Foo as IntoStateMachine>::Event<'_>,
-            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'ctx, 'data>,
         ) -> impl Future<Output = statig::Outcome<State>>
         where
             Self: Sized,
@@ -136,10 +136,10 @@ mod tests {
             }
         }
 
-        fn call_entry_action(
+        fn call_entry_action<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
-            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'ctx, 'data>,
         ) -> impl Future<Output = ()> {
             async move {
                 match self {
@@ -151,10 +151,10 @@ mod tests {
             }
         }
 
-        fn call_exit_action(
+        fn call_exit_action<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
-            _: &mut <Foo as IntoStateMachine>::Context<'_>,
+            _: &mut <Foo as IntoStateMachine>::Context<'ctx, 'data>,
         ) -> impl Future<Output = ()> {
             async move {
                 match self {

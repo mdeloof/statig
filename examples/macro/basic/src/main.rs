@@ -42,7 +42,7 @@ fn main() {
     /// Before we submit events to the state machine we need to call the
     /// `init` method on it. This will initialized the state machine
     /// by executing all entry action into the initial state.
-    let mut state_machine = state_machine.init();
+    let mut state_machine = state_machine.init_with_context(&mut ());
 
-    state_machine.handle(&Event);
+    state_machine.handle_with_context(&Event, &mut ());
 }

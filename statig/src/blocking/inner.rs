@@ -17,17 +17,20 @@ where
     for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Initialize the state machine by executing all entry actions towards the initial state.
-    pub(crate) fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub(crate) fn init_with_context<'ctx, 'data: 'ctx>(
+        &mut self,
+        context: &mut M::Context<'ctx, 'data>,
+    ) {
         let enter_levels = self.state.depth();
         self.state
             .enter(&mut self.shared_storage, context, enter_levels);
     }
 
     /// Handle the given event.
-    pub(crate) fn handle_with_context(
+    pub(crate) fn handle_with_context<'ctx, 'data: 'ctx>(
         &mut self,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) {
         let outcome = self.state.handle(&mut self.shared_storage, event, context);
         match outcome {
@@ -38,7 +41,11 @@ where
     }
 
     /// Transition from the current state to the given target state.
-    pub(crate) fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
+    pub(crate) fn transition<'ctx, 'data: 'ctx>(
+        &mut self,
+        mut target: M::State,
+        context: &mut M::Context<'ctx, 'data>,
+    ) {
         M::before_transition(&mut self.shared_storage, &self.state, &target, context);
 
         // Get the transition path we need to perform from one state to the next.
@@ -110,7 +117,7 @@ where
 
 #[cfg(feature = "serde")]
 /// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
-/// then be initialized with [`init`](UnInitializedStateMachine::init).
+/// then be initialized with [`init_with_context`](UnInitializedStateMachine::init_with_context).
 impl<'de, M> serde::Deserialize<'de> for Inner<M>
 where
     M: IntoStateMachine + serde::Deserialize<'de>,

@@ -93,10 +93,10 @@ fn main() {
 
     let mut state_machine = Blinky.state_machine();
 
-    state_machine.handle(&Event::TimerElapsed);
-    state_machine.handle(&Event::ButtonPressed);
-    state_machine.handle(&Event::TimerElapsed);
-    state_machine.handle(&Event::ButtonPressed);
+    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle_with_context(&Event::ButtonPressed, &mut ());
+    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle_with_context(&Event::ButtonPressed, &mut ());
 
     let end = std::time::Instant::now();
 
