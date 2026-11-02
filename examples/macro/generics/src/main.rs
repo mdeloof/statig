@@ -58,6 +58,6 @@ where
 fn main() {
     let mut machine = Machine::<Option<&u32>, Box<u32>, 45>::default()
         .uninitialized_state_machine()
-        .init_with_context(&mut ());
-    machine.handle_with_context(&Event::Bar(None), &mut ());
+        .init(&mut ());
+    machine.handle(&Event::Bar(None), &mut ());
 }

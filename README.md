@@ -100,8 +100,8 @@ impl Blinky {
 fn main() {
     let mut state_machine = Blinky::default().state_machine();
 
-    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
-    state_machine.handle_with_context(&Event::ButtonPressed, &mut ());
+    state_machine.handle(&Event::TimerElapsed, &mut ());
+    state_machine.handle(&Event::ButtonPressed, &mut ());
 }
 ```
 
@@ -251,13 +251,13 @@ impl Blinky {
 
 A state or superstate handler that takes the `context` argument without a `context = "..."` declaration on `#[state_machine]` is a compile error.
 
-`handle_with_context` is the only way to dispatch an event to the state machine.
+`handle` is the only way to dispatch an event to the state machine.
 
 ```rust
-state_machine.handle_with_context(&Event::TimerElapsed, &mut context);
+state_machine.handle(&Event::TimerElapsed, &mut context);
 ```
 
-No method dispatches or initializes a state machine without a context argument. A state machine whose handlers take no context is driven with `handle_with_context(&event, &mut ())` and initialized with `init_with_context(&mut ())`, so a state machine without a context declares nothing special.
+No method dispatches or initializes a state machine without a context argument. A state machine whose handlers take no context is driven with `handle(&event, &mut ())` and initialized with `init(&mut ())`, so a state machine without a context declares nothing special.
 
 ### Introspection
 
@@ -325,8 +325,8 @@ and generate an async state machine.
 async fn main() {
     let mut state_machine = Blinky::default().state_machine();
 
-    state_machine.handle_with_context(&Event::TimerElapsed, &mut ()).await;
-    state_machine.handle_with_context(&Event::ButtonPressed, &mut ()).await;
+    state_machine.handle(&Event::TimerElapsed, &mut ()).await;
+    state_machine.handle(&Event::ButtonPressed, &mut ()).await;
 }
 ```
 
@@ -519,7 +519,7 @@ Short answer: nothing. `#[state_machine]` simply parses the underlying `impl` bl
 
 ### What advantage does this have over using the typestate pattern?
 
-I would say they serve a different purpose. The [typestate pattern](http://cliffle.com/blog/rust-typestate/) is very useful for designing an API as it is able to enforce the validity of operations at compile time by making each state a unique type. But `statig` is designed to model a dynamic system where events originate externally and the order of operations is determined at run time. More concretely, this means that the state machine is going to sit in a loop where events are read from a queue and submitted to the state machine using the `handle_with_context()` method. If we want to do the same with a state machine that uses the typestate pattern we'd have to use an enum to wrap all our different states and match events to operations on these states. This means extra boilerplate code for little advantage as the order of operations is unknown so it can't be checked at compile time. On the other hand `statig` gives you the ability to create a hierarchy of states which I find to be invaluable as state machines grow in complexity.
+I would say they serve a different purpose. The [typestate pattern](http://cliffle.com/blog/rust-typestate/) is very useful for designing an API as it is able to enforce the validity of operations at compile time by making each state a unique type. But `statig` is designed to model a dynamic system where events originate externally and the order of operations is determined at run time. More concretely, this means that the state machine is going to sit in a loop where events are read from a queue and submitted to the state machine using the `handle()` method. If we want to do the same with a state machine that uses the typestate pattern we'd have to use an enum to wrap all our different states and match events to operations on these states. This means extra boilerplate code for little advantage as the order of operations is unknown so it can't be checked at compile time. On the other hand `statig` gives you the ability to create a hierarchy of states which I find to be invaluable as state machines grow in complexity.
 
 ---
 

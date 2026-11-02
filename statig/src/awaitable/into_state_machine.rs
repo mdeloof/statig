@@ -15,7 +15,7 @@ where
     /// The context takes two lifetimes. `'ctx` is the lifetime of the borrows held directly by
     /// the context value, and `'data` is the lifetime of the data behind those borrows. A
     /// context such as `Ctx<'ctx, 'data> { writer: &'ctx mut Writer<'data> }` is built fresh
-    /// for every call to [`handle_with_context`], reborrowing a `Writer<'data>` that the caller
+    /// for every call to [`handle`], reborrowing a `Writer<'data>` that the caller
     /// owns for longer than any single call.
     ///
     /// A single lifetime cannot serve both roles once the context holds `&mut` to something
@@ -45,7 +45,7 @@ where
     /// borrowing long-lived data, `= Borrowed<'ctx>;` for a context that only reborrows,
     /// and `= Plain;` or `= ();` for a context without lifetimes.
     ///
-    /// [`handle_with_context`]: crate::awaitable::StateMachine::handle_with_context
+    /// [`handle`]: crate::awaitable::StateMachine::handle
     /// [`State::call_handler`]: crate::awaitable::State::call_handler
     ///
     /// # Examples
@@ -103,12 +103,12 @@ where
     ///
     /// async fn drive(state_machine: &mut StateMachine<Machine>, mut writer: Writer<'_>) {
     ///     state_machine
-    ///         .init_with_context(&mut Ctx { writer: &mut writer })
+    ///         .init(&mut Ctx { writer: &mut writer })
     ///         .await;
     ///
     ///     for event in [1, 2, 3] {
     ///         state_machine
-    ///             .handle_with_context(&event, &mut Ctx { writer: &mut writer })
+    ///             .handle(&event, &mut Ctx { writer: &mut writer })
     ///             .await;
     ///     }
     /// }

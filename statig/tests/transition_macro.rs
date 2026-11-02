@@ -203,14 +203,12 @@ mod tests {
 
     #[test]
     fn test_transition_path() {
-        let mut state_machine = Foo::default()
-            .uninitialized_state_machine()
-            .init_with_context(&mut ());
+        let mut state_machine = Foo::default().uninitialized_state_machine().init(&mut ());
 
-        state_machine.handle_with_context(&Event::A, &mut ());
-        state_machine.handle_with_context(&Event::B, &mut ());
-        state_machine.handle_with_context(&Event::C, &mut ());
-        state_machine.handle_with_context(&Event::D, &mut ());
+        state_machine.handle(&Event::A, &mut ());
+        state_machine.handle(&Event::B, &mut ());
+        state_machine.handle(&Event::C, &mut ());
+        state_machine.handle(&Event::D, &mut ());
 
         let expected_path: [(StateWrapper, Action); 17] = [
             (StateWrapper::Super(Superstate::S {}), Action::Entry),

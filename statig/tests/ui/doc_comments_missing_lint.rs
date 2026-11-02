@@ -41,5 +41,5 @@ impl ValidationMachine {
 /// Main function for the test
 fn main() {
     let machine = ValidationMachine::default();
-    let _state_machine = machine.uninitialized_state_machine().init_with_context(&mut ());
+    let _state_machine = machine.uninitialized_state_machine().init(&mut ());
 }

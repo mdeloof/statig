@@ -66,7 +66,7 @@ mod tests {
     fn hooks() {
         let mut foo_bar = FooBar::default().state_machine();
 
-        foo_bar.handle_with_context(&Event::Tick, &mut ());
+        foo_bar.handle(&Event::Tick, &mut ());
 
         assert!(foo_bar.inner().before_dispatch);
         assert!(foo_bar.inner().after_dispatch);

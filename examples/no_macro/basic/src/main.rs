@@ -76,7 +76,7 @@ impl Blinky {
 fn main() {
     let mut state_machine = Blinky::default()
         .uninitialized_state_machine()
-        .init_with_context(&mut ());
+        .init(&mut ());
 
-    state_machine.handle_with_context(&Event, &mut ());
+    state_machine.handle(&Event, &mut ());
 }

@@ -71,12 +71,8 @@ async fn main() {
 
     let mut state_machine = Receiver { connection: sender }.state_machine();
 
-    state_machine
-        .handle_with_context(&Event::Step, &mut ())
-        .await;
-    state_machine
-        .handle_with_context(&Event::Step, &mut ())
-        .await;
+    state_machine.handle(&Event::Step, &mut ()).await;
+    state_machine.handle(&Event::Step, &mut ()).await;
 
     receiver_task.await.unwrap();
 }

@@ -309,13 +309,13 @@ mod tests {
             let context = &mut ();
             let mut state_machine = Foo::default()
                 .uninitialized_state_machine()
-                .init_with_context(context)
+                .init(context)
                 .await;
 
-            state_machine.handle_with_context(&Event::A, context).await;
-            state_machine.handle_with_context(&Event::B, context).await;
-            state_machine.handle_with_context(&Event::C, context).await;
-            state_machine.handle_with_context(&Event::D, context).await;
+            state_machine.handle(&Event::A, context).await;
+            state_machine.handle(&Event::B, context).await;
+            state_machine.handle(&Event::C, context).await;
+            state_machine.handle(&Event::D, context).await;
 
             let expected_path: [(StateWrapper, Action); 17] = [
                 (StateWrapper::Super(Superstate::S), Action::Entry),

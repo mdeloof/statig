@@ -24,7 +24,7 @@ where
     }
 
     /// Create an uninitialized state machine that must be explicitly initialized with
-    /// [`init_with_context`](UninitializedStateMachine::init_with_context).
+    /// [`init`](UninitializedStateMachine::init).
     fn uninitialized_state_machine(self) -> UninitializedStateMachine<Self> {
         let inner = Inner {
             shared_storage: self,
@@ -59,44 +59,32 @@ where
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
-    pub async fn init_with_context<'ctx, 'data: 'ctx>(
-        &mut self,
-        context: &mut M::Context<'ctx, 'data>,
-    ) {
+    pub async fn init<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>) {
         if !self.initialized {
-            self.inner.init_with_context(context).await;
+            self.inner.init(context).await;
             self.initialized = true;
         }
     }
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub async fn handle_with_context<'ctx, 'data: 'ctx>(
+    pub async fn handle<'ctx, 'data: 'ctx>(
         &mut self,
         event: &M::Event<'_>,
         context: &mut M::Context<'ctx, 'data>,
     ) {
         if !self.initialized {
-            self.inner.init_with_context(context).await;
+            self.inner.init(context).await;
             self.initialized = true;
         }
-        self.inner.handle_with_context(event, context).await;
+        self.inner.handle(event, context).await;
     }
 
     pub async fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context).await;
-    }
-
-    pub async fn step_with_context<'ctx, 'data: 'ctx>(
-        &mut self,
-        context: &mut M::Context<'ctx, 'data>,
-    ) where
-        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
-    {
-        self.handle_with_context(&(), context).await;
+        self.handle(&(), context).await;
     }
 
     /// Get the current state.
@@ -294,7 +282,7 @@ where
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// A serialized state machine can only be deserialized into an [`UninitializedStateMachine`] and can
-/// then be initialized with [`init_with_context`](UninitializedStateMachine::init_with_context).
+/// then be initialized with [`init`](UninitializedStateMachine::init).
 impl<'de, M> serde::Deserialize<'de> for StateMachine<M>
 where
     M: IntoStateMachine + serde::Deserialize<'de>,
@@ -337,34 +325,23 @@ where
     for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Handle the given event.
-    pub async fn handle_with_context<'ctx, 'data: 'ctx>(
+    pub async fn handle<'ctx, 'data: 'ctx>(
         &mut self,
         event: &M::Event<'_>,
         context: &mut M::Context<'ctx, 'data>,
     ) where
         M: IntoStateMachine,
     {
-        self.inner.handle_with_context(event, context).await;
+        self.inner.handle(event, context).await;
     }
 
-    /// This is the same as `handle_with_context(&(), context)` in the case `Event` is of
+    /// This is the same as `handle(&(), context)` in the case `Event` is of
     /// type `()`.
     pub async fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context).await;
-    }
-
-    /// This is the same as `handle_with_context(&(), context)` in the case `Event` is of
-    /// type `()`.
-    pub async fn step_with_context<'ctx, 'data: 'ctx>(
-        &mut self,
-        context: &mut M::Context<'ctx, 'data>,
-    ) where
-        for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
-    {
-        self.handle_with_context(&(), context).await;
+        self.handle(&(), context).await;
     }
 
     /// Get an immutable reference to the current state of the state machine.
@@ -395,7 +372,7 @@ where
     /// #
     /// # executor::block_on(async {
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ()).await;
+    /// let initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     /// assert_eq!(initialized_state_machine.inner().led, false);
     /// # })
     /// ```
@@ -428,7 +405,7 @@ where
     /// #
     /// # executor::block_on(async {
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ()).await;
+    /// let mut initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     /// unsafe {
     ///     initialized_state_machine.inner_mut().led = true;
     /// }
@@ -463,7 +440,7 @@ where
     /// #
     /// # executor::block_on(async {
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ()).await;
+    /// let mut initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     ///
     /// unsafe {
     ///     *initialized_state_machine.state_mut() = State::on();
@@ -532,7 +509,7 @@ where
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// Once an [`InitializedStateMachine`] is serialized, it can only be deserialized into
 /// an [`UninitializedStateMachine`] which can then be re-initialized with the
-/// [`init_with_context`](UninitializedStateMachine::init_with_context) method.
+/// [`init`](UninitializedStateMachine::init) method.
 impl<M> serde::Serialize for InitializedStateMachine<M>
 where
     M: IntoStateMachine + serde::Serialize,
@@ -564,7 +541,7 @@ where
 /// A state machine that has not yet been initialized.
 ///
 /// A state machine needs to be initialized before it can handle events. This
-/// can be done by calling the [`init_with_context`](Self::init_with_context) method on it. This will
+/// can be done by calling the [`init`](Self::init) method on it. This will
 /// execute all the entry actions into the initial state.
 pub struct UninitializedStateMachine<M>
 where
@@ -603,15 +580,15 @@ where
     ///
     /// // The uninitialized state machine is consumed to create the initialized
     /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init_with_context(&mut ()).await;
+    /// let initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     /// # })
     /// ```
-    pub async fn init_with_context<'ctx, 'data: 'ctx>(
+    pub async fn init<'ctx, 'data: 'ctx>(
         self,
         context: &mut M::Context<'ctx, 'data>,
     ) -> InitializedStateMachine<M> {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
-        state_machine.inner.init_with_context(context).await;
+        state_machine.inner.init(context).await;
         state_machine
     }
 
@@ -770,7 +747,7 @@ where
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 /// A serialized state machine can only be deserialized into an [`UninitializedStateMachine`] and can
-/// then be initialized with [`init_with_context`](UninitializedStateMachine::init_with_context).
+/// then be initialized with [`init`](UninitializedStateMachine::init).
 impl<'de, M> serde::Deserialize<'de> for UninitializedStateMachine<M>
 where
     M: IntoStateMachine + serde::Deserialize<'de>,

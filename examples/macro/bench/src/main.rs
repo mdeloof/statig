@@ -76,9 +76,7 @@ impl CdPlayer {
 }
 
 fn main() {
-    let mut state_machine = CdPlayer
-        .uninitialized_state_machine()
-        .init_with_context(&mut ());
+    let mut state_machine = CdPlayer.uninitialized_state_machine().init(&mut ());
 
     let loops: u32 = rand::random();
 
@@ -87,19 +85,19 @@ fn main() {
     let instant = Instant::now();
 
     for _ in 0..loops {
-        state_machine.handle_with_context(&Event::OpenClose, &mut ());
-        state_machine.handle_with_context(&Event::OpenClose, &mut ());
-        state_machine.handle_with_context(&Event::CdDetected, &mut ());
-        state_machine.handle_with_context(&Event::Play, &mut ());
-        state_machine.handle_with_context(&Event::Pause2, &mut ());
+        state_machine.handle(&Event::OpenClose, &mut ());
+        state_machine.handle(&Event::OpenClose, &mut ());
+        state_machine.handle(&Event::CdDetected, &mut ());
+        state_machine.handle(&Event::Play, &mut ());
+        state_machine.handle(&Event::Pause2, &mut ());
 
-        state_machine.handle_with_context(&Event::EndPause, &mut ());
-        state_machine.handle_with_context(&Event::Pause2, &mut ());
-        state_machine.handle_with_context(&Event::Stop, &mut ());
+        state_machine.handle(&Event::EndPause, &mut ());
+        state_machine.handle(&Event::Pause2, &mut ());
+        state_machine.handle(&Event::Stop, &mut ());
 
-        state_machine.handle_with_context(&Event::Stop, &mut ());
-        state_machine.handle_with_context(&Event::OpenClose, &mut ());
-        state_machine.handle_with_context(&Event::OpenClose, &mut ());
+        state_machine.handle(&Event::Stop, &mut ());
+        state_machine.handle(&Event::OpenClose, &mut ());
+        state_machine.handle(&Event::OpenClose, &mut ());
     }
 
     let total_duration = instant.elapsed();

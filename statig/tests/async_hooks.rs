@@ -68,7 +68,7 @@ mod tests {
         let mut foo_bar = FooBar::default().state_machine();
 
         futures::executor::block_on(async {
-            foo_bar.handle_with_context(&Event::Tick, &mut ()).await;
+            foo_bar.handle(&Event::Tick, &mut ()).await;
         });
 
         assert!(foo_bar.inner().before_dispatch);

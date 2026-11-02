@@ -76,10 +76,7 @@ impl CdPlayer {
 }
 
 async fn future_main() {
-    let mut state_machine = CdPlayer
-        .uninitialized_state_machine()
-        .init_with_context(&mut ())
-        .await;
+    let mut state_machine = CdPlayer.uninitialized_state_machine().init(&mut ()).await;
 
     let loops: u32 = 1_000_000;
 
@@ -90,41 +87,19 @@ async fn future_main() {
     for _ in 0..loops {
         let flag: bool = rand::random();
 
-        state_machine
-            .handle_with_context(&Event::OpenClose, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::OpenClose, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::CdDetected, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::Play, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::Pause2, &mut ())
-            .await;
+        state_machine.handle(&Event::OpenClose, &mut ()).await;
+        state_machine.handle(&Event::OpenClose, &mut ()).await;
+        state_machine.handle(&Event::CdDetected, &mut ()).await;
+        state_machine.handle(&Event::Play, &mut ()).await;
+        state_machine.handle(&Event::Pause2, &mut ()).await;
 
-        state_machine
-            .handle_with_context(&Event::EndPause, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::Pause2, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::Stop, &mut ())
-            .await;
+        state_machine.handle(&Event::EndPause, &mut ()).await;
+        state_machine.handle(&Event::Pause2, &mut ()).await;
+        state_machine.handle(&Event::Stop, &mut ()).await;
 
-        state_machine
-            .handle_with_context(&Event::Stop, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::OpenClose, &mut ())
-            .await;
-        state_machine
-            .handle_with_context(&Event::OpenClose, &mut ())
-            .await;
+        state_machine.handle(&Event::Stop, &mut ()).await;
+        state_machine.handle(&Event::OpenClose, &mut ()).await;
+        state_machine.handle(&Event::OpenClose, &mut ()).await;
     }
 
     let total_duration = instant.elapsed();

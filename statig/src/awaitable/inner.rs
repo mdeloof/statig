@@ -16,17 +16,14 @@ where
     M::State: State<M> + 'static,
     for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
-    pub(crate) async fn init_with_context<'ctx, 'data: 'ctx>(
-        &mut self,
-        context: &mut M::Context<'ctx, 'data>,
-    ) {
+    pub(crate) async fn init<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>) {
         let enter_levels = self.state.depth();
         self.state
             .enter(&mut self.shared_storage, context, enter_levels)
             .await;
     }
 
-    pub(crate) async fn handle_with_context<'ctx, 'data: 'ctx>(
+    pub(crate) async fn handle<'ctx, 'data: 'ctx>(
         &mut self,
         event: &M::Event<'_>,
         context: &mut M::Context<'ctx, 'data>,
@@ -121,7 +118,7 @@ where
 
 #[cfg(feature = "serde")]
 /// A serialized state machine can only be deserialized into an [`UnInitializedStateMachine`] and can
-/// then be initialized with [`init_with_context`](UnInitializedStateMachine::init_with_context).
+/// then be initialized with [`init`](UnInitializedStateMachine::init).
 impl<'de, M> serde::Deserialize<'de> for Inner<M>
 where
     M: IntoStateMachine + serde::Deserialize<'de>,

@@ -82,35 +82,35 @@ fn main() {
         previous_state: Dishwasher::initial(),
     }
     .uninitialized_state_machine()
-    .init_with_context(&mut ());
+    .init(&mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Idle
 
-    state_machine.handle_with_context(&Event::StartProgram, &mut ());
+    state_machine.handle(&Event::StartProgram, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Soap
 
-    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle(&Event::TimerElapsed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Rinse
 
-    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle(&Event::TimerElapsed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Dry
 
-    state_machine.handle_with_context(&Event::DoorOpened, &mut ());
+    state_machine.handle(&Event::DoorOpened, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: DoorOpened
 
-    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle(&Event::TimerElapsed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: DoorOpened
 
-    state_machine.handle_with_context(&Event::DoorClosed, &mut ());
+    state_machine.handle(&Event::DoorClosed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Dry
 
-    state_machine.handle_with_context(&Event::TimerElapsed, &mut ());
+    state_machine.handle(&Event::TimerElapsed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Idle
 }

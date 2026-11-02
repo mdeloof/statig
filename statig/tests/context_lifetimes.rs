@@ -113,12 +113,12 @@ mod blocking_manual {
         mut writer: super::Writer<'_>,
         events: &[super::Event],
     ) {
-        state_machine.init_with_context(&mut super::Ctx {
+        state_machine.init(&mut super::Ctx {
             writer: &mut writer,
         });
 
         for event in events {
-            state_machine.handle_with_context(
+            state_machine.handle(
                 event,
                 &mut super::Ctx {
                     writer: &mut writer,
@@ -260,14 +260,14 @@ mod awaitable_manual {
         events: &[super::Event],
     ) {
         state_machine
-            .init_with_context(&mut super::Ctx {
+            .init(&mut super::Ctx {
                 writer: &mut writer,
             })
             .await;
 
         for event in events {
             state_machine
-                .handle_with_context(
+                .handle(
                     event,
                     &mut super::Ctx {
                         writer: &mut writer,
@@ -384,12 +384,12 @@ mod blocking_macro {
         mut writer: Writer<'_>,
         events: &[Event],
     ) {
-        state_machine.init_with_context(&mut Ctx {
+        state_machine.init(&mut Ctx {
             writer: &mut writer,
         });
 
         for event in events {
-            state_machine.handle_with_context(
+            state_machine.handle(
                 event,
                 &mut Ctx {
                     writer: &mut writer,
@@ -502,14 +502,14 @@ mod awaitable_macro {
         events: &[Event],
     ) {
         state_machine
-            .init_with_context(&mut Ctx {
+            .init(&mut Ctx {
                 writer: &mut writer,
             })
             .await;
 
         for event in events {
             state_machine
-                .handle_with_context(
+                .handle(
                     event,
                     &mut Ctx {
                         writer: &mut writer,
@@ -575,10 +575,10 @@ mod owned_context {
     ) {
         let mut owned = Owned { writer };
 
-        state_machine.init_with_context(&mut owned);
+        state_machine.init(&mut owned);
 
         for event in events {
-            state_machine.handle_with_context(event, &mut owned);
+            state_machine.handle(event, &mut owned);
         }
     }
 
@@ -635,10 +635,10 @@ mod borrowed_context {
         log: &mut Vec<u32>,
         events: &[Event],
     ) {
-        state_machine.init_with_context(&mut Borrowed { log: &mut *log });
+        state_machine.init(&mut Borrowed { log: &mut *log });
 
         for event in events {
-            state_machine.handle_with_context(event, &mut Borrowed { log: &mut *log });
+            state_machine.handle(event, &mut Borrowed { log: &mut *log });
         }
     }
 

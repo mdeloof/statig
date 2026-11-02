@@ -46,35 +46,35 @@ impl App {
             ui.horizontal(|ui| {
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("7")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 7 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 7 }, &mut ()));
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("8")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 8 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 8 }, &mut ()));
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("9")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 9 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 9 }, &mut ()));
             });
             ui.horizontal(|ui| {
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("4")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 4 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 4 }, &mut ()));
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("5")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 5 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 5 }, &mut ()));
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("6")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 6 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 6 }, &mut ()));
             });
             ui.horizontal(|ui| {
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("1")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 1 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 1 }, &mut ()));
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("2")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 2 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 2 }, &mut ()));
                 ui.add_sized((button_width, button_heigth), Button::new(rich_text("3")))
                     .clicked()
-                    .then(|| self.handle_with_context(&Event::Digit { digit: 3 }, &mut ()));
+                    .then(|| self.handle(&Event::Digit { digit: 3 }, &mut ()));
             })
         })
         .response
@@ -91,7 +91,7 @@ impl App {
             ui.add_sized((button_width, button_height), Button::new(rich_text("÷")))
                 .clicked()
                 .then(|| {
-                    self.handle_with_context(
+                    self.handle(
                         &Event::Operator {
                             operator: Operator::Div,
                         },
@@ -101,7 +101,7 @@ impl App {
             ui.add_sized((button_width, button_height), Button::new(rich_text("×")))
                 .clicked()
                 .then(|| {
-                    self.handle_with_context(
+                    self.handle(
                         &Event::Operator {
                             operator: Operator::Mul,
                         },
@@ -111,7 +111,7 @@ impl App {
             ui.add_sized((button_width, button_height), Button::new(rich_text("-")))
                 .clicked()
                 .then(|| {
-                    self.handle_with_context(
+                    self.handle(
                         &Event::Operator {
                             operator: Operator::Sub,
                         },
@@ -121,7 +121,7 @@ impl App {
             ui.add_sized((button_width, button_height), Button::new(rich_text("+")))
                 .clicked()
                 .then(|| {
-                    self.handle_with_context(
+                    self.handle(
                         &Event::Operator {
                             operator: Operator::Add,
                         },
@@ -146,10 +146,10 @@ impl App {
                 Button::new(rich_text("CE")),
             )
             .clicked()
-            .then(|| self.handle_with_context(&Event::Ce, &mut ()));
+            .then(|| self.handle(&Event::Ce, &mut ()));
             ui.add_sized((button_width, button_height), Button::new(rich_text("AC")))
                 .clicked()
-                .then(|| self.handle_with_context(&Event::Ac, &mut ()));
+                .then(|| self.handle(&Event::Ac, &mut ()));
         })
         .response
     }
@@ -168,13 +168,13 @@ impl App {
                 Button::new(rich_text("0")),
             )
             .clicked()
-            .then(|| self.handle_with_context(&Event::Digit { digit: 0 }, &mut ()));
+            .then(|| self.handle(&Event::Digit { digit: 0 }, &mut ()));
             ui.add_sized((button_width, button_height), Button::new(rich_text(",")))
                 .clicked()
-                .then(|| self.handle_with_context(&Event::Point, &mut ()));
+                .then(|| self.handle(&Event::Point, &mut ()));
             ui.add_sized((button_width, button_height), Button::new(rich_text("=")))
                 .clicked()
-                .then(|| self.handle_with_context(&Event::Equal, &mut ()));
+                .then(|| self.handle(&Event::Equal, &mut ()));
         })
         .response
     }

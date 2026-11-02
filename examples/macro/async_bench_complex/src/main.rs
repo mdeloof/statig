@@ -472,7 +472,7 @@ impl BenchComplex {
 async fn future_main() {
     let mut state_machine = BenchComplex
         .uninitialized_state_machine()
-        .init_with_context(&mut ())
+        .init(&mut ())
         .await;
 
     let loops: u32 = 1_000_000;
@@ -483,291 +483,207 @@ async fn future_main() {
 
     for _ in 0..loops {
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E1, &mut ()).await;
+            state_machine.handle(&Event::E1, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E2, &mut ()).await;
+            state_machine.handle(&Event::E2, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E3, &mut ()).await;
+            state_machine.handle(&Event::E3, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E4, &mut ()).await;
+            state_machine.handle(&Event::E4, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E5, &mut ()).await;
+            state_machine.handle(&Event::E5, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E6, &mut ()).await;
+            state_machine.handle(&Event::E6, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E7, &mut ()).await;
+            state_machine.handle(&Event::E7, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E8, &mut ()).await;
+            state_machine.handle(&Event::E8, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine.handle_with_context(&Event::E9, &mut ()).await;
+            state_machine.handle(&Event::E9, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E10, &mut ())
-                .await;
+            state_machine.handle(&Event::E10, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E11, &mut ())
-                .await;
+            state_machine.handle(&Event::E11, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E12, &mut ())
-                .await;
+            state_machine.handle(&Event::E12, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E13, &mut ())
-                .await;
+            state_machine.handle(&Event::E13, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E14, &mut ())
-                .await;
+            state_machine.handle(&Event::E14, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E15, &mut ())
-                .await;
+            state_machine.handle(&Event::E15, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E16, &mut ())
-                .await;
+            state_machine.handle(&Event::E16, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E17, &mut ())
-                .await;
+            state_machine.handle(&Event::E17, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E18, &mut ())
-                .await;
+            state_machine.handle(&Event::E18, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E19, &mut ())
-                .await;
+            state_machine.handle(&Event::E19, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E20, &mut ())
-                .await;
+            state_machine.handle(&Event::E20, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E21, &mut ())
-                .await;
+            state_machine.handle(&Event::E21, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E22, &mut ())
-                .await;
+            state_machine.handle(&Event::E22, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E23, &mut ())
-                .await;
+            state_machine.handle(&Event::E23, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E24, &mut ())
-                .await;
+            state_machine.handle(&Event::E24, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E25, &mut ())
-                .await;
+            state_machine.handle(&Event::E25, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E26, &mut ())
-                .await;
+            state_machine.handle(&Event::E26, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E27, &mut ())
-                .await;
+            state_machine.handle(&Event::E27, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E28, &mut ())
-                .await;
+            state_machine.handle(&Event::E28, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E29, &mut ())
-                .await;
+            state_machine.handle(&Event::E29, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E30, &mut ())
-                .await;
+            state_machine.handle(&Event::E30, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E31, &mut ())
-                .await;
+            state_machine.handle(&Event::E31, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E32, &mut ())
-                .await;
+            state_machine.handle(&Event::E32, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E33, &mut ())
-                .await;
+            state_machine.handle(&Event::E33, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E34, &mut ())
-                .await;
+            state_machine.handle(&Event::E34, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E35, &mut ())
-                .await;
+            state_machine.handle(&Event::E35, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E36, &mut ())
-                .await;
+            state_machine.handle(&Event::E36, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E37, &mut ())
-                .await;
+            state_machine.handle(&Event::E37, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E38, &mut ())
-                .await;
+            state_machine.handle(&Event::E38, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E39, &mut ())
-                .await;
+            state_machine.handle(&Event::E39, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E40, &mut ())
-                .await;
+            state_machine.handle(&Event::E40, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E41, &mut ())
-                .await;
+            state_machine.handle(&Event::E41, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E42, &mut ())
-                .await;
+            state_machine.handle(&Event::E42, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E43, &mut ())
-                .await;
+            state_machine.handle(&Event::E43, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E44, &mut ())
-                .await;
+            state_machine.handle(&Event::E44, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E45, &mut ())
-                .await;
+            state_machine.handle(&Event::E45, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E46, &mut ())
-                .await;
+            state_machine.handle(&Event::E46, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E47, &mut ())
-                .await;
+            state_machine.handle(&Event::E47, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E48, &mut ())
-                .await;
+            state_machine.handle(&Event::E48, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E49, &mut ())
-                .await;
+            state_machine.handle(&Event::E49, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E50, &mut ())
-                .await;
+            state_machine.handle(&Event::E50, &mut ()).await;
         }
 
         if rng.gen::<usize>() % 2 == 0 {
-            state_machine
-                .handle_with_context(&Event::E51, &mut ())
-                .await;
+            state_machine.handle(&Event::E51, &mut ()).await;
         }
     }
 
