@@ -713,7 +713,7 @@ pub fn analyze_action(method: &ImplItemFn) -> Action {
 }
 
 fn analyze_local_storage_default(input: &PatIdent, attribute: &Attribute) -> LocalStorageDefault {
-    if let Ok(_) = attribute.meta.require_path_only() {
+    if attribute.meta.require_path_only().is_ok() {
         LocalStorageDefault::Empty {
             ident: input.ident.clone(),
         }
