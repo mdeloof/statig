@@ -99,7 +99,6 @@ where
     }
 
     /// Handle the given event in the current state.
-
     fn handle(
         &mut self,
         shared_storage: &mut M,
