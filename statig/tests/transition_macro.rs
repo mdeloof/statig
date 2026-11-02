@@ -237,7 +237,7 @@ mod tests {
                 (Leaf(expected), Leaf(actual)) if actual == expected => continue,
                 _ => panic!(
                     "Transition path at {} is wrong: Actual: {:?}, Expected: {:?}",
-                    i, &state_machine.path[i], &expected_path[i]
+                    i, state_machine.path[i], expected_path[i]
                 ),
             };
         }
