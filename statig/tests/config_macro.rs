@@ -23,6 +23,7 @@ mod tests {
             superstate(name = "MySuperstate", derive(Clone)),
             event_identifier = "my_event",
             context_identifier = "my_context",
+            context = "Context",
             visibility = "pub(crate)"
         )]
         impl MyStateMachine {

@@ -7,8 +7,8 @@ use proc_macro_error2::abort;
 use syn::parse::Parser;
 use syn::{parse_quote, ExprClosure, FieldValue};
 use syn::{
-    Expr, Field, FnArg, GenericParam, Generics, Ident, ItemFn, ItemImpl, Lifetime, Pat, PatType,
-    Path, Type, Variant, Visibility, WhereClause, WherePredicate,
+    Expr, Field, FnArg, GenericParam, Generics, Ident, ImplItem, ItemFn, ItemImpl, Lifetime, Pat,
+    PatType, Path, Type, Variant, Visibility, WhereClause, WherePredicate,
 };
 
 use quote::format_ident;
@@ -16,7 +16,7 @@ use quote::format_ident;
 use crate::analyze;
 use crate::analyze::Model;
 use crate::visitors::{GenericParamVisitor, LifetimeVisitor};
-use crate::{CONTEXT_LIFETIME, SUPERSTATE_LIFETIME};
+use crate::SUPERSTATE_LIFETIME;
 
 /// Intermediate representation of the state machine.
 #[cfg_attr(test, derive(Debug, Eq, PartialEq))]
@@ -283,10 +283,9 @@ pub fn lower(model: &Model) -> Ir {
         }
     }
 
-    // Find event and/or context types and check whether there are any async functions.
+    // Find the event type and check whether there are any async functions.
     let mut mode = Mode::Blocking;
     let mut event_type = None;
-    let mut context_type = None;
 
     for state in model.states.values() {
         if let Some(pat_type) = &state.event_arg {
@@ -301,21 +300,6 @@ pub fn lower(model: &Model) -> Ir {
                         _ => abort!(pat_type.ty, "event must be passed in as a reference"),
                     };
                     event_type = Some(ty);
-                }
-            }
-        }
-        if let Some(pat_type) = &state.context_arg {
-            if let Pat::Ident(external_input_ident) = &*pat_type.pat {
-                if model
-                    .state_machine
-                    .context_ident
-                    .eq(&external_input_ident.ident)
-                {
-                    let ty = match &*pat_type.ty {
-                        Type::Reference(reference) => reference.elem.deref().clone(),
-                        _ => abort!(pat_type.ty, "context must be passed in as a reference"),
-                    };
-                    context_type = Some(ty);
                 }
             }
         }
@@ -340,21 +324,6 @@ pub fn lower(model: &Model) -> Ir {
                 }
             }
         }
-        if let Some(pat_type) = &superstate.context_arg {
-            if let Pat::Ident(external_input_ident) = &*pat_type.pat {
-                if model
-                    .state_machine
-                    .context_ident
-                    .eq(&external_input_ident.ident)
-                {
-                    let ty = match &*pat_type.ty {
-                        Type::Reference(reference) => reference.elem.deref().clone(),
-                        _ => abort!(pat_type.ty, "context must be passed in as a reference"),
-                    };
-                    context_type = Some(ty);
-                }
-            }
-        }
         if superstate.is_async {
             mode = Mode::Awaitable;
         }
@@ -376,15 +345,22 @@ pub fn lower(model: &Model) -> Ir {
     let mut lifetime_visitor = LifetimeVisitor::new("'event");
     lifetime_visitor.rename_type(&mut event_type);
 
-    // Set the context type if it was found, otherwise set it to `()`.
-    let mut context_type = match context_type {
-        Some(context_type) => context_type,
-        None => parse_quote!(()),
-    };
+    // The context type is taken verbatim from the `context` argument, so its lifetimes must
+    // name the `'ctx` and `'data` parameters of `IntoStateMachine::Context`. Handlers that take
+    // the context without a declared type are rejected rather than defaulting to `()`.
+    let context_type = match &model.state_machine.context_type {
+        Some(context_type) => context_type.clone(),
+        None => {
+            if let Some(pat_type) = first_undeclared_context_arg(model) {
+                abort!(
+                    pat_type,
+                    "context type must be declared with `context = \"...\"` on `#[state_machine]`"
+                );
+            }
 
-    // Rename all the anonymous lifetimes in the context type.
-    let mut lifetime_visitor = LifetimeVisitor::new(CONTEXT_LIFETIME);
-    lifetime_visitor.rename_type(&mut context_type);
+            parse_quote!(())
+        }
+    };
 
     // Find the generics that need to be included on the state and superstate enums.
     let shared_storage_generics_map = map_generics(&shared_storage_generics);
@@ -478,6 +454,38 @@ pub fn lower(model: &Model) -> Ir {
         states,
         superstates,
     }
+}
+
+/// Find the context argument of the first state handler in source order, falling back to the
+/// first superstate handler in source order.
+///
+/// Returns `None` when no state or superstate handler takes the context. Actions and hooks are
+/// not considered.
+fn first_undeclared_context_arg(model: &Model) -> Option<&PatType> {
+    let handler_names = || {
+        model.item_impl.items.iter().filter_map(|item| match item {
+            ImplItem::Fn(method) => Some(&method.sig.ident),
+            _ => None,
+        })
+    };
+
+    let state_context_arg = handler_names().find_map(|name| {
+        model
+            .states
+            .get(name)
+            .and_then(|state| state.context_arg.as_ref())
+    });
+
+    if state_context_arg.is_some() {
+        return state_context_arg;
+    }
+
+    handler_names().find_map(|name| {
+        model
+            .superstates
+            .get(name)
+            .and_then(|superstate| superstate.context_arg.as_ref())
+    })
 }
 
 pub fn lower_state(state: &analyze::State, state_machine: &analyze::StateMachine) -> State {
@@ -798,6 +806,7 @@ fn create_analyze_state_machine() -> analyze::StateMachine {
         visibility: parse_quote!(pub),
         event_ident: parse_quote!(input),
         context_ident: parse_quote!(context),
+        context_type: None,
     }
 }
 
@@ -1050,4 +1059,18 @@ fn test_lower() {
     let expected = create_lower_model();
 
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_lower_declared_context_type() {
+    let mut model = create_analyze_model();
+    model.state_machine.context_type = Some(parse_quote!(Ctx<'ctx, 'data>));
+
+    let ir = lower(&model);
+    let ty = &ir.state_machine.context_type;
+
+    assert_eq!(
+        quote::quote!(#ty).to_string(),
+        quote::quote!(Ctx<'ctx, 'data>).to_string()
+    );
 }

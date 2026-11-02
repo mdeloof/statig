@@ -1,0 +1,5 @@
+error: context type must be declared with `context = "..."` on `#[state_machine]`
+  --> tests/ui/context_attribute_missing.rs:21:13
+   |
+21 |     fn idle(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^

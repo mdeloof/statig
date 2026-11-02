@@ -297,3 +297,362 @@ mod awaitable_manual {
         assert_eq!(state_machine.inner().dispatches, 4);
     }
 }
+
+#[cfg(test)]
+mod blocking_macro {
+    use super::{Ctx, Event, Writer};
+    use statig::prelude::*;
+
+    #[derive(Default)]
+    struct Machine {
+        dispatches: u32,
+    }
+
+    #[state_machine(
+        initial = "State::idle()",
+        context = "Ctx<'ctx, 'data>",
+        before_transition = "Self::before_transition",
+        after_dispatch = "Self::after_dispatch"
+    )]
+    impl Machine {
+        #[state(entry_action = "enter_idle", exit_action = "exit_idle")]
+        fn idle(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+            match event {
+                Event::Bump => {
+                    context.writer.log.push(10);
+
+                    Handled
+                }
+                Event::Toggle => Transition(State::active()),
+            }
+        }
+
+        #[state(entry_action = "enter_active", exit_action = "exit_active")]
+        fn active(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+            match event {
+                Event::Bump => {
+                    context.writer.log.push(20);
+
+                    Handled
+                }
+                Event::Toggle => Transition(State::idle()),
+            }
+        }
+
+        #[action]
+        fn enter_idle(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(1);
+        }
+
+        #[action]
+        fn exit_idle(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(2);
+        }
+
+        #[action]
+        fn enter_active(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(3);
+        }
+
+        #[action]
+        fn exit_active(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(4);
+        }
+    }
+
+    impl Machine {
+        fn before_transition(
+            &mut self,
+            _source: &State,
+            _target: &State,
+            context: &mut Ctx<'_, '_>,
+        ) {
+            context.writer.log.push(100);
+        }
+
+        fn after_dispatch(
+            &mut self,
+            _state_or_superstate: StateOrSuperstate<'_, State, Superstate>,
+            _event: &Event,
+        ) {
+            self.dispatches += 1;
+        }
+    }
+
+    fn drive(
+        state_machine: &mut statig::blocking::StateMachine<Machine>,
+        mut writer: Writer<'_>,
+        events: &[Event],
+    ) {
+        state_machine.init_with_context(&mut Ctx {
+            writer: &mut writer,
+        });
+
+        for event in events {
+            state_machine.handle_with_context(
+                event,
+                &mut Ctx {
+                    writer: &mut writer,
+                },
+            );
+        }
+    }
+
+    #[test]
+    fn drives_two_lifetime_context_in_loop() {
+        let mut log = Vec::new();
+        let mut state_machine = Machine::default().state_machine();
+
+        drive(
+            &mut state_machine,
+            Writer { log: &mut log },
+            &[Event::Bump, Event::Toggle, Event::Bump, Event::Toggle],
+        );
+
+        assert_eq!(log, vec![1, 10, 100, 2, 3, 20, 100, 4, 1]);
+        assert_eq!(state_machine.inner().dispatches, 4);
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "async")]
+mod awaitable_macro {
+    use super::{Ctx, Event, Writer};
+    use statig::prelude::*;
+
+    #[derive(Default)]
+    struct Machine {
+        dispatches: u32,
+    }
+
+    #[state_machine(
+        initial = "State::idle()",
+        context = "Ctx<'ctx, 'data>",
+        before_transition = "Self::before_transition",
+        after_dispatch = "Self::after_dispatch"
+    )]
+    impl Machine {
+        #[state(entry_action = "enter_idle", exit_action = "exit_idle")]
+        async fn idle(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+            match event {
+                Event::Bump => {
+                    context.writer.log.push(10);
+
+                    Handled
+                }
+                Event::Toggle => Transition(State::active()),
+            }
+        }
+
+        #[state(entry_action = "enter_active", exit_action = "exit_active")]
+        async fn active(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+            match event {
+                Event::Bump => {
+                    context.writer.log.push(20);
+
+                    Handled
+                }
+                Event::Toggle => Transition(State::idle()),
+            }
+        }
+
+        #[action]
+        async fn enter_idle(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(1);
+        }
+
+        #[action]
+        async fn exit_idle(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(2);
+        }
+
+        #[action]
+        async fn enter_active(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(3);
+        }
+
+        #[action]
+        async fn exit_active(context: &mut Ctx<'_, '_>) {
+            context.writer.log.push(4);
+        }
+    }
+
+    impl Machine {
+        async fn before_transition(
+            &mut self,
+            _source: &State,
+            _target: &State,
+            context: &mut Ctx<'_, '_>,
+        ) {
+            context.writer.log.push(100);
+        }
+
+        async fn after_dispatch(
+            &mut self,
+            _state_or_superstate: StateOrSuperstate<'_, State, Superstate>,
+            _event: &Event,
+        ) {
+            self.dispatches += 1;
+        }
+    }
+
+    async fn drive(
+        state_machine: &mut statig::awaitable::StateMachine<Machine>,
+        mut writer: Writer<'_>,
+        events: &[Event],
+    ) {
+        state_machine
+            .init_with_context(&mut Ctx {
+                writer: &mut writer,
+            })
+            .await;
+
+        for event in events {
+            state_machine
+                .handle_with_context(
+                    event,
+                    &mut Ctx {
+                        writer: &mut writer,
+                    },
+                )
+                .await;
+        }
+    }
+
+    #[test]
+    fn drives_two_lifetime_context_in_loop() {
+        let mut log = Vec::new();
+        let mut state_machine = Machine::default().state_machine();
+
+        futures::executor::block_on(drive(
+            &mut state_machine,
+            Writer { log: &mut log },
+            &[Event::Bump, Event::Toggle, Event::Bump, Event::Toggle],
+        ));
+
+        assert_eq!(log, vec![1, 10, 100, 2, 3, 20, 100, 4, 1]);
+        assert_eq!(state_machine.inner().dispatches, 4);
+    }
+}
+
+#[cfg(test)]
+mod owned_context {
+    use super::{Event, Writer};
+    use statig::prelude::*;
+
+    /// Context that owns a [`Writer`], so only the data lifetime is named.
+    struct Owned<'d> {
+        writer: Writer<'d>,
+    }
+
+    #[derive(Default)]
+    struct Machine;
+
+    #[state_machine(initial = "State::idle()", context = "Owned<'data>")]
+    impl Machine {
+        #[state(entry_action = "enter_idle")]
+        fn idle(context: &mut Owned<'_>, event: &Event) -> Outcome<State> {
+            match event {
+                Event::Bump => {
+                    context.writer.log.push(10);
+
+                    Handled
+                }
+                Event::Toggle => Transition(State::idle()),
+            }
+        }
+
+        #[action]
+        fn enter_idle(context: &mut Owned<'_>) {
+            context.writer.log.push(1);
+        }
+    }
+
+    fn drive(
+        state_machine: &mut statig::blocking::StateMachine<Machine>,
+        writer: Writer<'_>,
+        events: &[Event],
+    ) {
+        let mut owned = Owned { writer };
+
+        state_machine.init_with_context(&mut owned);
+
+        for event in events {
+            state_machine.handle_with_context(event, &mut owned);
+        }
+    }
+
+    #[test]
+    fn drives_owned_context_in_loop() {
+        let mut log = Vec::new();
+        let mut state_machine = Machine.state_machine();
+
+        drive(
+            &mut state_machine,
+            Writer { log: &mut log },
+            &[Event::Bump, Event::Bump, Event::Toggle, Event::Bump],
+        );
+
+        assert_eq!(log, vec![1, 10, 10, 1, 10]);
+    }
+}
+
+#[cfg(test)]
+mod borrowed_context {
+    use super::Event;
+    use statig::prelude::*;
+
+    /// Context that borrows the log for a single call, so only the context lifetime is named.
+    struct Borrowed<'b> {
+        log: &'b mut Vec<u32>,
+    }
+
+    #[derive(Default)]
+    struct Machine;
+
+    #[state_machine(initial = "State::idle()", context = "Borrowed<'ctx>")]
+    impl Machine {
+        #[state(entry_action = "enter_idle")]
+        fn idle(context: &mut Borrowed<'_>, event: &Event) -> Outcome<State> {
+            match event {
+                Event::Bump => {
+                    context.log.push(10);
+
+                    Handled
+                }
+                Event::Toggle => Transition(State::idle()),
+            }
+        }
+
+        #[action]
+        fn enter_idle(context: &mut Borrowed<'_>) {
+            context.log.push(1);
+        }
+    }
+
+    fn drive(
+        state_machine: &mut statig::blocking::StateMachine<Machine>,
+        log: &mut Vec<u32>,
+        events: &[Event],
+    ) {
+        state_machine.init_with_context(&mut Borrowed { log: &mut *log });
+
+        for event in events {
+            state_machine.handle_with_context(event, &mut Borrowed { log: &mut *log });
+        }
+    }
+
+    #[test]
+    fn drives_borrowed_context_in_loop() {
+        let mut log = Vec::new();
+        let mut state_machine = Machine.state_machine();
+
+        drive(
+            &mut state_machine,
+            &mut log,
+            &[Event::Bump, Event::Bump, Event::Toggle, Event::Bump],
+        );
+
+        assert_eq!(log, vec![1, 10, 10, 1, 10]);
+    }
+}

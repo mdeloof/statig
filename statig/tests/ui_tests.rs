@@ -7,4 +7,9 @@ fn ui() {
     // Doc comment propagation tests
     t.pass("tests/ui/doc_comments.rs");
     t.compile_fail("tests/ui/doc_comments_missing_lint.rs");
+
+    // Context type declaration tests
+    t.compile_fail("tests/ui/context_attribute_missing.rs");
+    t.compile_fail("tests/ui/context_attribute_duplicate.rs");
+    t.compile_fail("tests/ui/context_attribute_not_a_type.rs");
 }

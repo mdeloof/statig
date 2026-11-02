@@ -49,6 +49,8 @@ pub struct StateMachine {
     pub event_ident: Ident,
     /// The identifier that is used for the context argument.
     pub context_ident: Ident,
+    /// The declared context type, if any.
+    pub context_type: Option<Type>,
     /// The visibility of the derived types.
     pub visibility: Visibility,
     /// Optional `before_transition` callback.
@@ -211,6 +213,7 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
     let mut visibility = parse_quote!(pub);
     let mut event_ident = parse_quote!(event);
     let mut context_ident = parse_quote!(context);
+    let mut context_type: Option<Type> = None;
 
     let mut state_meta: MetaList = parse_quote!(state());
     let mut superstate_meta: MetaList = parse_quote!(superstate());
@@ -252,6 +255,14 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
                     context_ident
                 }
                 Err(_) => abort!(meta, "context identifier must be an ident"),
+            }
+        } else if meta.path().is_ident("context") {
+            if context_type.is_some() {
+                abort!(meta, "duplicate `context` item")
+            }
+            context_type = match meta_require_name_lit_str(meta).parse::<Type>() {
+                Ok(context_type) => Some(context_type),
+                Err(_) => abort!(meta, "context must be a type"),
             }
         } else if meta.path().is_ident("before_transition") {
             if before_transition.is_some() {
@@ -423,6 +434,7 @@ pub fn analyze_state_machine(attribute_args: &[Meta], item_impl: &ItemImpl) -> S
         after_transition,
         event_ident,
         context_ident,
+        context_type,
         visibility,
     }
 }
@@ -842,6 +854,7 @@ fn valid_state_analyze() {
     let after_dispatch = None;
     let event_ident = parse_quote!(event);
     let context_ident = parse_quote!(context);
+    let context_type = None;
     let visibility = parse_quote!(pub);
 
     let state_machine = StateMachine {
@@ -859,6 +872,7 @@ fn valid_state_analyze() {
         after_dispatch,
         event_ident,
         context_ident,
+        context_type,
         visibility,
     };
 
@@ -930,4 +944,21 @@ fn valid_state_analyze() {
     };
 
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn context_type_analyze() {
+    let attribute_args: Punctuated<Meta, Token![,]> =
+        parse_quote!(initial = "State::on()", context = "Ctx<'ctx, 'data>");
+
+    let item_impl: ItemImpl = parse_quote!(
+        impl Blinky {}
+    );
+
+    let attribute_args: Vec<Meta> = attribute_args.into_iter().collect();
+    let state_machine = analyze_state_machine(&attribute_args, &item_impl);
+
+    let expected: Option<Type> = Some(parse_quote!(Ctx<'ctx, 'data>));
+
+    assert_eq!(state_machine.context_type, expected);
 }
