@@ -71,9 +71,9 @@ mod tests {
             foo_bar.handle(&Event::Tick).await;
         });
 
-        assert_eq!(foo_bar.inner().before_dispatch, true);
-        assert_eq!(foo_bar.inner().after_dispatch, true);
-        assert_eq!(foo_bar.inner().before_transition, true);
-        assert_eq!(foo_bar.inner().after_transition, true);
+        assert!(foo_bar.inner().before_dispatch);
+        assert!(foo_bar.inner().after_dispatch);
+        assert!(foo_bar.inner().before_transition);
+        assert!(foo_bar.inner().after_transition);
     }
 }

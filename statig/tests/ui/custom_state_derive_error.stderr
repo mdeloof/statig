@@ -8,7 +8,7 @@ error[E0599]: the method `state_machine` exists for struct `Blinky`, but its tra
   --> tests/ui/custom_state_derive_error.rs:51:47
    |
  6 | pub struct Blinky {}
-   | ----------------- method `state_machine` not found for this struct because it doesn't satisfy `Blinky: statig::awaitable::IntoStateMachineExt`, `Blinky: statig::awaitable::IntoStateMachine`, `Blinky: statig::blocking::IntoStateMachineExt` or `Blinky: statig::blocking::IntoStateMachine`
+   | ----------------- method `state_machine` not found for this struct because `Blinky` doesn't implement `statig::awaitable::IntoStateMachine` or `statig::blocking::IntoStateMachine`
 ...
 51 |     let mut state_machine = Blinky::default().state_machine();
    |                                               ^^^^^^^^^^^^^ method cannot be called on `Blinky` due to unsatisfied trait bounds
@@ -27,12 +27,12 @@ error[E0599]: the method `state_machine` exists for struct `Blinky`, but its tra
            `&mut Blinky: statig::blocking::IntoStateMachine`
            which is required by `&mut Blinky: statig::blocking::IntoStateMachineExt`
 note: the traits `statig::awaitable::IntoStateMachine` and `statig::blocking::IntoStateMachine` must be implemented
-  --> src/awaitable/into_state_machine.rs
+  --> src/blocking/into_state_machine.rs
    |
    | pub trait IntoStateMachine
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
-  ::: src/blocking/into_state_machine.rs
+  ::: src/awaitable/into_state_machine.rs
    |
    | pub trait IntoStateMachine
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^

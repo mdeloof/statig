@@ -101,7 +101,7 @@ mod tests {
             }
         }
 
-        fn superstate(&mut self) -> Option<Superstate> {
+        fn superstate(&mut self) -> Option<Superstate<'_>> {
             match self {
                 State::On { led, counter } => Some(Superstate::Playing { led }),
                 State::Off { led } => Some(Superstate::Playing { led }),
@@ -143,7 +143,7 @@ mod tests {
             }
         }
 
-        fn superstate(&mut self) -> Option<Superstate>
+        fn superstate(&mut self) -> Option<Superstate<'_>>
         where
             Self: Sized,
         {

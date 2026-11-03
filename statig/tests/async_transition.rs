@@ -72,9 +72,9 @@ mod tests {
         ) -> impl Future<Output = statig::Outcome<Self>> {
             async move {
                 match self {
-                    State::S211 {} => Foo::s211(shared_storage, event).await,
-                    State::S11 {} => Foo::s11(shared_storage, event).await,
-                    State::S12 {} => Foo::s12(shared_storage, event).await,
+                    State::S211 => Foo::s211(shared_storage, event).await,
+                    State::S11 => Foo::s11(shared_storage, event).await,
+                    State::S12 => Foo::s12(shared_storage, event).await,
                 }
             }
         }
@@ -86,9 +86,9 @@ mod tests {
         ) -> impl Future<Output = ()> {
             async move {
                 match self {
-                    State::S211 {} => Foo::enter_s211(shared_storage).await,
-                    State::S11 {} => Foo::enter_s11(shared_storage).await,
-                    State::S12 {} => Foo::enter_s12(shared_storage).await,
+                    State::S211 => Foo::enter_s211(shared_storage).await,
+                    State::S11 => Foo::enter_s11(shared_storage).await,
+                    State::S12 => Foo::enter_s12(shared_storage).await,
                 }
             }
         }
@@ -100,18 +100,18 @@ mod tests {
         ) -> impl Future<Output = ()> {
             async move {
                 match self {
-                    State::S211 {} => Foo::exit_s211(shared_storage).await,
-                    State::S11 {} => Foo::exit_s11(shared_storage).await,
-                    State::S12 {} => Foo::exit_s12(shared_storage).await,
+                    State::S211 => Foo::exit_s211(shared_storage).await,
+                    State::S11 => Foo::exit_s11(shared_storage).await,
+                    State::S12 => Foo::exit_s12(shared_storage).await,
                 }
             }
         }
 
         fn superstate(&mut self) -> Option<Superstate> {
             match self {
-                State::S211 {} => Some(Superstate::S21 {}),
-                State::S11 {} => Some(Superstate::S1 {}),
-                State::S12 {} => Some(Superstate::S1 {}),
+                State::S211 => Some(Superstate::S21 {}),
+                State::S11 => Some(Superstate::S1 {}),
+                State::S12 => Some(Superstate::S1 {}),
             }
         }
     }
@@ -128,10 +128,10 @@ mod tests {
         {
             async move {
                 match self {
-                    Superstate::S21 {} => Foo::s21(shared_storage, event).await,
-                    Superstate::S {} => Foo::s(shared_storage, event).await,
-                    Superstate::S2 {} => Foo::s2(shared_storage, event).await,
-                    Superstate::S1 {} => Foo::s1(shared_storage, event).await,
+                    Superstate::S21 => Foo::s21(shared_storage, event).await,
+                    Superstate::S => Foo::s(shared_storage, event).await,
+                    Superstate::S2 => Foo::s2(shared_storage, event).await,
+                    Superstate::S1 => Foo::s1(shared_storage, event).await,
                 }
             }
         }
@@ -143,10 +143,10 @@ mod tests {
         ) -> impl Future<Output = ()> {
             async move {
                 match self {
-                    Superstate::S21 {} => Foo::enter_s21(shared_storage).await,
-                    Superstate::S {} => Foo::enter_s(shared_storage).await,
-                    Superstate::S2 {} => Foo::enter_s2(shared_storage).await,
-                    Superstate::S1 {} => Foo::enter_s1(shared_storage).await,
+                    Superstate::S21 => Foo::enter_s21(shared_storage).await,
+                    Superstate::S => Foo::enter_s(shared_storage).await,
+                    Superstate::S2 => Foo::enter_s2(shared_storage).await,
+                    Superstate::S1 => Foo::enter_s1(shared_storage).await,
                 }
             }
         }
@@ -158,20 +158,20 @@ mod tests {
         ) -> impl Future<Output = ()> {
             async move {
                 match self {
-                    Superstate::S21 {} => Foo::exit_s21(shared_storage).await,
-                    Superstate::S {} => Foo::exit_s(shared_storage).await,
-                    Superstate::S2 {} => Foo::exit_s2(shared_storage).await,
-                    Superstate::S1 {} => Foo::exit_s1(shared_storage).await,
+                    Superstate::S21 => Foo::exit_s21(shared_storage).await,
+                    Superstate::S => Foo::exit_s(shared_storage).await,
+                    Superstate::S2 => Foo::exit_s2(shared_storage).await,
+                    Superstate::S1 => Foo::exit_s1(shared_storage).await,
                 }
             }
         }
 
         fn superstate(&mut self) -> Option<Superstate> {
             match self {
-                Superstate::S21 {} => Some(Superstate::S2 {}),
-                Superstate::S {} => None,
-                Superstate::S2 {} => Some(Superstate::S {}),
-                Superstate::S1 {} => Some(Superstate::S {}),
+                Superstate::S21 => Some(Superstate::S2 {}),
+                Superstate::S => None,
+                Superstate::S2 => Some(Superstate::S {}),
+                Superstate::S1 => Some(Superstate::S {}),
             }
         }
     }
@@ -344,7 +344,7 @@ mod tests {
                     (Leaf(expected), Leaf(actual)) if actual == expected => continue,
                     _ => panic!(
                         "Transition path at {} is wrong: Actual: {:?}, Expected: {:?}",
-                        i, &state_machine.path[i], &expected_path[i]
+                        i, state_machine.path[i], expected_path[i]
                     ),
                 };
             }

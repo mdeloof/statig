@@ -617,12 +617,10 @@ pub fn lower_superstate(
 
     let state_type = state_type.as_ident();
 
-    let constructor = match &superstate.initial_state {
-        Some(initial) => {
-            Some(parse_quote!(fn #superstate_handler_name () -> #state_type { #initial }))
-        }
-        None => None,
-    };
+    let constructor = superstate
+        .initial_state
+        .as_ref()
+        .map(|initial| parse_quote!(fn #superstate_handler_name () -> #state_type { #initial }));
 
     let entry_action_call = parse_quote!({});
     let exit_action_call = parse_quote!({});
