@@ -13,7 +13,7 @@ mod tests {
         TimerElapsed,
     }
 
-    #[state_machine(initial = "State::up()")]
+    #[state_machine(initial = "State::up()", context = "ExternalContext<'ctx, 'data>")]
     impl Counter {
         #[state]
         fn up(context: &mut ExternalContext<'_, '_>, event: &Event) -> Outcome<State> {
@@ -46,7 +46,7 @@ mod tests {
 
         let mut blinky = Counter
             .uninitialized_state_machine()
-            .init_with_context(&mut external_context);
+            .init(&mut external_context);
 
         let events = [
             Event::ButtonPressed,
@@ -55,7 +55,7 @@ mod tests {
         ];
 
         for event in &events {
-            blinky.handle_with_context(event, &mut external_context);
+            blinky.handle(event, &mut external_context);
         }
 
         assert_eq!(*external_context.0, 3);
@@ -68,7 +68,7 @@ mod tests {
         ];
 
         for event in &events {
-            blinky.handle_with_context(event, &mut external_context);
+            blinky.handle(event, &mut external_context);
         }
 
         assert_eq!(*external_context.0, 0);

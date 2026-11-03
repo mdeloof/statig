@@ -8,20 +8,30 @@ where
     M: IntoStateMachine,
 {
     /// Call the handler for the current state and let it handle the given event.
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> Outcome<Self>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
-    fn call_entry_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
+    fn call_entry_action<'ctx, 'data: 'ctx>(
+        &mut self,
+        shared_storage: &mut M,
+        context: &mut M::Context<'ctx, 'data>,
+    ) {
+    }
 
     #[allow(unused)]
     /// Call the exit action for the current state.
-    fn call_exit_action(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>) {}
+    fn call_exit_action<'ctx, 'data: 'ctx>(
+        &mut self,
+        shared_storage: &mut M,
+        context: &mut M::Context<'ctx, 'data>,
+    ) {
+    }
 
     /// Return the superstate of the current state, if there is one.
     fn superstate(&mut self) -> Option<M::Superstate<'_>> {
@@ -84,11 +94,11 @@ where
     }
 
     /// Handle the given event in the current state.
-    fn handle(
+    fn handle<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> Outcome<Self>
     where
         Self: Sized,
@@ -139,7 +149,12 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current state.
-    fn enter(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
+    fn enter<'ctx, 'data: 'ctx>(
+        &mut self,
+        shared_storage: &mut M,
+        context: &mut M::Context<'ctx, 'data>,
+        levels: usize,
+    ) {
         match levels {
             0 => (),
             1 => self.call_entry_action(shared_storage, context),
@@ -154,7 +169,12 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(&mut self, shared_storage: &mut M, context: &mut M::Context<'_>, levels: usize) {
+    fn exit<'ctx, 'data: 'ctx>(
+        &mut self,
+        shared_storage: &mut M,
+        context: &mut M::Context<'ctx, 'data>,
+        levels: usize,
+    ) {
         match levels {
             0 => (),
             1 => self.call_exit_action(shared_storage, context),

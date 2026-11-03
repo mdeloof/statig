@@ -1,0 +1,5 @@
+error: context must be a type
+  --> tests/ui/context_attribute_not_a_type.rs:10:44
+   |
+10 | #[state_machine(initial = "State::idle()", context = "not a type")]
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^

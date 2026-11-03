@@ -1,0 +1,5 @@
+error: context type must be declared with `context = "..."` on `#[state_machine]`
+  --> tests/ui/context_attribute_missing_order.rs:41:13
+   |
+41 |     fn busy(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^

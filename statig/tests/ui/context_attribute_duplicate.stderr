@@ -1,0 +1,5 @@
+error: duplicate `context` item
+  --> tests/ui/context_attribute_duplicate.rs:21:5
+   |
+21 |     context = "Ctx<'ctx, 'data>"
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

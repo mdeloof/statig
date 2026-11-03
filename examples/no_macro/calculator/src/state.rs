@@ -64,7 +64,7 @@ impl blocking::IntoStateMachine for Calculator {
 
     type Event<'evt> = Event;
 
-    type Context<'ctx> = ();
+    type Context<'ctx, 'data: 'ctx> = ();
 
     fn initial() -> Self::State {
         State::Begin
@@ -72,7 +72,7 @@ impl blocking::IntoStateMachine for Calculator {
 }
 
 impl blocking::State<Calculator> for State {
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         calculator: &mut Calculator,
         event: &Event,
@@ -103,7 +103,7 @@ impl blocking::State<Calculator> for State {
         }
     }
 
-    fn call_entry_action(&mut self, calculator: &mut Calculator, _: &mut ()) {
+    fn call_entry_action<'ctx, 'data: 'ctx>(&mut self, calculator: &mut Calculator, _: &mut ()) {
         match self {
             State::Begin => Calculator::enter_begin(calculator),
             State::Response { result } => Calculator::enter_result(calculator, result),
@@ -133,7 +133,7 @@ impl blocking::State<Calculator> for State {
 }
 
 impl<'sub> blocking::Superstate<Calculator> for Superstate<'sub> {
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         calculator: &mut Calculator,
         event: &Event,

@@ -10,29 +10,29 @@ where
     M: IntoStateMachine,
 {
     /// Call the handler for the current superstate.
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = Outcome<M::State>>;
 
     #[allow(unused)]
     /// Call the entry action for the current superstate.
-    fn call_entry_action(
+    fn call_entry_action<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = ()> {
         core::future::ready(())
     }
 
     #[allow(unused)]
     /// Call the exit action for the current superstate.
-    fn call_exit_action(
+    fn call_exit_action<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = ()> {
         core::future::ready(())
     }
@@ -104,20 +104,28 @@ impl<M> Superstate<M> for ()
 where
     M: IntoStateMachine,
 {
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         _: &mut M,
         _: &M::Event<'_>,
-        _: &mut M::Context<'_>,
+        _: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = Outcome<M::State>> {
         core::future::ready(Outcome::Handled)
     }
 
-    fn call_entry_action(&mut self, _: &mut M, _: &mut M::Context<'_>) -> impl Future<Output = ()> {
+    fn call_entry_action<'ctx, 'data: 'ctx>(
+        &mut self,
+        _: &mut M,
+        _: &mut M::Context<'ctx, 'data>,
+    ) -> impl Future<Output = ()> {
         core::future::ready(())
     }
 
-    fn call_exit_action(&mut self, _: &mut M, _: &mut M::Context<'_>) -> impl Future<Output = ()> {
+    fn call_exit_action<'ctx, 'data: 'ctx>(
+        &mut self,
+        _: &mut M,
+        _: &mut M::Context<'ctx, 'data>,
+    ) -> impl Future<Output = ()> {
         core::future::ready(())
     }
 

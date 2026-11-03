@@ -12,29 +12,29 @@ where
     for<'b> M::Superstate<'b>: Superstate<M>,
 {
     /// Call the handler for the current state and let it handle the given event.
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = Outcome<Self>>;
 
     #[allow(unused)]
     /// Call the entry action for the current state.
-    fn call_entry_action(
+    fn call_entry_action<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = ()> {
         core::future::ready(())
     }
 
     #[allow(unused)]
     /// Call the exit action for the current state.
-    fn call_exit_action(
+    fn call_exit_action<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = ()> {
         core::future::ready(())
     }
@@ -99,12 +99,11 @@ where
     }
 
     /// Handle the given event in the current state.
-
-    fn handle(
+    fn handle<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> impl Future<Output = Outcome<Self>> {
         async move {
             M::before_dispatch(
@@ -169,10 +168,10 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// entry actions while going back down to the current state.
-    fn enter(
+    fn enter<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
         mut levels: usize,
     ) -> impl Future<Output = ()> {
         async move {
@@ -202,10 +201,10 @@ where
 
     /// Starting from the current state, climb a given amount of levels and execute all the
     /// the exit actions while going up to a certain superstate.
-    fn exit(
+    fn exit<'ctx, 'data: 'ctx>(
         &mut self,
         shared_storage: &mut M,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
         mut levels: usize,
     ) -> impl Future<Output = ()> {
         async move {

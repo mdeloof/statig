@@ -53,7 +53,7 @@ mod tests {
 
         type Event<'evt> = Event;
 
-        type Context<'ctx> = ();
+        type Context<'ctx, 'data: 'ctx> = ();
 
         fn initial() -> Self::State {
             State::S11
@@ -61,49 +61,46 @@ mod tests {
     }
 
     impl blocking::State<Foo> for State {
-        fn call_handler(
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
             event: &Event,
             _: &mut (),
         ) -> statig::Outcome<Self> {
             match self {
-                State::S211 {} => Foo::s211(shared_storage, event),
-                State::S11 {} => Foo::s11(shared_storage, event),
-                State::S12 {} => Foo::s12(shared_storage, event),
+                State::S211 => Foo::s211(shared_storage, event),
+                State::S11 => Foo::s11(shared_storage, event),
+                State::S12 => Foo::s12(shared_storage, event),
             }
         }
 
-        fn call_entry_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_entry_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                State::S211 {} => Foo::enter_s211(shared_storage),
-                State::S11 {} => Foo::enter_s11(shared_storage),
-                State::S12 {} => Foo::enter_s12(shared_storage),
+                State::S211 => Foo::enter_s211(shared_storage),
+                State::S11 => Foo::enter_s11(shared_storage),
+                State::S12 => Foo::enter_s12(shared_storage),
             }
         }
 
-        fn call_exit_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                State::S211 {} => Foo::exit_s211(shared_storage),
-                State::S11 {} => Foo::exit_s11(shared_storage),
-                State::S12 {} => Foo::exit_s12(shared_storage),
+                State::S211 => Foo::exit_s211(shared_storage),
+                State::S11 => Foo::exit_s11(shared_storage),
+                State::S12 => Foo::exit_s12(shared_storage),
             }
         }
 
         fn superstate(&mut self) -> Option<Superstate> {
             match self {
-                State::S211 {} => Some(Superstate::S21 {}),
-                State::S11 {} => Some(Superstate::S1 {}),
-                State::S12 {} => Some(Superstate::S1 {}),
+                State::S211 => Some(Superstate::S21 {}),
+                State::S11 => Some(Superstate::S1 {}),
+                State::S12 => Some(Superstate::S1 {}),
             }
         }
     }
 
-    impl<'sub> blocking::Superstate<Foo> for Superstate
-    where
-        Self: 'sub,
-    {
-        fn call_handler(
+    impl blocking::Superstate<Foo> for Superstate {
+        fn call_handler<'ctx, 'data: 'ctx>(
             &mut self,
             shared_storage: &mut Foo,
             event: &Event,
@@ -113,37 +110,37 @@ mod tests {
             Self: Sized,
         {
             match self {
-                Superstate::S21 {} => Foo::s21(shared_storage, event),
-                Superstate::S {} => Foo::s(shared_storage, event),
-                Superstate::S2 {} => Foo::s2(shared_storage, event),
-                Superstate::S1 {} => Foo::s1(shared_storage, event),
+                Superstate::S21 => Foo::s21(shared_storage, event),
+                Superstate::S => Foo::s(shared_storage, event),
+                Superstate::S2 => Foo::s2(shared_storage, event),
+                Superstate::S1 => Foo::s1(shared_storage, event),
             }
         }
 
-        fn call_entry_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_entry_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                Superstate::S21 {} => Foo::enter_s21(shared_storage),
-                Superstate::S {} => Foo::enter_s(shared_storage),
-                Superstate::S2 {} => Foo::enter_s2(shared_storage),
-                Superstate::S1 {} => Foo::enter_s1(shared_storage),
+                Superstate::S21 => Foo::enter_s21(shared_storage),
+                Superstate::S => Foo::enter_s(shared_storage),
+                Superstate::S2 => Foo::enter_s2(shared_storage),
+                Superstate::S1 => Foo::enter_s1(shared_storage),
             }
         }
 
-        fn call_exit_action(&mut self, shared_storage: &mut Foo, _: &mut ()) {
+        fn call_exit_action<'ctx, 'data: 'ctx>(&mut self, shared_storage: &mut Foo, _: &mut ()) {
             match self {
-                Superstate::S21 {} => Foo::exit_s21(shared_storage),
-                Superstate::S {} => Foo::exit_s(shared_storage),
-                Superstate::S2 {} => Foo::exit_s2(shared_storage),
-                Superstate::S1 {} => Foo::exit_s1(shared_storage),
+                Superstate::S21 => Foo::exit_s21(shared_storage),
+                Superstate::S => Foo::exit_s(shared_storage),
+                Superstate::S2 => Foo::exit_s2(shared_storage),
+                Superstate::S1 => Foo::exit_s1(shared_storage),
             }
         }
 
         fn superstate(&mut self) -> Option<Superstate> {
             match self {
-                Superstate::S21 {} => Some(Superstate::S2 {}),
-                Superstate::S {} => None,
-                Superstate::S2 {} => Some(Superstate::S {}),
-                Superstate::S1 {} => Some(Superstate::S {}),
+                Superstate::S21 => Some(Superstate::S2 {}),
+                Superstate::S => None,
+                Superstate::S2 => Some(Superstate::S {}),
+                Superstate::S1 => Some(Superstate::S {}),
             }
         }
     }
@@ -277,12 +274,12 @@ mod tests {
 
     #[test]
     fn test_transition_path() {
-        let mut state_machine = Foo::default().uninitialized_state_machine().init();
+        let mut state_machine = Foo::default().uninitialized_state_machine().init(&mut ());
 
-        state_machine.handle(&Event::A);
-        state_machine.handle(&Event::B);
-        state_machine.handle(&Event::C);
-        state_machine.handle(&Event::D);
+        state_machine.handle(&Event::A, &mut ());
+        state_machine.handle(&Event::B, &mut ());
+        state_machine.handle(&Event::C, &mut ());
+        state_machine.handle(&Event::D, &mut ());
 
         let expected_path: [(StateWrapper, Action); 17] = [
             (StateWrapper::Super(Superstate::S), Action::Entry),
@@ -311,7 +308,7 @@ mod tests {
                 (Leaf(expected), Leaf(actual)) if actual == expected => continue,
                 _ => panic!(
                     "Transition path at {} is wrong: Actual: {:?}, Expected: {:?}",
-                    i, &state_machine.path[i], &expected_path[i]
+                    i, state_machine.path[i], expected_path[i]
                 ),
             };
         }

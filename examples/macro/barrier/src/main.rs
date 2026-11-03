@@ -49,13 +49,13 @@ impl Foo {
 }
 
 fn main() {
-    let mut state_machine = Foo.uninitialized_state_machine().init();
+    let mut state_machine = Foo.uninitialized_state_machine().init(&mut ());
 
     dbg!(state_machine.state());
 
-    state_machine.handle(&Event::A);
-    state_machine.handle(&Event::B);
-    state_machine.handle(&Event::C);
+    state_machine.handle(&Event::A, &mut ());
+    state_machine.handle(&Event::B, &mut ());
+    state_machine.handle(&Event::C, &mut ());
 
     assert_eq!(state_machine.state(), &State::initialized());
 }

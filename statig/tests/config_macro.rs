@@ -23,6 +23,7 @@ mod tests {
             superstate(name = "MySuperstate", derive(Clone)),
             event_identifier = "my_event",
             context_identifier = "my_context",
+            context = "Context",
             visibility = "pub(crate)"
         )]
         impl MyStateMachine {
@@ -48,7 +49,11 @@ mod tests {
     use module_a::MySuperstate;
 
     // Check that derive traits are correctly applied.
+    //
+    // The self-comparison is intentional: it only has to type-check, which
+    // proves that `PartialEq` was derived.
     #[allow(unused)]
+    #[allow(clippy::eq_op)]
     fn compare() {
         _ = MyState::Bar {} == MyState::Bar {};
         _ = MySuperstate::Foo {}.clone();

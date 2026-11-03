@@ -16,17 +16,17 @@ where
     M::State: State<M> + 'static,
     for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
-    pub(crate) async fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub(crate) async fn init<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>) {
         let enter_levels = self.state.depth();
         self.state
             .enter(&mut self.shared_storage, context, enter_levels)
             .await;
     }
 
-    pub(crate) async fn handle_with_context(
+    pub(crate) async fn handle<'ctx, 'data: 'ctx>(
         &mut self,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) {
         let outcome = self
             .state
@@ -40,7 +40,11 @@ where
     }
 
     /// Transition from the current state to the given target state.
-    pub(crate) async fn transition(&mut self, mut target: M::State, context: &mut M::Context<'_>) {
+    pub(crate) async fn transition<'ctx, 'data: 'ctx>(
+        &mut self,
+        mut target: M::State,
+        context: &mut M::Context<'ctx, 'data>,
+    ) {
         M::before_transition(&mut self.shared_storage, &self.state, &target, context).await;
 
         // Get the transition path we need to perform from one state to the next.
@@ -225,10 +229,6 @@ where
         }
 
         const FIELDS: &[&str] = &["shared_storage", "state"];
-        deserializer.deserialize_struct(
-            "StateMachine",
-            FIELDS,
-            InnerVisitor(PhantomData::default()),
-        )
+        deserializer.deserialize_struct("StateMachine", FIELDS, InnerVisitor(PhantomData))
     }
 }

@@ -37,10 +37,10 @@ mod tests {
 
     #[test]
     fn main() {
-        let mut state_machine = Blinky.uninitialized_state_machine().init();
+        let mut state_machine = Blinky.uninitialized_state_machine().init(&mut ());
 
         for _ in 0..10 {
-            state_machine.handle(&Event);
+            state_machine.handle(&Event, &mut ());
         }
     }
 }

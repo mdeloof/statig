@@ -34,7 +34,7 @@ impl IntoStateMachine for Dishwasher {
 
     type Event<'evt> = Event;
 
-    type Context<'ctx> = ();
+    type Context<'ctx, 'data: 'ctx> = ();
 
     fn initial() -> Self::State {
         State::Idle
@@ -42,13 +42,18 @@ impl IntoStateMachine for Dishwasher {
 
     // On every transition we update the previous state, so we can
     // transition back to it.
-    fn after_transition(&mut self, source: &Self::State, _target: &Self::State, _context: &mut ()) {
+    fn after_transition<'ctx, 'data: 'ctx>(
+        &mut self,
+        source: &Self::State,
+        _target: &Self::State,
+        _context: &mut Self::Context<'ctx, 'data>,
+    ) {
         self.previous_state = source.clone();
     }
 }
 
 impl blocking::State<Dishwasher> for State {
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         shared: &mut Dishwasher,
         event: &Event,
@@ -75,7 +80,7 @@ impl blocking::State<Dishwasher> for State {
 }
 
 impl blocking::Superstate<Dishwasher> for Superstate {
-    fn call_handler(
+    fn call_handler<'ctx, 'data: 'ctx>(
         &mut self,
         shared: &mut Dishwasher,
         event: &Event,
@@ -140,29 +145,29 @@ fn main() {
         previous_state: Dishwasher::initial(),
     }
     .uninitialized_state_machine()
-    .init();
+    .init(&mut ());
 
-    state_machine.handle(&Event::StartProgram);
+    state_machine.handle(&Event::StartProgram, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Soap
 
-    state_machine.handle(&Event::TimerElapsed);
+    state_machine.handle(&Event::TimerElapsed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Rinse
 
-    state_machine.handle(&Event::TimerElapsed);
+    state_machine.handle(&Event::TimerElapsed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Dry
 
-    state_machine.handle(&Event::DoorOpened);
+    state_machine.handle(&Event::DoorOpened, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: DoorOpened
 
-    state_machine.handle(&Event::DoorClosed);
+    state_machine.handle(&Event::DoorClosed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Dry
 
-    state_machine.handle(&Event::TimerElapsed);
+    state_machine.handle(&Event::TimerElapsed, &mut ());
 
     println!("State: {:?}", state_machine.state()); // State: Idle
 }

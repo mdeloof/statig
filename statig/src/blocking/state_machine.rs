@@ -57,53 +57,32 @@ where
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
-    pub fn init(&mut self)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        self.init_with_context(&mut ());
-    }
-
-    /// Explicitly initialize the state machine. If the state machine is already initialized
-    /// this is a no-op.
-    pub fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub fn init<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>) {
         if !self.initialized {
-            self.inner.init_with_context(context);
+            self.inner.init(context);
             self.initialized = true;
         }
     }
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub fn handle(&mut self, event: &M::Event<'_>)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        self.handle_with_context(event, &mut ());
-    }
-
-    /// Handle an event. If the state machine is still uninitialized, it will be initialized
-    /// before handling the event.
-    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>) {
+    pub fn handle<'ctx, 'data: 'ctx>(
+        &mut self,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'ctx, 'data>,
+    ) {
         if !self.initialized {
-            self.inner.init_with_context(context);
+            self.inner.init(context);
             self.initialized = true;
         }
-        self.inner.handle_with_context(event, context);
+        self.inner.handle(event, context);
     }
 
-    pub fn step(&mut self)
-    where
-        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
-    {
-        self.handle_with_context(&(), &mut ());
-    }
-
-    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    pub fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context);
+        self.handle(&(), context);
     }
 
     /// Get the current state.
@@ -343,39 +322,25 @@ where
     M::State: State<M>,
 {
     /// Handle the given event.
-    pub fn handle(&mut self, event: &M::Event<'_>)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
-    {
-        self.handle_with_context(event, &mut ());
-    }
-
-    /// Handle the given event.
-    pub fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
-    where
+    pub fn handle<'ctx, 'data: 'ctx>(
+        &mut self,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'ctx, 'data>,
+    ) where
         M: IntoStateMachine,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
-        self.inner.handle_with_context(event, context);
+        self.inner.handle(event, context);
     }
 
-    /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step(&mut self)
-    where
-        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
-    {
-        self.handle(&());
-    }
-
-    /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    /// This is the same as `handle(&(), context)` in the case `Event` is of
+    /// type `()`.
+    pub fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
-        self.handle_with_context(&(), context);
+        self.handle(&(), context);
     }
 
     /// Get an immutable reference to the current state of the state machine.
@@ -404,7 +369,7 @@ where
     /// # }
     /// #
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// let initialized_state_machine = uninitialized_state_machine.init(&mut ());
     /// assert_eq!(initialized_state_machine.inner().led, false);
     /// ```
     pub fn inner(&self) -> &M {
@@ -434,7 +399,7 @@ where
     /// # }
     /// #
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init(&mut ());
     /// unsafe {
     ///     initialized_state_machine.inner_mut().led = true;
     /// }
@@ -466,7 +431,7 @@ where
     /// # }
     /// #
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init();
+    /// let mut initialized_state_machine = uninitialized_state_machine.init(&mut ());
     ///
     /// unsafe {
     ///     *initialized_state_machine.state_mut() = State::on();
@@ -602,48 +567,17 @@ where
     ///
     /// // The uninitialized state machine is consumed to create the initialized
     /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init();
+    /// let initialized_state_machine = uninitialized_state_machine.init(&mut ());
     /// ```
-    pub fn init(self) -> InitializedStateMachine<M>
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-        for<'sub> M::Superstate<'sub>: Superstate<M>,
-    {
-        let mut state_machine = InitializedStateMachine { inner: self.inner };
-        state_machine.inner.init_with_context(&mut ());
-        state_machine
-    }
-
-    /// Initialize the state machine by executing all entry actions towards
-    /// the initial state.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(initial = "State::on()")]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     fn on(event: &Event) -> Outcome<State> { Handled }
-    /// # }
-    /// #
-    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    ///
-    /// // The uninitialized state machine is consumed to create the initialized
-    /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init();
-    /// ```
-    pub fn init_with_context(self, context: &mut M::Context<'_>) -> InitializedStateMachine<M>
+    pub fn init<'ctx, 'data: 'ctx>(
+        self,
+        context: &mut M::Context<'ctx, 'data>,
+    ) -> InitializedStateMachine<M>
     where
         for<'sub> M::Superstate<'sub>: Superstate<M>,
     {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
-        state_machine.inner.init_with_context(context);
+        state_machine.inner.init(context);
         state_machine
     }
 

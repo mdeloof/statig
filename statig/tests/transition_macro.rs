@@ -203,12 +203,12 @@ mod tests {
 
     #[test]
     fn test_transition_path() {
-        let mut state_machine = Foo::default().uninitialized_state_machine().init();
+        let mut state_machine = Foo::default().uninitialized_state_machine().init(&mut ());
 
-        state_machine.handle(&Event::A);
-        state_machine.handle(&Event::B);
-        state_machine.handle(&Event::C);
-        state_machine.handle(&Event::D);
+        state_machine.handle(&Event::A, &mut ());
+        state_machine.handle(&Event::B, &mut ());
+        state_machine.handle(&Event::C, &mut ());
+        state_machine.handle(&Event::D, &mut ());
 
         let expected_path: [(StateWrapper, Action); 17] = [
             (StateWrapper::Super(Superstate::S {}), Action::Entry),
@@ -237,7 +237,7 @@ mod tests {
                 (Leaf(expected), Leaf(actual)) if actual == expected => continue,
                 _ => panic!(
                     "Transition path at {} is wrong: Actual: {:?}, Expected: {:?}",
-                    i, &state_machine.path[i], &expected_path[i]
+                    i, state_machine.path[i], expected_path[i]
                 ),
             };
         }

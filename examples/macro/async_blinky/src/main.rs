@@ -117,10 +117,10 @@ async fn main() {
     let future = async move {
         let mut state_machine = Blinky.state_machine();
 
-        state_machine.handle(&Event::TimerElapsed).await;
-        state_machine.handle(&Event::ButtonPressed).await;
-        state_machine.handle(&Event::TimerElapsed).await;
-        state_machine.handle(&Event::ButtonPressed).await;
+        state_machine.handle(&Event::TimerElapsed, &mut ()).await;
+        state_machine.handle(&Event::ButtonPressed, &mut ()).await;
+        state_machine.handle(&Event::TimerElapsed, &mut ()).await;
+        state_machine.handle(&Event::ButtonPressed, &mut ()).await;
     };
 
     let local = task::LocalSet::new();

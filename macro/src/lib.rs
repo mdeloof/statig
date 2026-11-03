@@ -18,7 +18,8 @@ use parse::{parse_args, parse_input};
 
 const SUPERSTATE_LIFETIME: &str = "'sub";
 const EVENT_LIFETIME: &str = "'event";
-const CONTEXT_LIFETIME: &str = "'context";
+const CONTEXT_LIFETIME: &str = "'ctx";
+const CONTEXT_DATA_LIFETIME: &str = "'data";
 
 #[proc_macro_error]
 #[proc_macro_attribute]

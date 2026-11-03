@@ -50,10 +50,10 @@ fn main() {
 
     let mut state_machine = Blinky::default().state_machine();
 
-    state_machine.handle(&Event::TimerElapsed);
-    state_machine.handle(&Event::ButtonPressed);
-    state_machine.handle(&Event::TimerElapsed);
-    state_machine.handle(&Event::ButtonPressed);
+    state_machine.handle(&Event::TimerElapsed, &mut ());
+    state_machine.handle(&Event::ButtonPressed, &mut ());
+    state_machine.handle(&Event::TimerElapsed, &mut ());
+    state_machine.handle(&Event::ButtonPressed, &mut ());
 
     let end = std::time::Instant::now();
 

@@ -1,0 +1,5 @@
+error: context type must be declared with `context = "..."` on `#[state_machine]`
+  --> tests/ui/context_attribute_missing_superstate.rs:29:11
+   |
+29 |     fn on(context: &mut Ctx<'_, '_>, event: &Event) -> Outcome<State> {
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^

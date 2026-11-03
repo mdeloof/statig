@@ -11,7 +11,7 @@ pub enum Outcome<S> {
 }
 
 /// Type alias that will be removed in some future release. Use `Outcome` instead.
-#[deprecated(since = "0.4", note = "`Response` has been renamed to `Outcome`")]
+#[deprecated(since = "0.4.0", note = "`Response` has been renamed to `Outcome`")]
 pub type Response<S> = Outcome<S>;
 
 impl<S> PartialEq for Outcome<S>

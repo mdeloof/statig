@@ -1,0 +1,15 @@
+error[E0261]: use of undeclared lifetime name `'a`
+  --> tests/ui/context_attribute_foreign_lifetime.rs:18:54
+   |
+18 | #[state_machine(initial = "State::idle()", context = "Ctx<'a, 'b>")]
+   |                                                      ^^^^^^^^^^^^^  - lifetime `'a` is missing in item created through this procedural macro
+   |                                                      |
+   |                                                      undeclared lifetime
+
+error[E0261]: use of undeclared lifetime name `'b`
+  --> tests/ui/context_attribute_foreign_lifetime.rs:18:54
+   |
+18 | #[state_machine(initial = "State::idle()", context = "Ctx<'a, 'b>")]
+   |                                                      ^^^^^^^^^^^^^  - lifetime `'b` is missing in item created through this procedural macro
+   |                                                      |
+   |                                                      undeclared lifetime

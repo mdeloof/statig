@@ -59,57 +59,32 @@ where
 {
     /// Explicitly initialize the state machine. If the state machine is already initialized
     /// this is a no-op.
-    pub async fn init(&mut self)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        self.init_with_context(&mut ()).await;
-    }
-
-    /// Explicitly initialize the state machine. If the state machine is already initialized
-    /// this is a no-op.
-    pub async fn init_with_context(&mut self, context: &mut M::Context<'_>) {
+    pub async fn init<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>) {
         if !self.initialized {
-            self.inner.init_with_context(context).await;
+            self.inner.init(context).await;
             self.initialized = true;
         }
     }
 
     /// Handle an event. If the state machine is still uninitialized, it will be initialized
     /// before handling the event.
-    pub async fn handle(&mut self, event: &M::Event<'_>)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        self.handle_with_context(event, &mut ()).await;
-    }
-
-    /// Handle an event. If the state machine is still uninitialized, it will be initialized
-    /// before handling the event.
-    pub async fn handle_with_context(
+    pub async fn handle<'ctx, 'data: 'ctx>(
         &mut self,
         event: &M::Event<'_>,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) {
         if !self.initialized {
-            self.inner.init_with_context(context).await;
+            self.inner.init(context).await;
             self.initialized = true;
         }
-        self.inner.handle_with_context(event, context).await;
+        self.inner.handle(event, context).await;
     }
 
-    pub async fn step(&mut self)
-    where
-        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
-    {
-        self.handle_with_context(&(), &mut ()).await;
-    }
-
-    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    pub async fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context).await;
+        self.handle(&(), context).await;
     }
 
     /// Get the current state.
@@ -350,35 +325,23 @@ where
     for<'sub> M::Superstate<'sub>: Superstate<M>,
 {
     /// Handle the given event.
-    pub async fn handle(&mut self, event: &M::Event<'_>)
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        self.handle_with_context(event, &mut ()).await;
-    }
-
-    /// Handle the given event.
-    pub async fn handle_with_context(&mut self, event: &M::Event<'_>, context: &mut M::Context<'_>)
-    where
+    pub async fn handle<'ctx, 'data: 'ctx>(
+        &mut self,
+        event: &M::Event<'_>,
+        context: &mut M::Context<'ctx, 'data>,
+    ) where
         M: IntoStateMachine,
     {
-        self.inner.handle_with_context(event, context).await;
+        self.inner.handle(event, context).await;
     }
 
-    /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub async fn step(&mut self)
-    where
-        for<'evt, 'ctx> M: IntoStateMachine<Event<'evt> = (), Context<'ctx> = ()>,
-    {
-        self.handle(&()).await;
-    }
-
-    /// This is the same as `handle(())` in the case `Event` is of type `()`.
-    pub async fn step_with_context(&mut self, context: &mut M::Context<'_>)
+    /// This is the same as `handle(&(), context)` in the case `Event` is of
+    /// type `()`.
+    pub async fn step<'ctx, 'data: 'ctx>(&mut self, context: &mut M::Context<'ctx, 'data>)
     where
         for<'evt> M: IntoStateMachine<Event<'evt> = ()>,
     {
-        self.handle_with_context(&(), context).await;
+        self.handle(&(), context).await;
     }
 
     /// Get an immutable reference to the current state of the state machine.
@@ -409,7 +372,7 @@ where
     /// #
     /// # executor::block_on(async {
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let initialized_state_machine = uninitialized_state_machine.init().await;
+    /// let initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     /// assert_eq!(initialized_state_machine.inner().led, false);
     /// # })
     /// ```
@@ -442,7 +405,7 @@ where
     /// #
     /// # executor::block_on(async {
     /// # let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init().await;
+    /// let mut initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     /// unsafe {
     ///     initialized_state_machine.inner_mut().led = true;
     /// }
@@ -477,7 +440,7 @@ where
     /// #
     /// # executor::block_on(async {
     /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    /// let mut initialized_state_machine = uninitialized_state_machine.init().await;
+    /// let mut initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     ///
     /// unsafe {
     ///     *initialized_state_machine.state_mut() = State::on();
@@ -617,51 +580,15 @@ where
     ///
     /// // The uninitialized state machine is consumed to create the initialized
     /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init().await;
+    /// let initialized_state_machine = uninitialized_state_machine.init(&mut ()).await;
     /// # })
     /// ```
-    pub async fn init(self) -> InitializedStateMachine<M>
-    where
-        for<'ctx> M: IntoStateMachine<Context<'ctx> = ()>,
-    {
-        let mut state_machine = InitializedStateMachine { inner: self.inner };
-        state_machine.inner.init_with_context(&mut ()).await;
-        state_machine
-    }
-
-    /// Initialize the state machine by executing all entry actions towards
-    /// the initial state.
-    ///
-    /// ```
-    /// # use statig::prelude::*;
-    /// # use futures::executor;
-    /// # #[derive(Default)]
-    /// # pub struct Blinky {
-    /// #     led: bool,
-    /// # }
-    /// #
-    /// # pub struct Event;
-    /// #
-    /// # #[state_machine(initial = "State::on()")]
-    /// # impl Blinky {
-    /// #     #[state]
-    /// #     async fn on(event: &Event) -> Outcome<State> { Handled }
-    /// # }
-    /// #
-    /// # executor::block_on(async {
-    /// let uninitialized_state_machine = Blinky::default().uninitialized_state_machine();
-    ///
-    /// // The uninitialized state machine is consumed to create the initialized
-    /// // state machine.
-    /// let initialized_state_machine = uninitialized_state_machine.init().await;
-    /// # })
-    /// ```
-    pub async fn init_with_context(
+    pub async fn init<'ctx, 'data: 'ctx>(
         self,
-        context: &mut M::Context<'_>,
+        context: &mut M::Context<'ctx, 'data>,
     ) -> InitializedStateMachine<M> {
         let mut state_machine = InitializedStateMachine { inner: self.inner };
-        state_machine.inner.init_with_context(context).await;
+        state_machine.inner.init(context).await;
         state_machine
     }
 
